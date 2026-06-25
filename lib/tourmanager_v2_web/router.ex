@@ -30,6 +30,12 @@ defmodule TourmanagerV2Web.Router do
     post "/set_distance_unit", SessionController, :set_distance_unit
   end
 
+  scope "/webhooks", TourmanagerV2Web do
+    pipe_through :api
+
+    post "/stripe", StripeWebhookController, :webhook
+  end
+
   scope "/", TourmanagerV2Web do
     pipe_through :browser
 
@@ -38,6 +44,8 @@ defmodule TourmanagerV2Web.Router do
       live "/", DaySheetLive
       live "/routing", RoutingLive
       live "/dashboard", DashboardLive
+      live "/admin/jobs", Admin.JobsLive
+      live "/admin/users", Admin.UsersLive
     end
   end
 

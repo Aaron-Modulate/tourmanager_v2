@@ -20,6 +20,8 @@ defmodule TourmanagerV2Web.AuthController do
         |> redirect(to: "/")
 
       {:ok, user} ->
+        Accounts.update_last_login(user)
+
         conn
         |> put_session(:user_id, user.id)
         |> configure_session(renew: true)

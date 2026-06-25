@@ -358,7 +358,14 @@ defmodule TourmanagerV2Web.TourSwitching do
       end
 
       def handle_event("open_settings", _params, socket) do
-        {:noreply, assign(socket, :settings_open, true)}
+        user = socket.assigns.current_user
+        seats = if user, do: user.crew_seats || 10, else: 10
+
+        {:noreply,
+         socket
+         |> assign(:settings_open, true)
+         |> assign(:billing_seats, seats)
+         |> assign(:billing_error, nil)}
       end
 
       def handle_event("close_settings", _params, socket) do
@@ -374,6 +381,54 @@ defmodule TourmanagerV2Web.TourSwitching do
 
           {:error, _changeset} ->
             {:noreply, socket}
+        end
+      end
+
+      def handle_event("increment_seats", _params, socket) do
+        seats = (socket.assigns[:billing_seats] || 10) + 1
+        {:noreply, assign(socket, :billing_seats, seats)}
+      end
+
+      def handle_event("decrement_seats", _params, socket) do
+        seats = max((socket.assigns[:billing_seats] || 10) - 1, 10)
+        {:noreply, assign(socket, :billing_seats, seats)}
+      end
+
+      def handle_event("subscribe", _params, socket) do
+        user = socket.assigns.current_user
+        seats = socket.assigns[:billing_seats] || 10
+
+        case TourmanagerV2.Billing.create_checkout_session(user, seats) do
+          {:ok, %{url: url}} ->
+            {:noreply, redirect(socket, external: url)}
+
+          {:error, reason} ->
+            msg = if is_binary(reason), do: reason, else: "Payment failed. Try again."
+            {:noreply, assign(socket, :billing_error, msg)}
+        end
+      end
+
+      def handle_event("cancel_subscription", _params, socket) do
+        user = socket.assigns.current_user
+
+        case TourmanagerV2.Billing.cancel_subscription(user) do
+          :ok ->
+            updated_user =
+              user
+              |> TourmanagerV2.Accounts.User.changeset(%{
+                subscription_status: "cancelling",
+                cancelled_at: DateTime.utc_now()
+              })
+              |> TourmanagerV2.Repo.update!()
+
+            {:noreply,
+             socket
+             |> assign(:current_user, updated_user)
+             |> assign(:billing_error, nil)}
+
+          {:error, reason} ->
+            msg = if is_binary(reason), do: reason, else: "Could not cancel. Contact support."
+            {:noreply, assign(socket, :billing_error, msg)}
         end
       end
 

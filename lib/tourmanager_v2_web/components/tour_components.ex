@@ -437,26 +437,12 @@ defmodule TourmanagerV2Web.TourComponents do
 
   attr :current_user, :map, required: true
   attr :show, :boolean, default: false
+  attr :billing_seats, :integer, default: 10
+  attr :billing_error, :string, default: nil
 
   def settings_modal(assigns) do
-    plans = [
-      %{
-        id: "free",
-        name: "Crew",
-        price: "Free",
-        desc: "View tours, day sheets and schedules you're invited to.",
-        features: ["View assigned tours", "Day sheet access", "Schedule & alerts"]
-      },
-      %{
-        id: "paid",
-        name: "Manager",
-        price: "Pro",
-        desc: "Create tours, invite crew, and run the whole show.",
-        features: ["Everything in Crew", "Create & manage tours", "Invite crew members", "Full admin controls"]
-      }
-    ]
-
-    assigns = assign(assigns, :plans, plans)
+    billing = TourmanagerV2.Billing.price_breakdown(assigns.billing_seats)
+    assigns = assign(assigns, :billing, billing)
 
     ~H"""
     <.tm_modal id="settings-modal" show={@show} on_close="close_settings">
@@ -499,52 +485,134 @@ defmodule TourmanagerV2Web.TourComponents do
         </div>
       </div>
 
-      <%!-- Plan selector --%>
-      <div class="px-6 py-5">
-        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 12px;">SELECT PLAN</div>
-        <div class="flex flex-col gap-3">
-          <button
-            :for={plan <- @plans}
-            type="button"
-            phx-click="select_plan"
-            phx-value-plan={plan.id}
-            class={[
-              "w-full text-left rounded-[var(--radius-md)] p-4 cursor-pointer transition-all",
-              if(@current_user.plan == plan.id,
-                do: "border-2 border-[var(--brand)]",
-                else: "border border-[var(--paper-300)] hover:border-[var(--ink-400)]"
-              )
-            ]}
-            style={"background: #{if @current_user.plan == plan.id, do: "var(--marker-050)", else: "var(--surface-card)"}; #{if @current_user.plan == plan.id, do: "box-shadow: var(--shadow-hard-sm);", else: ""}"}
-          >
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2.5">
-                <div style="font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--ink-900);">{plan.name}</div>
-                <span
-                  :if={@current_user.plan == plan.id}
-                  class="px-2 py-0.5 rounded-[var(--radius-stamp)]"
-                  style="background: var(--brand); color: #fff; font-family: var(--font-mono); font-weight: 700; font-size: 9px; letter-spacing: 0.1em;"
-                >ACTIVE</span>
-              </div>
-              <div style="font-family: var(--font-mono); font-weight: 700; font-size: 13px; color: var(--ink-400);">{plan.price}</div>
+      <%!-- Crew seats + billing --%>
+      <div class="px-6 py-5 border-b border-[var(--paper-300)]">
+        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 12px;">CREW SEATS</div>
+
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div style="font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-900);">1 manager + {@billing_seats} crew</div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400); margin-top: 2px;">Base plan includes 10 seats</div>
+          </div>
+          <div class="flex items-center gap-0">
+            <button
+              type="button"
+              phx-click="decrement_seats"
+              disabled={@billing_seats <= 10}
+              class={[
+                "w-9 h-9 flex items-center justify-center rounded-l-[var(--radius-md)] cursor-pointer transition-colors border border-r-0",
+                if(@billing_seats <= 10, do: "opacity-30 cursor-not-allowed", else: "hover:bg-[var(--paper-200)]")
+              ]}
+              style="border-color: var(--paper-300); background: var(--surface-card);"
+            >
+              <.icon name="hero-minus-mini" class="w-4 h-4 text-[var(--ink-500)]" />
+            </button>
+            <div
+              class="w-14 h-9 flex items-center justify-center border-y"
+              style="border-color: var(--paper-300); background: var(--surface-card); font-family: var(--font-mono); font-weight: 700; font-size: 16px; color: var(--ink-900);"
+            >
+              {@billing_seats}
             </div>
-            <div class="text-[13px] text-[var(--ink-400)] mb-3">{plan.desc}</div>
-            <div class="flex flex-col gap-1.5">
-              <div
-                :for={feature <- plan.features}
-                class="flex items-center gap-2"
-                style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500);"
-              >
-                <.icon name="hero-check-mini" class={["w-3.5 h-3.5", if(@current_user.plan == plan.id, do: "text-[var(--brand)]", else: "text-[var(--ink-300)]")]} />
-                {feature}
-              </div>
-            </div>
-          </button>
+            <button
+              type="button"
+              phx-click="increment_seats"
+              class="w-9 h-9 flex items-center justify-center rounded-r-[var(--radius-md)] cursor-pointer transition-colors border border-l-0 hover:bg-[var(--paper-200)]"
+              style="border-color: var(--paper-300); background: var(--surface-card);"
+            >
+              <.icon name="hero-plus-mini" class="w-4 h-4 text-[var(--ink-500)]" />
+            </button>
+          </div>
         </div>
+
+        <%!-- Pricing breakdown --%>
+        <div class="rounded-[var(--radius-md)] p-4 border border-[var(--paper-300)]" style="background: var(--paper-200);">
+          <div class="flex items-center justify-between mb-1.5">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500);">Base plan (1 mgr + 10 crew)</div>
+            <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--ink-700);">{@billing.base}</div>
+          </div>
+          <%= if @billing.extra_seats > 0 do %>
+            <div class="flex items-center justify-between mb-1.5">
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500);">{@billing.extra_seats} extra seat{if @billing.extra_seats != 1, do: "s", else: ""} × $2</div>
+              <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--ink-700);">{@billing.extra_cost}</div>
+            </div>
+          <% end %>
+          <div class="flex items-center justify-between pt-2 mt-2 border-t border-[var(--paper-300)]">
+            <div style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink-900);">MONTHLY TOTAL</div>
+            <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--ink-900);">{@billing.total}</div>
+          </div>
+        </div>
+
+        <%!-- Error --%>
+        <div
+          :if={@billing_error}
+          class="mt-3 px-3 py-2 rounded-[var(--radius-sm)]"
+          style="background: var(--signal-stop-tint); border: 1px solid var(--signal-stop); font-family: var(--font-mono); font-size: 11px; color: var(--signal-stop);"
+        >
+          {@billing_error}
+        </div>
+
+        <%!-- Subscribe button --%>
+        <button
+          type="button"
+          phx-click="subscribe"
+          class="w-full mt-4 px-5 py-3 rounded-[var(--radius-md)] cursor-pointer transition-all flex items-center justify-center gap-2"
+          style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+        >
+          <.icon name="hero-credit-card-mini" class="w-4 h-4" />
+          <%= if @current_user.plan == "paid" do %>
+            UPDATE PLAN
+          <% else %>
+            SUBSCRIBE · {@billing.total}/MO
+          <% end %>
+        </button>
       </div>
 
+      <%!-- Current plan status + cancellation --%>
+      <%= if @current_user.plan == "paid" do %>
+        <div class="px-6 py-4 border-b border-[var(--paper-300)]">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <%= if @current_user.subscription_status == "cancelling" do %>
+                <span
+                  class="px-2 py-0.5 rounded-[var(--radius-stamp)]"
+                  style="background: var(--signal-sound); color: #fff; font-family: var(--font-mono); font-weight: 700; font-size: 9px; letter-spacing: 0.1em;"
+                >CANCELLING</span>
+              <% else %>
+                <span
+                  class="px-2 py-0.5 rounded-[var(--radius-stamp)]"
+                  style="background: var(--signal-live); color: #fff; font-family: var(--font-mono); font-weight: 700; font-size: 9px; letter-spacing: 0.1em;"
+                >ACTIVE</span>
+              <% end %>
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500);">
+                Manager plan · {@current_user.crew_seats || 10} seats
+              </div>
+            </div>
+          </div>
+
+          <%= if @current_user.subscription_status == "cancelling" && @current_user.subscription_period_end do %>
+            <div class="mt-3 px-3 py-2 rounded-[var(--radius-sm)]" style="background: var(--signal-sound-tint); border: 1px solid var(--signal-sound);">
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-700);">
+                Your plan remains active until {Calendar.strftime(@current_user.subscription_period_end, "%d %b %Y")}. You can resubscribe at any time.
+              </div>
+            </div>
+          <% end %>
+
+          <%= if @current_user.subscription_status == "active" && @current_user.stripe_subscription_id do %>
+            <div class="mt-3">
+              <button
+                type="button"
+                phx-click="cancel_subscription"
+                data-confirm="Cancel your subscription? You'll keep access until the end of this billing cycle."
+                class="px-3 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]"
+                style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop); background: transparent; border: 1px solid var(--signal-stop);"
+              >CANCEL SUBSCRIPTION</button>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
       <%!-- Distance unit preference --%>
-      <div class="px-6 py-4 border-t border-[var(--paper-300)]">
+      <div class="px-6 py-4 border-b border-[var(--paper-300)]">
         <div class="flex items-center justify-between">
           <div>
             <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 4px;">DISTANCE UNIT</div>

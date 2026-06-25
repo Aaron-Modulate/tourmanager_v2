@@ -104,6 +104,18 @@ defmodule TourmanagerV2.Accounts do
     |> Repo.update()
   end
 
+  def list_users do
+    User
+    |> order_by(asc: :name)
+    |> Repo.all()
+  end
+
+  def update_last_login(%User{} = user) do
+    user
+    |> User.changeset(%{last_login_at: DateTime.utc_now()})
+    |> Repo.update()
+  end
+
   def user_role_in_tour(tour_id, user_id) do
     TourMembership
     |> where(tour_id: ^tour_id, user_id: ^user_id)

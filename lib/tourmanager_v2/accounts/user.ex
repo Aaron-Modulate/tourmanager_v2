@@ -19,6 +19,16 @@ defmodule TourmanagerV2.Accounts.User do
     field :provider_uid, :string
     field :avatar_url, :string
     field :distance_unit, :string, default: "km"
+    field :stripe_customer_id, :string
+    field :stripe_subscription_id, :string
+    field :stripe_price_id, :string
+    field :crew_seats, :integer, default: 10
+    field :subscription_quantity, :integer
+    field :subscription_status, :string
+    field :subscription_period_end, :utc_datetime
+    field :cancelled_at, :utc_datetime
+    field :is_admin, :boolean, default: false
+    field :last_login_at, :utc_datetime
 
     has_many :memberships, TourmanagerV2.Accounts.WorkspaceMembership
     has_many :workspaces, through: [:memberships, :workspace]
@@ -31,7 +41,10 @@ defmodule TourmanagerV2.Accounts.User do
 
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :name, :role, :plan, :avatar_url, :distance_unit])
+    |> cast(attrs, [:email, :name, :role, :plan, :avatar_url, :distance_unit,
+                    :stripe_customer_id, :stripe_subscription_id, :stripe_price_id,
+                    :crew_seats, :subscription_quantity, :subscription_status,
+                    :subscription_period_end, :cancelled_at, :is_admin, :last_login_at])
     |> validate_required([:email, :name])
     |> unique_constraint(:email)
     |> validate_inclusion(:role, @roles)
@@ -59,4 +72,16 @@ defmodule TourmanagerV2.Accounts.User do
 
   def manager?(%__MODULE__{role: "manager"}), do: true
   def manager?(_), do: false
+
+  def subscription_active?(%__MODULE__{subscription_status: "active"}), do: true
+  def subscription_active?(_), do: false
+
+  def subscription_cancelling?(%__MODULE__{subscription_status: "cancelling"}), do: true
+  def subscription_cancelling?(_), do: false
+
+  def subscribed?(%__MODULE__{plan: "paid"}), do: true
+  def subscribed?(_), do: false
+
+  def admin?(%__MODULE__{is_admin: true}), do: true
+  def admin?(_), do: false
 end

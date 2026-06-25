@@ -10,6 +10,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
         active_tab: "show",
         tour_menu_open: false,
         settings_open: false,
+        billing_seats: 10,
+        billing_error: nil,
         new_tour_open: false,
         new_tour_form: nil,
         add_route_open: false,
@@ -107,6 +109,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
       new_tour_form={@new_tour_form}
       headerbar_entry={@headerbar_entry}
       headerbar_is_today={@headerbar_is_today}
+      billing_seats={@billing_seats}
+      billing_error={@billing_error}
     >
       <div id="day-sheet" class="p-7 grid grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5 items-start">
         <%!-- Left: run of show --%>

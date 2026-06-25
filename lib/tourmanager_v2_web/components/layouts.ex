@@ -19,6 +19,8 @@ defmodule TourmanagerV2Web.Layouts do
   attr :new_tour_form, :map, default: nil
   attr :headerbar_entry, :map, default: nil
   attr :headerbar_is_today, :boolean, default: false
+  attr :billing_seats, :integer, default: 10
+  attr :billing_error, :string, default: nil
 
   slot :inner_block, required: true
 
@@ -260,7 +262,7 @@ defmodule TourmanagerV2Web.Layouts do
         </main>
       </div>
 
-      <.settings_modal :if={@current_user} current_user={@current_user} show={@settings_open} />
+      <.settings_modal :if={@current_user} current_user={@current_user} show={@settings_open} billing_seats={@billing_seats} billing_error={@billing_error} />
       <.new_tour_modal :if={@new_tour_form} form={@new_tour_form} show={@new_tour_open} />
     </div>
     """
@@ -293,8 +295,8 @@ defmodule TourmanagerV2Web.Layouts do
     end
   end
 
-  defp nav_items(_user, _role) do
-    [
+  defp nav_items(user, _role) do
+    base = [
       %{id: "daysheet", label: "Day sheet", icon: "hero-clipboard-document-list", path: "/", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" end},
       %{id: "routing", label: "Routing", icon: "hero-map", path: "/routing", soft: false,
@@ -308,6 +310,20 @@ defmodule TourmanagerV2Web.Layouts do
       %{id: "guestlist", label: "Guest list", icon: "hero-ticket", path: "#", soft: true,
         active: fn _assigns -> false end},
     ]
+
+    admin_items =
+      if user && TourmanagerV2.Accounts.User.admin?(user) do
+        [
+          %{id: "admin_jobs", label: "Jobs", icon: "hero-bolt", path: "/admin/jobs", soft: false,
+            active: fn assigns -> Map.get(assigns, :active_nav) == "admin_jobs" end},
+          %{id: "admin_users", label: "Users", icon: "hero-user-group", path: "/admin/users", soft: false,
+            active: fn assigns -> Map.get(assigns, :active_nav) == "admin_users" end},
+        ]
+      else
+        []
+      end
+
+    base ++ admin_items
   end
 
   defp user_initials(name) when is_binary(name) do

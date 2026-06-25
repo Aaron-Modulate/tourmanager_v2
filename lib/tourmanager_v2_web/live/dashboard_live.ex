@@ -9,6 +9,8 @@ defmodule TourmanagerV2Web.DashboardLive do
         active_nav: "dashboard",
         tour_menu_open: false,
         settings_open: false,
+        billing_seats: 10,
+        billing_error: nil,
         new_tour_open: false,
         new_tour_form: nil,
         add_route_open: false,
@@ -57,6 +59,8 @@ defmodule TourmanagerV2Web.DashboardLive do
       new_tour_form={@new_tour_form}
       headerbar_entry={@headerbar_entry}
       headerbar_is_today={@headerbar_is_today}
+      billing_seats={@billing_seats}
+      billing_error={@billing_error}
     >
       <div id="dashboard" class="p-7">
         <div class="flex items-end justify-between mb-5">
