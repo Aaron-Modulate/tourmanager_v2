@@ -1,0 +1,30 @@
+<!-- @dsCard group="Brand" viewport="700x200" name="Poster Textures" subtitle="Halftone, grain, misregistration & ruled hairlines" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0}
+  .wrap{height:200px;display:flex;font-family:var(--font-mono);font-size:10px}
+  .cell{flex:1;position:relative;display:flex;align-items:flex-end;padding:10px;box-sizing:border-box}
+  .lbl{position:relative;z-index:2;letter-spacing:0.16em;text-transform:uppercase}
+  .a{background:var(--marker-500);color:#fff}
+  .b{background:var(--paper-100);color:var(--ink-700)}
+  .c{background:var(--ink-900);color:var(--paper-100)}
+  .d{background:var(--paper-50);color:var(--ink-700)}
+  .big{font-family:var(--font-display);font-weight:800;font-size:30px;letter-spacing:-0.02em;line-height:1;color:var(--ink-900)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="cell a tm-halftone tm-halftone--light"><span class="lbl">Halftone</span></div>
+    <div class="cell b tm-grain"><span class="lbl">Grain</span></div>
+    <div class="cell d" style="align-items:center;justify-content:center">
+      <span class="big tm-misreg" data-ghost="DOORS">DOORS</span>
+    </div>
+    <div class="cell d tm-ruled" style="--tm-rule-step:22px"><span class="lbl">Ruled</span></div>
+    <div class="cell c tm-halftone tm-halftone--light"><span class="lbl">Stage + dots</span></div>
+  </div>
+</body>
+</html>

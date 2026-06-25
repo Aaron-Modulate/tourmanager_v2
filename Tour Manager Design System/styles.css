@@ -1,0 +1,13 @@
+/* ============================================================
+   Tour Manager Design System — global entry point.
+   Consumers link THIS file only. Keep it a list of @imports.
+   fonts.css must come first so @font-face / webfont @import
+   rules are declared before any other rule in the closure.
+   ============================================================ */
+@import url('tokens/fonts.css');
+@import url('tokens/colors.css');
+@import url('tokens/typography.css');
+@import url('tokens/spacing.css');
+@import url('tokens/effects.css');
+@import url('tokens/motion.css');
+@import url('tokens/poster.css');

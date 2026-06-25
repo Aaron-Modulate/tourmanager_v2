@@ -1,0 +1,28 @@
+<!-- @dsCard group="Type" viewport="700x200" name="Body — Archivo" subtitle="All UI and running text, with the type scale" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0}
+  .wrap{background:var(--paper-50);height:200px;padding:18px 22px;box-sizing:border-box;font-family:var(--font-sans);color:var(--ink-700);display:flex;flex-direction:column;justify-content:center;gap:9px}
+  .scale{display:flex;align-items:baseline;gap:14px}
+  .scale .px{font-family:var(--font-mono);font-size:10px;color:var(--ink-400);width:60px;flex:none}
+  .xl{font-size:22px;font-weight:600;color:var(--ink-900)}
+  .lg{font-size:18px;font-weight:500;color:var(--ink-900)}
+  .md{font-size:16px;font-weight:400}
+  .sm{font-size:14px;font-weight:400}
+  .xs{font-size:12px;font-weight:500;color:var(--ink-500)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="scale"><span class="px">22 / 600</span><span class="xl">Heading — call time at noon</span></div>
+    <div class="scale"><span class="px">18 / 500</span><span class="lg">Subhead — load-in via the loading dock</span></div>
+    <div class="scale"><span class="px">16 / 400</span><span class="md">Body copy. The default reading size for schedules, notes and details.</span></div>
+    <div class="scale"><span class="px">14 / 400</span><span class="sm">Secondary — supporting details and metadata.</span></div>
+    <div class="scale"><span class="px">12 / 500</span><span class="xs">Caption — fine print and timestamps.</span></div>
+  </div>
+</body>
+</html>

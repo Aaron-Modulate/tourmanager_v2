@@ -1,0 +1,39 @@
+<!-- @dsCard group="Spacing" viewport="700x170" name="Spacing & Radius" subtitle="4px grid; crisp hardware radii" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0}
+  .wrap{background:var(--paper-50);height:170px;padding:18px 22px;box-sizing:border-box;font-family:var(--font-mono);display:flex;gap:34px;align-items:center}
+  .col{display:flex;flex-direction:column;gap:7px}
+  .bar{display:flex;align-items:center;gap:10px;font-size:10px;color:var(--ink-500)}
+  .bar i{display:block;height:12px;background:var(--marker-500);border-radius:1px}
+  .rad{display:flex;gap:12px;align-items:flex-end}
+  .rad div{width:46px;height:46px;background:var(--ink-900);display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;color:var(--paper-100);font-size:9px}
+  .lab{font-size:10px;letter-spacing:0.2em;color:var(--ink-400);text-transform:uppercase;margin-bottom:2px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="col">
+      <div class="lab">Space · 4px grid</div>
+      <div class="bar"><i style="width:4px"></i>1 · 4</div>
+      <div class="bar"><i style="width:8px"></i>2 · 8</div>
+      <div class="bar"><i style="width:16px"></i>4 · 16</div>
+      <div class="bar"><i style="width:24px"></i>6 · 24</div>
+      <div class="bar"><i style="width:32px"></i>8 · 32</div>
+    </div>
+    <div class="col">
+      <div class="lab">Radius</div>
+      <div class="rad">
+        <div style="border-radius:var(--radius-stamp)">2</div>
+        <div style="border-radius:var(--radius-md)">8</div>
+        <div style="border-radius:var(--radius-lg)">12</div>
+        <div style="border-radius:var(--radius-xl)">18</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

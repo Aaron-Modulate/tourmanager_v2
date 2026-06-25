@@ -1,0 +1,12 @@
+{
+  "or.defaultFormatter": "rvest.vs-code-prettier-eslint",
+  "or.formatOnType": false, // required
+  "or.formatOnPaste": true, // optional
+  "or.formatOnSave": true, // optional
+  "or.formatOnSaveMode": "file", // required to format on save
+  "files.autoSave": "onFocusChange", // optional but recommended
+  "vs-code-prettier-eslint.prettierLast": false,
+  "[elixir]": {
+    "or.defaultFormatter": "JakeBecker.elixir-ls"
+  } // set as "true" to run 'prettier' last not first
+}

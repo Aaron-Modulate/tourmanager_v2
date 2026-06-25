@@ -1,0 +1,28 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Ink & Paper" subtitle="Warm near-black neutrals on day-sheet stock" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0}
+  .row{display:flex;height:150px;font-family:var(--font-mono);font-size:10px}
+  .sw{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:8px}
+  .sw b{font-weight:700;letter-spacing:0.04em}
+  .sw span{opacity:0.7}
+  .dark{color:var(--paper-100)}
+  .light{color:var(--ink-700)}
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw dark" style="background:var(--ink-900)"><b>ink-900</b><span>#14110F</span></div>
+    <div class="sw dark" style="background:var(--ink-700)"><b>ink-700</b><span>#2A2520</span></div>
+    <div class="sw dark" style="background:var(--ink-500)"><b>ink-500</b><span>#574E45</span></div>
+    <div class="sw light" style="background:var(--ink-400)"><b>ink-400</b><span>#837A6F</span></div>
+    <div class="sw light" style="background:var(--paper-300)"><b>paper-300</b><span>#DED6C4</span></div>
+    <div class="sw light" style="background:var(--paper-100)"><b>paper-100</b><span>#F5F1E8</span></div>
+    <div class="sw light" style="background:var(--paper-50);box-shadow:inset 1px 0 0 var(--paper-300)"><b>paper-50</b><span>#FBF9F3</span></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+.git
+.github
+deps
+_build
+.elixir_ls
+priv/static/uploads
+*.md
+.envrc

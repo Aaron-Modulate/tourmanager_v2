@@ -1,0 +1,56 @@
+<!-- @dsCard group="Brand" viewport="700x200" name="Logo / Wordmark" subtitle="The marker-stamp lockup" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0}
+  .wrap{
+    font-family:var(--font-sans);
+    background:var(--ink-900);
+    height:200px;display:flex;align-items:center;gap:var(--space-8);
+    padding:0 var(--space-8);box-sizing:border-box;
+  }
+  /* Wordmark */
+  .mark{display:flex;align-items:center;gap:14px}
+  .glyph{
+    width:52px;height:52px;border-radius:var(--radius-sm);
+    background:var(--marker-500);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow-hard-sm);
+  }
+  .glyph span{
+    font-family:var(--font-display);font-weight:800;color:var(--ink-900);
+    font-size:34px;line-height:1;transform:translateY(1px);
+  }
+  .word{display:flex;flex-direction:column;line-height:1}
+  .word b{
+    font-family:var(--font-display);font-weight:800;color:var(--paper-100);
+    font-size:30px;letter-spacing:-0.02em;
+  }
+  .word small{
+    font-family:var(--font-mono);font-size:11px;color:var(--marker-500);
+    letter-spacing:0.32em;margin-top:5px;text-transform:uppercase;
+  }
+  .divider{width:2px;align-self:stretch;background:var(--ink-700);margin:40px 0}
+  /* stamp lockup */
+  .stamp{
+    border:2px solid var(--marker-500);border-radius:var(--radius-sm);
+    padding:10px 14px;transform:rotate(-3deg);
+  }
+  .stamp b{font-family:var(--font-display);font-weight:800;color:var(--paper-100);font-size:22px;letter-spacing:-0.02em}
+  .stamp small{display:block;font-family:var(--font-mono);font-size:9px;color:var(--marker-500);letter-spacing:0.3em;margin-top:2px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="mark">
+      <div class="glyph"><span>T</span></div>
+      <div class="word"><b>TOUR MANAGER</b><small>DAY SHEET OS</small></div>
+    </div>
+    <div class="divider"></div>
+    <div class="stamp"><b>TM</b><small>ALL ACCESS</small></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+/* ============================================================
+   Tour Manager — Color tokens
+   Vibe: warm near-black "ink" (flight-case black) against a
+   warm "paper" (printed day-sheet stock). One bold electric
+   screenprint-blue brand mark (Klein). A set of "signal" colors mapped to
+   the phases of a gig day — these double as the semantic system.
+   ============================================================ */
+:root {
+  /* ---- Ink (warm near-black neutrals) ---- */
+  --ink-900: #14110F;   /* primary ink / stage-mode surface     */
+  --ink-800: #1E1A17;
+  --ink-700: #2A2520;
+  --ink-600: #3A332C;
+  --ink-500: #574E45;
+  --ink-400: #837A6F;   /* muted ink on paper                   */
+  --ink-300: #A89E92;
+
+  /* ---- Paper (warm off-white day-sheet stock) ---- */
+  --paper-50:  #FBF9F3;
+  --paper-100: #F5F1E8;  /* default app background              */
+  --paper-200: #ECE6D8;
+  --paper-300: #DED6C4;  /* hairline borders on paper           */
+  --paper-400: #CcC2AC;
+
+  --white: #FFFFFF;
+
+  /* ---- Brand mark: "Marker" (electric screenprint blue / Klein) ---- */
+  --marker-500: #2B4FF0;  /* the brand blue                      */
+  --marker-600: #1E3AD0;  /* hover / press                       */
+  --marker-700: #1629A8;
+  --marker-100: #DCE2FF;  /* tint surface                        */
+  --marker-050: #EEF1FF;
+
+  /* ---- Signal colors (gig-day phases + semantics) ---- */
+  --signal-load:  #0E8DA6;  /* LOAD IN     — info / teal-cyan     */
+  --signal-sound: #E0961A;  /* SOUNDCHECK  — warning / amber      */
+  --signal-doors: #7C5CD6;  /* DOORS       — accent / violet      */
+  --signal-live:  #1E9E58;  /* SHOW / GO   — success / green      */
+  --signal-stop:  #DE2F26;  /* CURFEW      — danger / red         */
+
+  --signal-load-tint:  #DCF0F4;
+  --signal-sound-tint: #FBEFD7;
+  --signal-doors-tint: #ECE6FA;
+  --signal-live-tint:  #DDF1E6;
+  --signal-stop-tint:  #FBE1DF;
+
+  /* ================= Semantic aliases ================= */
+  /* Surfaces */
+  --surface-page:     var(--paper-100);
+  --surface-card:     var(--paper-50);
+  --surface-raised:   var(--white);
+  --surface-sunken:   var(--paper-200);
+  --surface-stage:    var(--ink-900);   /* dark "stage mode" panels */
+  --surface-stage-2:  var(--ink-800);
+
+  /* Text */
+  --text-strong:   var(--ink-900);
+  --text-body:     var(--ink-700);
+  --text-muted:    var(--ink-400);
+  --text-on-stage: var(--paper-100);
+  --text-on-stage-muted: var(--ink-300);
+  --text-on-brand: var(--white);
+  --text-brand:    var(--marker-600);
+
+  /* Lines */
+  --border-hair:   var(--paper-300);
+  --border-strong: var(--ink-900);
+  --border-stage:  var(--ink-700);
+
+  /* Brand / interactive */
+  --brand:         var(--marker-500);
+  --brand-hover:   var(--marker-600);
+  --brand-press:   var(--marker-700);
+  --brand-tint:    var(--marker-100);
+  --focus-ring:    var(--marker-500);
+
+  /* Semantic */
+  --info:    var(--signal-load);
+  --warning: var(--signal-sound);
+  --success: var(--signal-live);
+  --danger:  var(--signal-stop);
+}

@@ -1,0 +1,12 @@
+{
+  "configurations": [
+    {
+      "name": "Launch Edge",
+      "request": "launch",
+      "port": 4000,
+      "type": "msedge",
+      "url": "http://localhost:4000",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

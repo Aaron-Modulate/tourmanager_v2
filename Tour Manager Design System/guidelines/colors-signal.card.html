@@ -1,0 +1,31 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Signal — Gig-Day Phases" subtitle="Status colors mapped to the run of show (= semantic system)" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0}
+  .wrap{font-family:var(--font-mono);background:var(--paper-100);padding:16px;box-sizing:border-box;height:180px}
+  .row{display:flex;gap:10px;height:100%}
+  .col{flex:1;display:flex;flex-direction:column;gap:8px}
+  .chip{
+    border-radius:var(--radius-stamp);padding:7px 9px;color:#fff;
+    font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+    box-shadow:var(--shadow-hard-sm);
+  }
+  .meta{font-size:9px;color:var(--ink-500);line-height:1.5}
+  .meta b{color:var(--ink-900)}
+  .sem{display:inline-block;margin-top:2px;padding:2px 5px;border:1px solid var(--paper-300);border-radius:2px;color:var(--ink-700)}
+</style>
+</head>
+<body>
+  <div class="wrap"><div class="row">
+    <div class="col"><div class="chip" style="background:var(--signal-load)">Load In</div><div class="meta"><b>#2F6FB0</b><br><span class="sem">info</span></div></div>
+    <div class="col"><div class="chip" style="background:var(--signal-sound);color:var(--ink-900)">Soundcheck</div><div class="meta"><b>#E0961A</b><br><span class="sem">warning</span></div></div>
+    <div class="col"><div class="chip" style="background:var(--signal-doors)">Doors</div><div class="meta"><b>#7C5CD6</b><br><span class="sem">accent</span></div></div>
+    <div class="col"><div class="chip" style="background:var(--signal-live)">Show · Go</div><div class="meta"><b>#1E9E58</b><br><span class="sem">success</span></div></div>
+    <div class="col"><div class="chip" style="background:var(--signal-stop)">Curfew</div><div class="meta"><b>#DE2F26</b><br><span class="sem">danger</span></div></div>
+  </div></div>
+</body>
+</html>

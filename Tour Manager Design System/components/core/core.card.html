@@ -1,0 +1,70 @@
+<!-- @dsCard group="Components" viewport="700x440" name="Core" subtitle="Button · SignalChip · StampCard · Field · Tabs" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  html,body{margin:0;background:var(--paper-100)}
+  #root{padding:22px}
+  .grid{display:flex;flex-direction:column;gap:18px;font-family:var(--font-sans)}
+  .sec{display:flex;flex-direction:column;gap:9px}
+  .h{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-400)}
+  .rowi{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { Button, SignalChip, StampCard, Field, Tabs } = window.TourManagerDesignSystem_de0276;
+  function Demo() {
+    const [tab, setTab] = React.useState('show');
+    return (
+      <div className="grid">
+        <div className="sec">
+          <div className="h">Button</div>
+          <div className="rowi">
+            <Button variant="primary">Confirm call</Button>
+            <Button variant="secondary" mono>Add stop</Button>
+            <Button variant="stage">Show mode</Button>
+            <Button variant="danger" mono>Cancel</Button>
+            <Button variant="ghost">Skip</Button>
+            <Button variant="primary" disabled>Locked</Button>
+          </div>
+        </div>
+        <div className="sec">
+          <div className="h">SignalChip — gig-day phases</div>
+          <div className="rowi">
+            <SignalChip tone="load" dot>Load in</SignalChip>
+            <SignalChip tone="sound" dot>Soundcheck</SignalChip>
+            <SignalChip tone="doors" dot>Doors</SignalChip>
+            <SignalChip tone="live" hard>Show · Go</SignalChip>
+            <SignalChip tone="stop" variant="outline">Curfew</SignalChip>
+            <SignalChip tone="brand" variant="tint">AAA</SignalChip>
+          </div>
+        </div>
+        <div className="rowi" style={{alignItems:'stretch'}}>
+          <StampCard overline="Run of show" style={{flex:1}}>
+            <div style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:22,letterSpacing:'-0.02em',color:'var(--ink-900)'}}>Brixton Academy</div>
+            <div style={{fontFamily:'var(--font-mono)',fontSize:12,color:'var(--ink-400)',marginTop:4}}>LON · DAY 014/060</div>
+          </StampCard>
+          <Field label="Call time" mono value="12:00" suffix="24h" style={{width:180}} onChange={()=>{}} />
+        </div>
+        <div className="sec">
+          <Tabs value={tab} onChange={setTab} tabs={[
+            {value:'show',label:'Run of show'},
+            {value:'crew',label:'Crew',count:12},
+            {value:'notes',label:'Notes'},
+          ]} />
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

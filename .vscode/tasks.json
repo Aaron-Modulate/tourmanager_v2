@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Postgres",
+      "type": "shell",
+      "command": "bash scripts/start-postgres.sh",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Start Phoenix Server",
+      "type": "shell",
+      "command": "bash scripts/start-server.sh",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Migrations",
+      "type": "shell",
+      "command": "bash scripts/run-migrations.sh",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Clear Assignments",
+      "type": "shell",
+      "command": "mix run scripts/clear_assignments.exs",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Generate Schema Diagram",
+      "type": "shell",
+      "command": "mix ecto.gen.erd --output-path docs/schema.mmd",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Reseed Database",
+      "type": "shell",
+      "command": "mix run priv/repo/seeds.exs",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Cleanup Orphaned Menu Items",
+      "type": "shell",
+      "command": "mix run -e 'import Ecto.Query; Tourmanager.Repo.delete_all(from m in Tourmanager.Admin.MenuItemConfig, where: m.key == \"drafts\")'",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}
