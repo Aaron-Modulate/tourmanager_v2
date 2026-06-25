@@ -126,7 +126,7 @@ defmodule TourmanagerV2Web.Layouts do
         <%!-- Navigation --%>
         <nav class="px-2.5 py-3 flex flex-col gap-0.5 flex-1">
           <.link
-            :for={item <- nav_items(@current_user, @current_tour_role)}
+            :for={item <- nav_items(@current_user)}
             navigate={item.path}
             class={[
               "flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-sm)] no-underline transition-colors",
@@ -162,7 +162,7 @@ defmodule TourmanagerV2Web.Layouts do
                   <span
                     class="w-[30px] h-[30px] rounded-[var(--radius-sm)] flex items-center justify-center flex-none"
                     style="background: var(--ink-700); font-family: var(--font-mono); font-weight: 700; font-size: 12px;"
-                  >{user_initials(@current_user.name)}</span>
+                  >{initials(@current_user.name)}</span>
                 <% end %>
                 <div class="flex-1 min-w-0 leading-tight text-left">
                   <div class="text-[13px] font-semibold text-white truncate">{@current_user.name}</div>
@@ -295,7 +295,7 @@ defmodule TourmanagerV2Web.Layouts do
     end
   end
 
-  defp nav_items(user, _role) do
+  defp nav_items(user) do
     base = [
       %{id: "daysheet", label: "Day sheet", icon: "hero-clipboard-document-list", path: "/", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" end},
@@ -326,16 +326,6 @@ defmodule TourmanagerV2Web.Layouts do
     base ++ admin_items
   end
 
-  defp user_initials(name) when is_binary(name) do
-    name
-    |> String.split(~r/\s+/, trim: true)
-    |> Enum.take(2)
-    |> Enum.map(&String.first/1)
-    |> Enum.join()
-    |> String.upcase()
-  end
-
-  defp user_initials(_), do: "?"
 
   @doc """
   Shows the flash group with standard titles and content.

@@ -12,28 +12,17 @@ defmodule TourmanagerV2Web.Admin.JobsLive do
 
       socket =
         socket
+        |> assign(TourSwitching.default_assigns())
         |> assign(
           active_nav: "admin_jobs",
-          tour_menu_open: false,
-          settings_open: false,
-          new_tour_open: false,
-          new_tour_form: nil,
-          add_route_open: false,
-          add_route_type: "gig",
-          add_route_form: nil,
-          place_suggestions: [],
-          autocomplete_field: nil,
-          editing_route: false,
-          editing_route_entry: nil,
           billing_seats: user.crew_seats || 10,
-          billing_error: nil,
           page_title: "Admin · Jobs",
           job: job,
           job_running: false,
           job_result: nil,
           cron_form: to_form(%{"cron_expression" => job.cron_expression})
         )
-        |> load_tour_data(socket.assigns[:current_tour])
+        |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
 
       {:ok, socket}
     else

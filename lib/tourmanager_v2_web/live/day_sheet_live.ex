@@ -5,25 +5,14 @@ defmodule TourmanagerV2Web.DaySheetLive do
   def mount(_params, _session, socket) do
     socket =
       socket
-      |> assign(
-        active_nav: "daysheet",
-        active_tab: "show",
-        tour_menu_open: false,
-        settings_open: false,
-        billing_seats: 10,
-        billing_error: nil,
-        new_tour_open: false,
-        new_tour_form: nil,
-        add_route_open: false,
-        add_route_type: "gig",
-        add_route_form: nil,
-        place_suggestions: [],
-        autocomplete_field: nil,
-        editing_route: false,
-        editing_route_entry: nil,
-        page_title: "Day Sheet"
-      )
-      |> load_tour_data(socket.assigns[:current_tour])
+      |> assign(TourSwitching.default_assigns())
+      |> assign(active_nav: "daysheet", active_tab: "show", page_title: "Day Sheet")
+      |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
+      |> compute_daysheet_assigns()
+      |> attach_hook(:recompute_daysheet, :handle_event, fn
+        _event, _params, socket ->
+          {:cont, compute_daysheet_assigns(socket)}
+      end)
 
     {:ok, socket}
   end
@@ -32,12 +21,12 @@ defmodule TourmanagerV2Web.DaySheetLive do
     {:noreply, assign(socket, :active_tab, tab)}
   end
 
-  def render(assigns) do
-    today_re = assigns[:today_route_entry]
-    next_re = assigns[:next_route_entry]
-    today_gig = assigns[:today_gig]
-    events = assigns[:events] || []
-    crew = assigns[:tour_crew] || []
+  defp compute_daysheet_assigns(socket) do
+    today_re = socket.assigns[:today_route_entry]
+    next_re = socket.assigns[:next_route_entry]
+    today_gig = socket.assigns[:today_gig]
+    events = socket.assigns[:events] || []
+    crew = socket.assigns[:tour_crew] || []
 
     active_entry = next_re || today_re || today_gig
 
@@ -71,30 +60,24 @@ defmodule TourmanagerV2Web.DaySheetLive do
 
     crew_cards =
       Enum.map(crew, fn cm ->
-        initials =
-          cm.name
-          |> String.split(~r/\s+/, trim: true)
-          |> Enum.take(2)
-          |> Enum.map(&String.first/1)
-          |> Enum.join()
-          |> String.upcase()
-
         %{
           name: cm.name,
           role: cm.role_title,
-          init: initials,
+          init: initials(cm.name),
           pass: "CREW",
           status: "on-site"
         }
       end)
 
-    assigns =
-      assigns
-      |> Map.put(:run_of_show_data, run_of_show)
-      |> Map.put(:crew_cards, crew_cards)
-      |> Map.put(:active_entry, active_entry)
-      |> Map.put(:active_gig, today_gig)
+    assign(socket,
+      run_of_show_data: run_of_show,
+      crew_cards: crew_cards,
+      active_entry: active_entry,
+      active_gig: today_gig
+    )
+  end
 
+  def render(assigns) do
     ~H"""
     <Layouts.app
       flash={@flash}

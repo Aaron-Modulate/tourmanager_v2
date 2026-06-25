@@ -5,46 +5,35 @@ defmodule TourmanagerV2Web.DashboardLive do
   def mount(_params, _session, socket) do
     socket =
       socket
-      |> assign(
-        active_nav: "dashboard",
-        tour_menu_open: false,
-        settings_open: false,
-        billing_seats: 10,
-        billing_error: nil,
-        new_tour_open: false,
-        new_tour_form: nil,
-        add_route_open: false,
-        add_route_type: "gig",
-        add_route_form: nil,
-        place_suggestions: [],
-        autocomplete_field: nil,
-        editing_route: false,
-        editing_route_entry: nil,
-        page_title: "Dashboard"
-      )
-      |> load_tour_data(socket.assigns[:current_tour])
+      |> assign(TourSwitching.default_assigns())
+      |> assign(active_nav: "dashboard", page_title: "Dashboard")
+      |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
+      |> compute_dashboard_assigns()
+      |> attach_hook(:recompute_dashboard, :handle_event, fn
+        _event, _params, socket ->
+          {:cont, compute_dashboard_assigns(socket)}
+      end)
 
     {:ok, socket}
   end
 
-  def render(assigns) do
-    stats = assigns[:tour_stats] || %{
+  defp compute_dashboard_assigns(socket) do
+    stats = socket.assigns[:tour_stats] || %{
       shows_played: 0, shows_total: 0, days_on_road: 0, total_days: 0,
       travel_days: 0, unconfirmed_gigs: 0, start_date: nil, end_date: nil,
       is_travel_today: false
     }
-    crew = assigns[:tour_crew] || []
+    crew = socket.assigns[:tour_crew] || []
 
-    gig_tile = build_gig_tile(stats)
-    days_tile = build_days_tile(stats)
+    assign(socket,
+      stats: stats,
+      gig_tile: build_gig_tile(stats),
+      days_tile: build_days_tile(stats),
+      crew_cards: build_crew_cards(crew)
+    )
+  end
 
-    assigns =
-      assigns
-      |> Map.put(:stats, stats)
-      |> Map.put(:gig_tile, gig_tile)
-      |> Map.put(:days_tile, days_tile)
-      |> Map.put(:crew_cards, build_crew_cards(crew))
-
+  def render(assigns) do
     ~H"""
     <Layouts.app
       flash={@flash}
@@ -250,15 +239,7 @@ defmodule TourmanagerV2Web.DashboardLive do
   defp build_crew_cards(crew) do
     Enum.take(crew, 6)
     |> Enum.map(fn cm ->
-      initials =
-        cm.name
-        |> String.split(~r/\s+/, trim: true)
-        |> Enum.take(2)
-        |> Enum.map(&String.first/1)
-        |> Enum.join()
-        |> String.upcase()
-
-      %{name: cm.name, role: cm.role_title, init: initials, pass: "CREW", status: "on-site"}
+      %{name: cm.name, role: cm.role_title, init: initials(cm.name), pass: "CREW", status: "on-site"}
     end)
   end
 end

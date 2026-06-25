@@ -12,25 +12,14 @@ defmodule TourmanagerV2Web.Admin.UsersLive do
 
       socket =
         socket
+        |> assign(TourSwitching.default_assigns())
         |> assign(
           active_nav: "admin_users",
-          tour_menu_open: false,
-          settings_open: false,
-          new_tour_open: false,
-          new_tour_form: nil,
-          add_route_open: false,
-          add_route_type: "gig",
-          add_route_form: nil,
-          place_suggestions: [],
-          autocomplete_field: nil,
-          editing_route: false,
-          editing_route_entry: nil,
           billing_seats: user.crew_seats || 10,
-          billing_error: nil,
           page_title: "Admin · Users",
           admin_users: users
         )
-        |> load_tour_data(socket.assigns[:current_tour])
+        |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
 
       {:ok, socket}
     else
@@ -86,7 +75,7 @@ defmodule TourmanagerV2Web.Admin.UsersLive do
                 <span
                   class="w-9 h-9 rounded-[var(--radius-sm)] flex items-center justify-center"
                   style="background: var(--ink-900); color: var(--paper-100); font-family: var(--font-mono); font-weight: 700; font-size: 12px;"
-                >{user_initials(u.name)}</span>
+                >{initials(u.name)}</span>
               <% end %>
               <span
                 :if={recently_active?(u)}
@@ -126,16 +115,6 @@ defmodule TourmanagerV2Web.Admin.UsersLive do
     """
   end
 
-  defp user_initials(name) when is_binary(name) do
-    name
-    |> String.split(~r/\s+/, trim: true)
-    |> Enum.take(2)
-    |> Enum.map(&String.first/1)
-    |> Enum.join()
-    |> String.upcase()
-  end
-
-  defp user_initials(_), do: "?"
 
   defp recently_active?(user) do
     case user.last_login_at do

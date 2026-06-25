@@ -5,6 +5,7 @@ defmodule TourmanagerV2Web.TourComponents do
   use Phoenix.Component
 
   import TourmanagerV2Web.CoreComponents, only: [icon: 1, input: 1]
+  import TourmanagerV2Web.TextHelpers
 
   attr :size, :integer, default: 28
   attr :class, :string, default: nil
@@ -281,53 +282,6 @@ defmodule TourmanagerV2Web.TourComponents do
         <div class="mt-1.5" style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--ink-400);">
           {@meta}
         </div>
-      </div>
-    </div>
-    """
-  end
-
-  attr :day, :integer, required: true
-  attr :date, :string, required: true
-  attr :city, :string, required: true
-  attr :venue, :string, required: true
-  attr :code, :string, required: true
-  attr :km, :integer, required: true
-  attr :status, :string, required: true
-
-  def route_stop(assigns) do
-    is_today = assigns.status == "today"
-    assigns = assign(assigns, :is_today, is_today)
-
-    ~H"""
-    <div class="grid grid-cols-[54px_1fr] gap-4 items-center relative mb-1.5">
-      <div class="text-right leading-tight" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
-        <div class="font-bold text-[var(--ink-700)]">D{String.pad_leading(to_string(@day), 2, "0")}</div>
-        <div class="text-[9px]">{@date}</div>
-      </div>
-      <div
-        class={["flex items-center gap-3.5 px-3.5 py-3 rounded-[var(--radius-md)]",
-          if(@is_today, do: "border-2 border-[var(--ink-900)]", else: "border border-[var(--paper-300)]")
-        ]}
-        style={"background: #{if @is_today, do: "var(--surface-stage)", else: "var(--surface-card)"}; color: #{if @is_today, do: "var(--paper-100)", else: "var(--ink-700)"}; #{if @is_today, do: "box-shadow: var(--shadow-hard);", else: ""}"}
-      >
-        <span
-          class="w-3 h-3 flex-none rounded-full border-2 border-[var(--paper-50)]"
-          style={"background: var(--signal-#{route_tone(@status)}); opacity: #{if @status == "done", do: "0.3", else: "1"}; box-shadow: 0 0 0 2px var(--paper-300);"}
-        />
-        <div class="flex-1 min-w-0">
-          <div
-            style={"font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; color: #{if @is_today, do: "#fff", else: "var(--ink-900)"};"}
-          >
-            {@city}
-          </div>
-          <div style={"font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; color: #{if @is_today, do: "var(--ink-300)", else: "var(--ink-400)"};"}>{@venue} · {@code}</div>
-        </div>
-        <div :if={@km > 0} class="flex items-center gap-1" style={"font-family: var(--font-mono); font-size: 10px; color: #{if @is_today, do: "var(--ink-300)", else: "var(--ink-400)"}"}>
-          <.icon name="hero-truck-mini" class="w-3 h-3" /> {@km}km
-        </div>
-        <.signal_chip :if={@status != "done"} tone={route_tone(@status)} size="sm">
-          {@status}
-        </.signal_chip>
       </div>
     </div>
     """
@@ -1247,14 +1201,4 @@ defmodule TourmanagerV2Web.TourComponents do
     """
   end
 
-  defp initials(name) when is_binary(name) do
-    name
-    |> String.split(~r/\s+/, trim: true)
-    |> Enum.take(2)
-    |> Enum.map(&String.first/1)
-    |> Enum.join()
-    |> String.upcase()
-  end
-
-  defp initials(_), do: "?"
 end

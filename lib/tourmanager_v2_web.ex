@@ -52,6 +52,8 @@ defmodule TourmanagerV2Web do
     quote do
       use Phoenix.LiveView
 
+      alias TourmanagerV2Web.TourSwitching
+
       unquote(html_helpers())
     end
   end
@@ -87,6 +89,7 @@ defmodule TourmanagerV2Web do
       # Core UI components
       import TourmanagerV2Web.CoreComponents
       import TourmanagerV2Web.TourComponents
+      import TourmanagerV2Web.TextHelpers
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
