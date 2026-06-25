@@ -339,6 +339,15 @@ defmodule TourmanagerV2Web.TourComponents do
   defp route_tone("hold"), do: "load"
   defp route_tone(_), do: "load"
 
+  defp venue_maps_link(venue, city, address, lat, lng) do
+    cond do
+      is_binary(address) && address != "" -> "https://www.google.com/maps/search/#{URI.encode(address)}"
+      is_binary(venue) && is_binary(city) -> "https://www.google.com/maps/search/#{URI.encode("#{venue}, #{city}")}"
+      is_number(lat) && is_number(lng) -> "https://www.google.com/maps/search/#{lat},#{lng}"
+      true -> "#"
+    end
+  end
+
   attr :label, :string, required: true
   attr :value, :string, required: true
   attr :sub, :string, required: true
@@ -764,6 +773,13 @@ defmodule TourmanagerV2Web.TourComponents do
   attr :travel_duration, :integer, default: nil
   attr :booking_ref, :string, default: nil
   attr :address, :string, default: nil
+  attr :entry_id, :string, default: nil
+  attr :place_id, :string, default: nil
+  attr :lat, :float, default: nil
+  attr :lng, :float, default: nil
+  attr :origin_address, :string, default: nil
+  attr :dest_address, :string, default: nil
+  attr :directions_url, :string, default: nil
 
   def route_stop_enhanced(assigns) do
     is_today = assigns.status == "today"
@@ -797,25 +813,107 @@ defmodule TourmanagerV2Web.TourComponents do
           ]}
           style={"background: #{if @is_today, do: "var(--surface-stage)", else: "var(--surface-card)"}; color: #{if @is_today, do: "var(--paper-100)", else: "var(--ink-700)"}; #{if @is_today, do: "box-shadow: var(--shadow-hard);", else: ""}"}
         >
-          <%!-- Venue thumbnail --%>
-          <img
-            :if={@venue_image_url && @type == "gig"}
-            src={@venue_image_url}
-            class="w-12 h-12 rounded-[var(--radius-sm)] object-cover flex-none"
-            style="border: 1px solid var(--paper-300);"
-            loading="lazy"
-          />
-
-          <%!-- Type icon for non-gig entries --%>
-          <span
-            :if={@type != "gig"}
-            class="w-12 h-12 rounded-[var(--radius-sm)] flex items-center justify-center flex-none"
-            style={"background: #{if @type == "vehicle_travel", do: "var(--signal-load-tint)", else: "var(--paper-200)"}; border: 1px solid var(--paper-300);"}
-          >
-            <.icon
-              name={if @type == "vehicle_travel", do: "hero-truck", else: "hero-moon"}
-              class={["w-5 h-5", if(@type == "vehicle_travel", do: "text-[var(--signal-load)]", else: "text-[var(--ink-400)]")]}
+          <%!-- Venue thumbnail with hover popover (gig or off-day with location) --%>
+          <div :if={@venue_image_url && @type in ~w(gig off_day)} class="relative flex-none group/venue">
+            <img
+              src={@venue_image_url}
+              class="w-12 h-12 rounded-[var(--radius-sm)] object-cover cursor-pointer transition-all group-hover/venue:ring-2 group-hover/venue:ring-[var(--brand)]"
+              style="border: 1px solid var(--paper-300);"
+              loading="lazy"
             />
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/venue:opacity-100 group-hover/venue:pointer-events-auto transition-opacity" style="width: 340px;">
+              <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
+                <img
+                  src={@venue_image_url}
+                  class="w-full h-40 object-cover"
+                  loading="lazy"
+                />
+                <div class="p-3">
+                  <div style="font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-900);">{@venue}</div>
+                  <div :if={@address || @city} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 3px;">
+                    {@address || @city}
+                  </div>
+                  <a
+                    href={venue_maps_link(@venue, @city, @address, @lat, @lng)}
+                    target="_blank"
+                    class="flex items-center gap-1.5 mt-2.5 no-underline transition-colors hover:text-[var(--brand)]"
+                    style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
+                  >
+                    <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" />
+                    OPEN IN GOOGLE
+                    <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <%!-- Travel icon with hover popover showing route details --%>
+          <div :if={@type == "vehicle_travel"} class="relative flex-none group/travel">
+            <span
+              class="w-12 h-12 rounded-[var(--radius-sm)] flex items-center justify-center cursor-pointer transition-all group-hover/travel:ring-2 group-hover/travel:ring-[var(--signal-load)]"
+              style="background: var(--signal-load-tint); border: 1px solid var(--paper-300);"
+            >
+              <.icon name="hero-truck" class="w-5 h-5 text-[var(--signal-load)]" />
+            </span>
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/travel:opacity-100 group-hover/travel:pointer-events-auto transition-opacity" style="width: 300px;">
+              <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
+                <div class="px-3 py-2.5 flex items-center gap-2" style="background: var(--signal-load-tint); border-bottom: 1px solid var(--paper-300);">
+                  <.icon name="hero-truck" class="w-4 h-4 text-[var(--signal-load)]" />
+                  <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--signal-load);">VEHICLE TRAVEL</div>
+                </div>
+                <div class="p-3">
+                  <div class="flex items-start gap-2 mb-2">
+                    <div class="flex flex-col items-center gap-0.5 pt-0.5 flex-none">
+                      <span class="w-2 h-2 rounded-full" style="background: var(--signal-load);" />
+                      <span class="w-px h-5" style="background: var(--paper-300);" />
+                      <span class="w-2 h-2 rounded-full" style="background: var(--signal-load);" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div>
+                        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-400);">FROM</div>
+                        <div style="font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-900);">{@venue}</div>
+                        <div :if={@origin_address} style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-400); margin-top: 1px;">{@origin_address}</div>
+                      </div>
+                      <div class="mt-2">
+                        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-400);">TO</div>
+                        <div style="font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-900);">{@city}</div>
+                        <div :if={@dest_address} style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-400); margin-top: 1px;">{@dest_address}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div :if={@travel_duration || @km > 0} class="flex items-center gap-3 mt-2 pt-2 border-t border-[var(--paper-300)]">
+                    <div :if={@travel_duration} class="flex items-center gap-1" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--ink-500);">
+                      <.icon name="hero-clock-mini" class="w-3 h-3" />
+                      {TourmanagerV2.GoogleMaps.format_duration(@travel_duration)}
+                    </div>
+                    <div :if={@km > 0} class="flex items-center gap-1" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--ink-500);">
+                      <.icon name="hero-truck-mini" class="w-3 h-3" />
+                      {TourmanagerV2.GoogleMaps.format_distance(@km, "km")}
+                    </div>
+                  </div>
+                  <a
+                    :if={@directions_url}
+                    href={@directions_url}
+                    target="_blank"
+                    class="flex items-center gap-1.5 mt-2.5 no-underline transition-colors hover:text-[var(--brand)]"
+                    style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
+                  >
+                    <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" />
+                    OPEN ROUTE IN MAPS
+                    <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <span
+            :if={@type == "off_day" && !@venue_image_url}
+            class="w-12 h-12 rounded-[var(--radius-sm)] flex items-center justify-center flex-none"
+            style="background: var(--paper-200); border: 1px solid var(--paper-300);"
+          >
+            <.icon name="hero-moon" class="w-5 h-5 text-[var(--ink-400)]" />
           </span>
 
           <span
@@ -832,16 +930,25 @@ defmodule TourmanagerV2Web.TourComponents do
                 {cond do
                   @type == "gig" -> @venue
                   @type == "vehicle_travel" -> "#{@venue} → #{@city}"
+                  @type == "off_day" && @venue && @venue != "—" -> @venue
                   true -> "Off day"
                 end}
               </div>
               <.signal_chip
-                :if={@type != "gig"}
-                tone={if @type == "vehicle_travel", do: "load", else: "ink"}
+                :if={@type == "vehicle_travel"}
+                tone="load"
                 size="sm"
                 variant="tint"
               >
                 TRAVEL
+              </.signal_chip>
+              <.signal_chip
+                :if={@type == "off_day"}
+                tone="ink"
+                size="sm"
+                variant="tint"
+              >
+                OFF DAY
               </.signal_chip>
             </div>
             <div style={"font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; color: #{if @is_today, do: "var(--ink-300)", else: "var(--ink-400)"};"}>{@city}{if @address, do: " · #{@address}", else: ""}</div>
@@ -1015,6 +1122,27 @@ defmodule TourmanagerV2Web.TourComponents do
 
           <%!-- ===== OFF DAY FIELDS ===== --%>
           <%= if @entry_type == "off_day" do %>
+            <.place_autocomplete_field
+              form={@form}
+              field={:venue}
+              label="LOCATION (OPTIONAL)"
+              placeholder="Search hotel, city, or address"
+              suggestions={if @autocomplete_field == "venue", do: @place_suggestions, else: []}
+              autocomplete_field="venue"
+            />
+            <.input field={@form[:place_id]} type="hidden" />
+            <.input field={@form[:lat]} type="hidden" />
+            <.input field={@form[:lng]} type="hidden" />
+            <.input field={@form[:city]} type="hidden" />
+            <.input field={@form[:venue_image_url]} type="hidden" />
+
+            <.selected_place_chip
+              :if={Phoenix.HTML.Form.input_value(@form, :place_id) not in [nil, ""]}
+              name={Phoenix.HTML.Form.input_value(@form, :venue)}
+              subtitle={Phoenix.HTML.Form.input_value(@form, :city)}
+              place_id={Phoenix.HTML.Form.input_value(@form, :place_id)}
+            />
+
             <div>
               <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">DATE</label>
               <.input field={@form[:date]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />

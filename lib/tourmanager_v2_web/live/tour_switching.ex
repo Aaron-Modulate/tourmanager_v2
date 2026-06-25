@@ -403,7 +403,13 @@ defmodule TourmanagerV2Web.TourSwitching do
             {:noreply, redirect(socket, external: url)}
 
           {:error, reason} ->
-            msg = if is_binary(reason), do: reason, else: "Payment failed. Try again."
+            msg =
+              cond do
+                is_binary(reason) -> reason
+                is_map(reason) -> get_in(reason, ["error", "message"]) || inspect(reason)
+                true -> "Payment failed. Try again."
+              end
+
             {:noreply, assign(socket, :billing_error, msg)}
         end
       end

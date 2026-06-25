@@ -139,8 +139,8 @@ defmodule TourmanagerV2.GoogleMaps do
     "https://www.google.com/maps/dir/?api=1&origin=#{URI.encode(origin)}&destination=#{URI.encode(destination)}&travelmode=driving"
   end
 
-  def directions_url(%{origin_place_id: oid, dest_place_id: did}) when is_binary(oid) and is_binary(did) do
-    "https://www.google.com/maps/dir/?api=1&origin=place_id:#{oid}&destination=place_id:#{did}&travelmode=driving"
+  def directions_url(%{origin_address: oa, dest_address: da}) when is_binary(oa) and oa != "" and is_binary(da) and da != "" do
+    directions_url(oa, da)
   end
 
   def directions_url(%{origin: o, destination: d}) when is_binary(o) and is_binary(d) do
@@ -148,6 +148,20 @@ defmodule TourmanagerV2.GoogleMaps do
   end
 
   def directions_url(_), do: nil
+
+  def search_url(address) when is_binary(address) and address != "" do
+    "https://www.google.com/maps/search/#{URI.encode(address)}"
+  end
+
+  def search_url(%{venue: v, city: c}) when is_binary(v) and is_binary(c) do
+    search_url("#{v}, #{c}")
+  end
+
+  def search_url(%{lat: lat, lng: lng}) when is_number(lat) and is_number(lng) do
+    "https://www.google.com/maps/search/#{lat},#{lng}"
+  end
+
+  def search_url(_), do: nil
 
   def format_duration(nil), do: nil
 

@@ -84,14 +84,26 @@ defmodule TourmanagerV2.Billing do
       "metadata[price_id]" => price_id
     }
 
-    case stripe_post("/v1/checkout/sessions", params) do
+    result = stripe_post("/v1/checkout/sessions", params)
+
+    case result do
       {:ok, %{"id" => session_id, "url" => url}} ->
         {:ok, %{session_id: session_id, url: url}}
 
       {:ok, %{"error" => %{"message" => msg}}} ->
+        require Logger
+        Logger.error("Stripe checkout error: #{msg}")
+        {:error, msg}
+
+      {:ok, other} ->
+        require Logger
+        Logger.error("Stripe checkout unexpected response: #{inspect(other)}")
+        msg = get_in(other, ["error", "message"]) || inspect(other)
         {:error, msg}
 
       {:error, reason} ->
+        require Logger
+        Logger.error("Stripe checkout request failed: #{inspect(reason)}")
         {:error, reason}
     end
   end
