@@ -1,126 +1,260 @@
 defmodule TourmanagerV2Web.DashboardLive do
   use TourmanagerV2Web, :live_view
-
-  @metrics [
-    %{k: "Shows played", v: "13", sub: "of 28"},
-    %{k: "Capacity sold", v: "94%", sub: "avg run"},
-    %{k: "Days on road", v: "14", sub: "of 60"},
-    %{k: "Open advances", v: "06", sub: "2 urgent"}
-  ]
-
-  @advances [
-    %{city: "Manchester", code: "MAN", pct: 90, tone: "live", open: 1},
-    %{city: "Glasgow", code: "GLA", pct: 60, tone: "sound", open: 3},
-    %{city: "Dublin", code: "DUB", pct: 35, tone: "stop", open: 5}
-  ]
-
-  @crew [
-    %{name: "Mara Quinn", role: "Tour Manager", init: "MQ", pass: "AAA", status: "on-site"},
-    %{name: "Deshawn Cole", role: "Production Mgr", init: "DC", pass: "AAA", status: "on-site"},
-    %{name: "Iris Vöng", role: "FOH Engineer", init: "IV", pass: "CREW", status: "on-site"},
-    %{name: "Theo Park", role: "Monitor Eng", init: "TP", pass: "CREW", status: "travel"}
-  ]
-
-  @priority_alert %{
-    tone: "stop",
-    text: "Monitor desk firmware mismatch — Theo to confirm spare on arrival."
-  }
+  use TourmanagerV2Web.TourSwitching
 
   def mount(_params, _session, socket) do
-    {:ok,
-     assign(socket,
-       active_nav: "dashboard",
-       metrics: @metrics,
-       advances: @advances,
-       crew: @crew,
-       priority_alert: @priority_alert,
-       page_title: "Dashboard"
-     )}
+    socket =
+      socket
+      |> assign(
+        active_nav: "dashboard",
+        tour_menu_open: false,
+        settings_open: false,
+        new_tour_open: false,
+        new_tour_form: nil,
+        add_route_open: false,
+        add_route_type: "gig",
+        add_route_form: nil,
+        place_suggestions: [],
+        autocomplete_field: nil,
+        editing_route: false,
+        editing_route_entry: nil,
+        page_title: "Dashboard"
+      )
+      |> load_tour_data(socket.assigns[:current_tour])
+
+    {:ok, socket}
   end
 
   def render(assigns) do
+    stats = assigns[:tour_stats] || %{
+      shows_played: 0, shows_total: 0, days_on_road: 0, total_days: 0,
+      travel_days: 0, unconfirmed_gigs: 0, start_date: nil, end_date: nil,
+      is_travel_today: false
+    }
+    crew = assigns[:tour_crew] || []
+
+    gig_tile = build_gig_tile(stats)
+    days_tile = build_days_tile(stats)
+
+    assigns =
+      assigns
+      |> Map.put(:stats, stats)
+      |> Map.put(:gig_tile, gig_tile)
+      |> Map.put(:days_tile, days_tile)
+      |> Map.put(:crew_cards, build_crew_cards(crew))
+
     ~H"""
-    <Layouts.app flash={@flash} active_nav={@active_nav}>
+    <Layouts.app
+      flash={@flash}
+      active_nav={@active_nav}
+      current_user={@current_user}
+      user_tours={@user_tours}
+      current_tour={@current_tour}
+      current_tour_role={@current_tour_role}
+      tour_menu_open={@tour_menu_open}
+      settings_open={@settings_open}
+      new_tour_open={@new_tour_open}
+      new_tour_form={@new_tour_form}
+      headerbar_entry={@headerbar_entry}
+      headerbar_is_today={@headerbar_is_today}
+    >
       <div id="dashboard" class="p-7">
         <div class="flex items-end justify-between mb-5">
           <div>
             <.overline>Management</.overline>
-            <.display size={26} class="mt-1.5">Tour at a glance</.display>
+            <.display size={26} class="mt-1.5">
+              <%= if @current_tour do %>
+                {@current_tour.name}
+              <% else %>
+                Tour at a glance
+              <% end %>
+            </.display>
           </div>
-          <.tm_button variant="secondary" size="sm" icon_name="hero-arrow-down-tray">Export sheet</.tm_button>
         </div>
 
-        <%!-- Metric row --%>
-        <div id="metrics-row" class="grid grid-cols-4 gap-3.5 mb-5">
-          <.metric_card
-            :for={{m, i} <- Enum.with_index(@metrics)}
-            label={m.k}
-            value={m.v}
-            sub={m.sub}
-            featured={i == 0}
-          />
-        </div>
-
-        <div class="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-5 items-start">
-          <%!-- Advancing progress --%>
-          <.stamp_card overline_text="Advancing — upcoming">
-            <div class="flex flex-col gap-4">
-              <.advance_row
-                :for={a <- @advances}
-                city={a.city}
-                code={a.code}
-                pct={a.pct}
-                tone={a.tone}
-                open={a.open}
-              />
-            </div>
-          </.stamp_card>
-
-          <%!-- Crew + Priority --%>
-          <div class="flex flex-col gap-[18px]">
-            <.stamp_card overline_text="Crew on duty">
-              <div class="flex flex-col gap-3">
-                <div :for={c <- @crew} class="flex items-center gap-3">
-                  <.pass init={c.init} tone={if c.pass == "AAA", do: "brand", else: "ink"} size={30} />
-                  <div class="flex-1">
-                    <div class="text-[13.5px] font-semibold text-[var(--ink-900)]">{c.name}</div>
-                    <div style="font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--ink-400); text-transform: uppercase;">{c.role}</div>
-                  </div>
-                  <.signal_chip
-                    tone={cond do
-                      c.status == "on-site" -> "live"
-                      c.status == "travel" -> "load"
-                      true -> "sound"
-                    end}
-                    variant="tint"
-                    size="sm"
-                  >
-                    {c.status}
-                  </.signal_chip>
-                </div>
-              </div>
-            </.stamp_card>
-
-            <%!-- Priority alert --%>
+        <%= if @current_tour do %>
+          <%!-- Metric row — 4 tiles --%>
+          <div id="metrics-row" class="grid grid-cols-4 gap-3.5 mb-5">
+            <%!-- Tile 1: Gigs --%>
             <div
-              class="tm-halftone tm-halftone--light relative p-[18px] rounded-[var(--radius-md)] border-2 border-[var(--ink-900)]"
-              style="background: var(--surface-stage); color: var(--paper-100);"
+              class="relative p-[18px] rounded-[var(--radius-md)] tm-halftone tm-halftone--light border-2 border-[var(--ink-900)]"
+              style="background: var(--surface-stage); color: var(--paper-100); box-shadow: var(--shadow-hard);"
             >
               <div class="relative z-[2]">
-                <div class="flex items-center justify-between">
-                  <.overline style="color: var(--brand);">Priority</.overline>
-                  <.signal_chip tone="stop" hard size="sm">1 urgent</.signal_chip>
+                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand);">
+                  Gigs
                 </div>
-                <div class="text-[15px] leading-normal text-[var(--paper-100)] mt-2.5">
-                  {@priority_alert.text}
+                <div class="flex items-center gap-2" style="margin-top: 8px;">
+                  <div style="font-family: var(--font-display); font-weight: 800; font-size: 40px; letter-spacing: -0.02em; line-height: 1; color: #fff;">
+                    {@gig_tile.value}
+                  </div>
+                  <%= if @stats.is_travel_today && @stats.shows_played > 0 do %>
+                    <.signal_chip tone="load" size="sm" variant="tint">TRAVEL DAY</.signal_chip>
+                  <% end %>
                 </div>
-                <.tm_button variant="primary" size="sm" icon_name="hero-arrow-right" class="mt-3.5">Resolve</.tm_button>
+                <div class="mt-1.5 flex items-center gap-2">
+                  <span style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-300);">{@gig_tile.sub}</span>
+                  <%= if @stats.unconfirmed_gigs > 0 do %>
+                    <span
+                      class="px-1.5 py-0.5 rounded-[var(--radius-stamp)]"
+                      style="background: var(--signal-stop); color: #fff; font-family: var(--font-mono); font-weight: 700; font-size: 9px; letter-spacing: 0.06em;"
+                    >{@stats.unconfirmed_gigs} unconfirmed</span>
+                  <% end %>
+                </div>
               </div>
             </div>
+
+            <%!-- Tile 2: Days --%>
+            <div
+              class="relative p-[18px] rounded-[var(--radius-md)] border border-[var(--paper-300)]"
+              style="background: var(--surface-card); color: var(--ink-700); box-shadow: var(--shadow-sm);"
+            >
+              <div class="relative z-[2]">
+                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-400);">
+                  Days
+                </div>
+                <div class="flex items-center gap-2" style="margin-top: 8px;">
+                  <div style="font-family: var(--font-display); font-weight: 800; font-size: 40px; letter-spacing: -0.02em; line-height: 1; color: var(--ink-900);">
+                    {@days_tile.value}
+                  </div>
+                  <%= if @stats.is_travel_today && @stats.days_on_road > 0 do %>
+                    <.signal_chip tone="load" size="sm" variant="tint">TRAVEL DAY</.signal_chip>
+                  <% end %>
+                </div>
+                <div class="mt-1.5" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                  {@days_tile.sub}
+                </div>
+              </div>
+            </div>
+
+            <%!-- Tile 3: Empty --%>
+            <div
+              class="relative p-[18px] rounded-[var(--radius-md)] border border-[var(--paper-300)]"
+              style="background: var(--surface-card); box-shadow: var(--shadow-sm);"
+            />
+
+            <%!-- Tile 4: Empty --%>
+            <div
+              class="relative p-[18px] rounded-[var(--radius-md)] border border-[var(--paper-300)]"
+              style="background: var(--surface-card); box-shadow: var(--shadow-sm);"
+            />
           </div>
-        </div>
+
+          <div class="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-5 items-start">
+            <%!-- Crew roster --%>
+            <.stamp_card overline_text="Tour crew">
+              <%= if @crew_cards == [] do %>
+                <div class="py-6 text-center" style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">
+                  No crew assigned to this tour yet.
+                </div>
+              <% else %>
+                <div class="flex flex-col gap-3">
+                  <div :for={c <- @crew_cards} class="flex items-center gap-3">
+                    <.pass init={c.init} tone="ink" size={30} />
+                    <div class="flex-1">
+                      <div class="text-[13.5px] font-semibold text-[var(--ink-900)]">{c.name}</div>
+                      <div style="font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--ink-400); text-transform: uppercase;">{c.role}</div>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </.stamp_card>
+
+            <%!-- Tour info --%>
+            <div class="flex flex-col gap-[18px]">
+              <.stamp_card overline_text="Tour details">
+                <div class="flex flex-col gap-2.5">
+                  <%= if @current_tour.start_date do %>
+                    <div class="flex items-center justify-between">
+                      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">START</div>
+                      <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--ink-900);">
+                        {Calendar.strftime(@current_tour.start_date, "%d %b %Y")}
+                      </div>
+                    </div>
+                  <% end %>
+                  <%= if @current_tour.end_date do %>
+                    <div class="flex items-center justify-between">
+                      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">END</div>
+                      <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--ink-900);">
+                        {Calendar.strftime(@current_tour.end_date, "%d %b %Y")}
+                      </div>
+                    </div>
+                  <% end %>
+                  <div class="flex items-center justify-between">
+                    <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">STATUS</div>
+                    <.signal_chip
+                      tone={cond do
+                        @current_tour.status == "active" -> "live"
+                        @current_tour.status == "draft" -> "sound"
+                        @current_tour.status == "completed" -> "ink"
+                        true -> "stop"
+                      end}
+                      size="sm"
+                    >
+                      {@current_tour.status}
+                    </.signal_chip>
+                  </div>
+                </div>
+              </.stamp_card>
+            </div>
+          </div>
+        <% else %>
+          <div class="py-16 text-center">
+            <div style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-400); letter-spacing: 0.06em;">
+              Select or create a tour to see the dashboard.
+            </div>
+          </div>
+        <% end %>
       </div>
     </Layouts.app>
     """
+  end
+
+  defp build_gig_tile(stats) do
+    cond do
+      stats.shows_played > 0 ->
+        %{value: "#{stats.shows_played}", sub: "of #{stats.shows_total} gigs"}
+
+      stats.shows_total > 0 ->
+        %{value: "#{stats.shows_total}", sub: "gigs"}
+
+      true ->
+        %{value: "0", sub: "gigs"}
+    end
+  end
+
+  defp build_days_tile(stats) do
+    date_range =
+      if stats.start_date && stats.end_date do
+        "#{Calendar.strftime(stats.start_date, "%d %b")} – #{Calendar.strftime(stats.end_date, "%d %b")}"
+      else
+        ""
+      end
+
+    cond do
+      stats.days_on_road > 0 ->
+        %{value: "#{stats.days_on_road}", sub: "of #{stats.total_days} days · #{date_range}"}
+
+      stats.total_days > 0 ->
+        %{value: "#{stats.total_days}", sub: "days · #{date_range}"}
+
+      true ->
+        %{value: "0", sub: "days"}
+    end
+  end
+
+  defp build_crew_cards(crew) do
+    Enum.take(crew, 6)
+    |> Enum.map(fn cm ->
+      initials =
+        cm.name
+        |> String.split(~r/\s+/, trim: true)
+        |> Enum.take(2)
+        |> Enum.map(&String.first/1)
+        |> Enum.join()
+        |> String.upcase()
+
+      %{name: cm.name, role: cm.role_title, init: initials, pass: "CREW", status: "on-site"}
+    end)
   end
 end

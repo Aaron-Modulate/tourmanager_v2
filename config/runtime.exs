@@ -1,5 +1,21 @@
 import Config
 
+if config_env() == :dev do
+  envrc_path = Path.expand("../.envrc", __DIR__)
+
+  if File.exists?(envrc_path) do
+    envrc_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.each(fn line ->
+      case Regex.run(~r/^export\s+(\w+)=(.*)$/, String.trim(line)) do
+        [_, key, value] -> System.put_env(key, String.trim(value))
+        _ -> :ok
+      end
+    end)
+  end
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -22,6 +38,15 @@ end
 
 config :tourmanager_v2, TourmanagerV2Web.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+
+config :ueberauth, Ueberauth.Strategy.Google.OAuth,
+  client_id: System.get_env("GOOGLE_CLIENT_ID"),
+  client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+
+config :ueberauth, Ueberauth.Strategy.Microsoft.OAuth,
+  client_id: System.get_env("MICROSOFT_CLIENT_ID"),
+  client_secret: System.get_env("MICROSOFT_CLIENT_SECRET"),
+  tenant_id: System.get_env("MICROSOFT_TENANT")
 
 if config_env() == :prod do
   database_url =

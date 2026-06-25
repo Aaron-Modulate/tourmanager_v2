@@ -1,45 +1,29 @@
 defmodule TourmanagerV2Web.DaySheetLive do
   use TourmanagerV2Web, :live_view
-
-  @run_of_show [
-    %{time: "08:30", label: "Bus arrival", tone: "ink", loc: "Loading dock, Stockwell Rd", done: true, flag: false},
-    %{time: "12:00", label: "Crew call / Load in", tone: "load", loc: "Stage door B", done: true, flag: false},
-    %{time: "14:30", label: "Local crew + rigging", tone: "load", loc: "Main stage", done: false, flag: false},
-    %{time: "16:00", label: "Line check", tone: "sound", loc: "FOH", done: false, flag: false},
-    %{time: "17:00", label: "Soundcheck — NOVA RIOT", tone: "sound", loc: "Main stage", done: false, flag: false},
-    %{time: "18:30", label: "Catering / Dinner", tone: "ink", loc: "Green room 2", done: false, flag: false},
-    %{time: "19:00", label: "Doors", tone: "doors", loc: "FOH", done: false, flag: true},
-    %{time: "19:45", label: "Support — WILD CASSETTE", tone: "doors", loc: "Main stage", done: false, flag: false},
-    %{time: "21:00", label: "NOVA RIOT — Set", tone: "live", loc: "Main stage", done: false, flag: true},
-    %{time: "22:30", label: "Curfew", tone: "stop", loc: "House", done: false, flag: true},
-    %{time: "23:30", label: "Load out", tone: "ink", loc: "Stage door B", done: false, flag: false}
-  ]
-
-  @crew [
-    %{name: "Mara Quinn", role: "Tour Manager", init: "MQ", pass: "AAA", status: "on-site"},
-    %{name: "Deshawn Cole", role: "Production Mgr", init: "DC", pass: "AAA", status: "on-site"},
-    %{name: "Iris Vöng", role: "FOH Engineer", init: "IV", pass: "CREW", status: "on-site"},
-    %{name: "Theo Park", role: "Monitor Eng", init: "TP", pass: "CREW", status: "travel"},
-    %{name: "Lena Hart", role: "Lighting Dir", init: "LH", pass: "CREW", status: "on-site"},
-    %{name: "Sam Okafor", role: "Backline", init: "SO", pass: "CREW", status: "break"}
-  ]
-
-  @alerts [
-    %{tone: "stop", text: "Monitor desk firmware mismatch — Theo to confirm spare on arrival.", meta: "PROD · 2h ago"},
-    %{tone: "sound", text: "Soundcheck window tight: support overlaps by 15 min.", meta: "SCHED · today"},
-    %{tone: "load", text: "Glasgow get-in moved to 11:00 — union crew confirmed.", meta: "ADV · 1d ago"}
-  ]
+  use TourmanagerV2Web.TourSwitching
 
   def mount(_params, _session, socket) do
-    {:ok,
-     assign(socket,
-       active_nav: "daysheet",
-       active_tab: "show",
-       run_of_show: @run_of_show,
-       crew: @crew,
-       alerts: @alerts,
-       page_title: "Day Sheet"
-     )}
+    socket =
+      socket
+      |> assign(
+        active_nav: "daysheet",
+        active_tab: "show",
+        tour_menu_open: false,
+        settings_open: false,
+        new_tour_open: false,
+        new_tour_form: nil,
+        add_route_open: false,
+        add_route_type: "gig",
+        add_route_form: nil,
+        place_suggestions: [],
+        autocomplete_field: nil,
+        editing_route: false,
+        editing_route_entry: nil,
+        page_title: "Day Sheet"
+      )
+      |> load_tour_data(socket.assigns[:current_tour])
+
+    {:ok, socket}
   end
 
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
@@ -47,23 +31,109 @@ defmodule TourmanagerV2Web.DaySheetLive do
   end
 
   def render(assigns) do
+    today_re = assigns[:today_route_entry]
+    next_re = assigns[:next_route_entry]
+    today_gig = assigns[:today_gig]
+    events = assigns[:events] || []
+    crew = assigns[:tour_crew] || []
+
+    active_entry = next_re || today_re || today_gig
+
+    run_of_show =
+      if events != [] do
+        Enum.map(events, fn e ->
+          time = if e.starts_at, do: Calendar.strftime(e.starts_at, "%H:%M"), else: "--:--"
+
+          tone =
+            case e.category do
+              "load_in" -> "load"
+              "soundcheck" -> "sound"
+              "doors" -> "doors"
+              "showtime" -> "live"
+              "curfew" -> "stop"
+              _ -> "ink"
+            end
+
+          %{
+            time: time,
+            label: e.name,
+            tone: tone,
+            loc: e.location || "",
+            done: false,
+            flag: e.category in ~w(doors showtime curfew)
+          }
+        end)
+      else
+        []
+      end
+
+    crew_cards =
+      Enum.map(crew, fn cm ->
+        initials =
+          cm.name
+          |> String.split(~r/\s+/, trim: true)
+          |> Enum.take(2)
+          |> Enum.map(&String.first/1)
+          |> Enum.join()
+          |> String.upcase()
+
+        %{
+          name: cm.name,
+          role: cm.role_title,
+          init: initials,
+          pass: "CREW",
+          status: "on-site"
+        }
+      end)
+
+    assigns =
+      assigns
+      |> Map.put(:run_of_show_data, run_of_show)
+      |> Map.put(:crew_cards, crew_cards)
+      |> Map.put(:active_entry, active_entry)
+      |> Map.put(:active_gig, today_gig)
+
     ~H"""
-    <Layouts.app flash={@flash} active_nav={@active_nav}>
+    <Layouts.app
+      flash={@flash}
+      active_nav={@active_nav}
+      current_user={@current_user}
+      user_tours={@user_tours}
+      current_tour={@current_tour}
+      current_tour_role={@current_tour_role}
+      tour_menu_open={@tour_menu_open}
+      settings_open={@settings_open}
+      new_tour_open={@new_tour_open}
+      new_tour_form={@new_tour_form}
+      headerbar_entry={@headerbar_entry}
+      headerbar_is_today={@headerbar_is_today}
+    >
       <div id="day-sheet" class="p-7 grid grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5 items-start">
         <%!-- Left: run of show --%>
         <div>
           <div class="flex items-center justify-between mb-3.5">
             <div>
               <.overline>Run of show</.overline>
-              <.display size={26} class="mt-1.5">Today&rsquo;s schedule</.display>
+              <.display size={26} class="mt-1.5">
+                <%= cond do %>
+                  <% @active_entry && Map.has_key?(@active_entry, :date) && @active_entry.date -> %>
+                    {Calendar.strftime(@active_entry.date, "%A %d %b")}
+                  <% @active_gig && @active_gig.date -> %>
+                    {Calendar.strftime(@active_gig.date, "%A %d %b")}
+                  <% true -> %>
+                    Schedule
+                <% end %>
+              </.display>
             </div>
-            <.tm_button variant="secondary" size="sm" icon_name="hero-plus">Add</.tm_button>
+            <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
+              <.tm_button variant="secondary" size="sm" icon_name="hero-plus">Add</.tm_button>
+            <% end %>
           </div>
 
           <.tab_bar
             tabs={[
-              %{value: "show", label: "Schedule", count: length(@run_of_show)},
-              %{value: "crew", label: "Crew", count: length(@crew)},
+              %{value: "show", label: "Schedule", count: length(@run_of_show_data)},
+              %{value: "crew", label: "Crew", count: length(@crew_cards)},
               %{value: "notes", label: "Notes"}
             ]}
             active={@active_tab}
@@ -72,34 +142,61 @@ defmodule TourmanagerV2Web.DaySheetLive do
 
           <%!-- Schedule tab --%>
           <div :if={@active_tab == "show"} id="schedule-list" class="flex flex-col">
-            <.schedule_row
-              :for={row <- @run_of_show}
-              time={row.time}
-              label={row.label}
-              tone={row.tone}
-              loc={row.loc}
-              done={row.done}
-              flag={row.flag}
-            />
+            <%= if @run_of_show_data == [] do %>
+              <div class="py-12 text-center">
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">
+                  <%= if @current_tour do %>
+                    No upcoming events scheduled. Add gigs and events to this tour.
+                  <% else %>
+                    Select or create a tour to see the day sheet.
+                  <% end %>
+                </div>
+              </div>
+            <% else %>
+              <.schedule_row
+                :for={row <- @run_of_show_data}
+                time={row.time}
+                label={row.label}
+                tone={row.tone}
+                loc={row.loc}
+                done={row.done}
+                flag={row.flag}
+              />
+            <% end %>
           </div>
 
           <%!-- Crew tab --%>
           <div :if={@active_tab == "crew"} id="crew-grid" class="grid grid-cols-2 gap-2.5">
-            <.crew_card
-              :for={c <- @crew}
-              name={c.name}
-              role={c.role}
-              init={c.init}
-              pass_level={c.pass}
-              status={c.status}
-            />
+            <%= if @crew_cards == [] do %>
+              <div class="col-span-2 py-12 text-center">
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">
+                  No crew assigned yet.
+                </div>
+              </div>
+            <% else %>
+              <.crew_card
+                :for={c <- @crew_cards}
+                name={c.name}
+                role={c.role}
+                init={c.init}
+                pass_level={c.pass}
+                status={c.status}
+              />
+            <% end %>
           </div>
 
           <%!-- Notes tab --%>
           <div :if={@active_tab == "notes"} id="notes-panel">
             <.stamp_card overline_text="Production notes" halftone>
               <div class="text-[15px] leading-relaxed text-[var(--ink-700)]">
-                Stage right wing is tight — keep cases clear of the dimmer beach. House sound limit <b>102 dB(A)</b> at FOH, hard curfew <b>22:30</b>. Local crew of 8 confirmed for load-in; rigging call moved 30 min earlier per the venue.
+                <%= cond do %>
+                  <% @active_entry && Map.has_key?(@active_entry, :notes) && @active_entry.notes -> %>
+                    {@active_entry.notes}
+                  <% @active_gig && @active_gig.notes -> %>
+                    {@active_gig.notes}
+                  <% true -> %>
+                    No production notes.
+                <% end %>
               </div>
             </.stamp_card>
           </div>
@@ -107,27 +204,29 @@ defmodule TourmanagerV2Web.DaySheetLive do
 
         <%!-- Right column --%>
         <div class="flex flex-col gap-[18px]">
-          <.stamp_card hard overline_text="Next up" padding="18px">
-            <div class="flex items-center justify-between">
+          <%= if @active_entry do %>
+            <.stamp_card hard overline_text="Next gig" padding="18px">
               <div>
-                <.signal_chip tone="doors" dot>Doors</.signal_chip>
-                <.display size={32} class="mt-2.5">19:00</.display>
-                <div class="mt-1" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">FOH · IN 1H 46M</div>
+                <.display size={22}>{@active_entry.venue || @active_entry.city || "Upcoming"}</.display>
+                <div class="mt-1.5" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                  {@active_entry.city || ""}
+                  <%= if @active_entry.date do %>
+                    · {Calendar.strftime(@active_entry.date, "%d %b")}
+                  <% end %>
+                </div>
               </div>
-              <div class="text-right">
-                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; color: var(--ink-400);">SET</div>
-                <.display size={22} class="mt-1">21:00</.display>
+            </.stamp_card>
+          <% else %>
+            <.stamp_card overline_text="No upcoming gigs" padding="18px">
+              <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">
+                <%= if @current_tour do %>
+                  No gigs scheduled on this tour.
+                <% else %>
+                  Select a tour to see gig details.
+                <% end %>
               </div>
-            </div>
-            <.tm_button variant="primary" block icon_name="hero-bell" class="mt-4">Notify crew</.tm_button>
-          </.stamp_card>
-
-          <div>
-            <.overline style="margin-bottom: 10px;">Alerts</.overline>
-            <div class="flex flex-col gap-2">
-              <.alert_card :for={a <- @alerts} text={a.text} tone={a.tone} meta={a.meta} />
-            </div>
-          </div>
+            </.stamp_card>
+          <% end %>
         </div>
       </div>
     </Layouts.app>

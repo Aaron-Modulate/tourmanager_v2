@@ -7,16 +7,29 @@ defmodule TourmanagerV2Web.Layouts do
   embed_templates "layouts/*"
 
   attr :flash, :map, required: true
-
-  attr :current_scope, :map,
-    default: nil,
-    doc: "the current scope"
-
+  attr :current_scope, :map, default: nil, doc: "the current scope"
+  attr :current_user, :map, default: nil
+  attr :user_tours, :list, default: []
+  attr :current_tour, :map, default: nil
+  attr :current_tour_role, :string, default: nil
   attr :active_nav, :string, default: "daysheet", doc: "active navigation item"
+  attr :tour_menu_open, :boolean, default: false
+  attr :settings_open, :boolean, default: false
+  attr :new_tour_open, :boolean, default: false
+  attr :new_tour_form, :map, default: nil
+  attr :headerbar_entry, :map, default: nil
+  attr :headerbar_is_today, :boolean, default: false
 
   slot :inner_block, required: true
 
   def app(assigns) do
+    today = Date.utc_today()
+    today_str = Calendar.strftime(today, "%a %d %b %Y") |> String.upcase()
+
+    assigns =
+      assigns
+      |> Map.put(:today_str, today_str)
+
     ~H"""
     <div id="app-shell" class="flex h-screen" style="background: var(--paper-100); color: var(--ink-700); font-family: var(--font-sans);">
       <%!-- Left rail --%>
@@ -37,15 +50,81 @@ defmodule TourmanagerV2Web.Layouts do
 
         <%!-- Tour switcher --%>
         <div class="px-[18px] py-[14px] border-b border-[var(--ink-700)]">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300); margin-bottom: 6px;">CURRENT TOUR</div>
-          <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -0.01em; color: #fff;">NOVA RIOT</div>
-          <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-300); margin-top: 4px;">DAY 014 / 060</div>
+          <div class="flex items-center justify-between" style="margin-bottom: 6px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">CURRENT TOUR</div>
+            <button
+              :if={@current_user}
+              id="create-tour-btn"
+              type="button"
+              phx-click="new_tour"
+              class="w-[22px] h-[22px] flex items-center justify-center rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--ink-500)]"
+              style="background: var(--ink-700); border: 1px solid var(--ink-500);"
+              title="Create tour"
+            >
+              <.icon name="hero-plus-mini" class="w-3.5 h-3.5 text-[var(--ink-300)]" />
+            </button>
+          </div>
+          <%= if @current_tour do %>
+            <div id="tour-switcher" class="relative" phx-click-away="close_tour_menu">
+              <button
+                id="tour-switcher-btn"
+                type="button"
+                phx-click="toggle_tour_menu"
+                class="w-full text-left flex items-center justify-between gap-2 cursor-pointer group"
+              >
+                <div>
+                  <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -0.01em; color: #fff;">
+                    {String.upcase(@current_tour.name)}
+                  </div>
+                  <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-300); margin-top: 4px;">
+                    {String.upcase(@current_tour_role || "crew")}
+                  </div>
+                </div>
+                <.icon name="hero-chevron-down" class="w-4 h-4 text-[var(--ink-300)] group-hover:text-white transition-colors" />
+              </button>
+
+              <div
+                :if={assigns[:tour_menu_open]}
+                id="tour-menu"
+                class="absolute left-0 right-0 top-full mt-2 rounded-[var(--radius-md)] overflow-hidden z-50"
+                style="background: var(--ink-700); border: 1px solid var(--ink-500); box-shadow: var(--shadow-hard);"
+              >
+                <button
+                  :for={%{tour: tour, role: role} <- @user_tours}
+                  type="button"
+                  phx-click="select_tour"
+                  phx-value-tour-id={tour.id}
+                  class={[
+                    "w-full text-left px-4 py-3 flex items-center justify-between cursor-pointer transition-colors",
+                    if(tour.id == @current_tour.id,
+                      do: "bg-[var(--brand)]",
+                      else: "hover:bg-[var(--ink-500)]"
+                    )
+                  ]}
+                >
+                  <div>
+                    <div style="font-family: var(--font-display); font-weight: 700; font-size: 14px; color: #fff;">
+                      {tour.name}
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-300); margin-top: 2px;">
+                      {String.upcase(role)}
+                    </div>
+                  </div>
+                  <.icon :if={tour.id == @current_tour.id} name="hero-check" class="w-4 h-4 text-white" />
+                </button>
+              </div>
+            </div>
+          <% else %>
+            <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">
+              No tours yet
+            </div>
+          <% end %>
         </div>
 
         <%!-- Navigation --%>
         <nav class="px-2.5 py-3 flex flex-col gap-0.5 flex-1">
           <.link
-            :for={item <- nav_items()}
+            :for={item <- nav_items(@current_user, @current_tour_role)}
             navigate={item.path}
             class={[
               "flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-sm)] no-underline transition-colors",
@@ -62,32 +141,116 @@ defmodule TourmanagerV2Web.Layouts do
         </nav>
 
         <%!-- User --%>
-        <div class="px-[18px] py-[14px] border-t border-[var(--ink-700)] flex items-center gap-2.5">
-          <span
-            class="w-[30px] h-[30px] rounded-[var(--radius-sm)] flex items-center justify-center"
-            style="background: var(--ink-700); font-family: var(--font-mono); font-weight: 700; font-size: 12px;"
-          >MQ</span>
-          <div class="leading-tight">
-            <div class="text-[13px] font-semibold text-white">Mara Quinn</div>
-            <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-300);">TOUR MANAGER · AAA</div>
-          </div>
+        <div class="px-[18px] py-[14px] border-t border-[var(--ink-700)]">
+          <%= if @current_user do %>
+            <div class="flex items-center gap-2.5">
+              <button
+                type="button"
+                phx-click="open_settings"
+                class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer rounded-[var(--radius-sm)] -mx-1 px-1 py-1 transition-colors hover:bg-[var(--ink-700)]"
+              >
+                <%= if @current_user.avatar_url do %>
+                  <img
+                    src={@current_user.avatar_url}
+                    class="w-[30px] h-[30px] rounded-[var(--radius-sm)] object-cover flex-none"
+                    alt={@current_user.name}
+                    referrerpolicy="no-referrer"
+                  />
+                <% else %>
+                  <span
+                    class="w-[30px] h-[30px] rounded-[var(--radius-sm)] flex items-center justify-center flex-none"
+                    style="background: var(--ink-700); font-family: var(--font-mono); font-weight: 700; font-size: 12px;"
+                  >{user_initials(@current_user.name)}</span>
+                <% end %>
+                <div class="flex-1 min-w-0 leading-tight text-left">
+                  <div class="text-[13px] font-semibold text-white truncate">{@current_user.name}</div>
+                  <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-300);">
+                    {String.upcase(@current_user.role)} · {String.upcase(@current_user.plan)}
+                  </div>
+                </div>
+              </button>
+              <button
+                type="button"
+                phx-click="open_settings"
+                class="text-[var(--ink-300)] hover:text-white transition-colors cursor-pointer"
+                title="Settings"
+              >
+                <.icon name="hero-cog-6-tooth" class="w-4 h-4" />
+              </button>
+            </div>
+          <% else %>
+            <div class="flex flex-col gap-2">
+              <.link
+                href="/auth/google"
+                class="flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius-sm)] no-underline transition-colors hover:bg-[var(--ink-700)]"
+                style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100);"
+              >
+                <.icon name="hero-globe-alt" class="w-4 h-4" />
+                SIGN IN WITH GOOGLE
+              </.link>
+              <.link
+                href="/auth/microsoft"
+                class="flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius-sm)] no-underline transition-colors hover:bg-[var(--ink-700)]"
+                style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100);"
+              >
+                <.icon name="hero-building-office" class="w-4 h-4" />
+                SIGN IN WITH MICROSOFT
+              </.link>
+            </div>
+          <% end %>
         </div>
       </aside>
 
       <%!-- Main column --%>
       <div class="flex-1 flex flex-col min-w-0">
-        <%!-- Stage topbar --%>
+        <%!-- Stage topbar — dynamic event display --%>
         <header class="tm-halftone tm-halftone--light flex items-center justify-between px-7 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage); color: var(--paper-100);">
           <div class="relative z-[2]">
-            <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">SAT 25 JUN 2026 · LON-BRX</div>
-            <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">Brixton Academy</div>
+            <%= if @headerbar_entry do %>
+              <div class="flex items-center gap-2">
+                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">
+                  {headerbar_date(@headerbar_entry)} · {headerbar_code(@headerbar_entry)}
+                </div>
+                <%= unless @headerbar_is_today do %>
+                  <.signal_chip tone="doors" size="sm">NEXT</.signal_chip>
+                <% end %>
+              </div>
+              <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">
+                {@headerbar_entry.venue || @headerbar_entry.origin || "Upcoming"}
+              </div>
+              <div :if={@headerbar_entry.city} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-300); margin-top: 4px;">
+                {@headerbar_entry.city}
+              </div>
+            <% else %>
+              <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">{@today_str}</div>
+              <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">
+                <%= if @current_tour do %>
+                  {@current_tour.name}
+                <% else %>
+                  Tour Manager
+                <% end %>
+              </div>
+            <% end %>
           </div>
           <div class="relative z-[2] flex items-center gap-5" style="font-family: var(--font-mono);">
-            <div :for={{k, v} <- [{"CITY", "London"}, {"CAP", "4,921"}, {"WX", "18° · clear"}, {"CALL", "12:00"}]} class="text-right">
-              <div style="font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">{k}</div>
-              <div style="font-size: 15px; font-weight: 700; color: #fff; margin-top: 2px;">{v}</div>
-            </div>
-            <.signal_chip tone="live" hard size="lg">T − 5:14</.signal_chip>
+            <%= if @headerbar_entry do %>
+              <%= if @headerbar_entry.city do %>
+                <div class="text-right">
+                  <div style="font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">CITY</div>
+                  <div style="font-size: 15px; font-weight: 700; color: #fff; margin-top: 2px;">{@headerbar_entry.city}</div>
+                </div>
+              <% end %>
+              <.signal_chip tone={if @headerbar_is_today, do: "live", else: "doors"} hard size="lg">
+                {if @headerbar_is_today, do: "TODAY", else: headerbar_countdown(@headerbar_entry)}
+              </.signal_chip>
+            <% else %>
+              <div class="text-right">
+                <div style="font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">STATUS</div>
+                <div style="font-size: 15px; font-weight: 700; color: #fff; margin-top: 2px;">
+                  {if @current_tour, do: "No upcoming gigs", else: "No tour selected"}
+                </div>
+              </div>
+            <% end %>
           </div>
         </header>
 
@@ -96,11 +259,41 @@ defmodule TourmanagerV2Web.Layouts do
           {render_slot(@inner_block)}
         </main>
       </div>
+
+      <.settings_modal :if={@current_user} current_user={@current_user} show={@settings_open} />
+      <.new_tour_modal :if={@new_tour_form} form={@new_tour_form} show={@new_tour_open} />
     </div>
     """
   end
 
-  defp nav_items do
+  defp headerbar_date(entry) do
+    if entry.date do
+      Calendar.strftime(entry.date, "%a %d %b %Y") |> String.upcase()
+    else
+      "TBD"
+    end
+  end
+
+  defp headerbar_code(entry) do
+    code = entry.venue_code || String.slice(entry.city || "—", 0, 3) |> String.upcase()
+    code
+  end
+
+  defp headerbar_countdown(entry) do
+    if entry.date do
+      days = Date.diff(entry.date, Date.utc_today())
+
+      cond do
+        days == 1 -> "TOMORROW"
+        days > 1 -> "IN #{days}D"
+        true -> "TODAY"
+      end
+    else
+      "TBD"
+    end
+  end
+
+  defp nav_items(_user, _role) do
     [
       %{id: "daysheet", label: "Day sheet", icon: "hero-clipboard-document-list", path: "/", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" end},
@@ -116,6 +309,17 @@ defmodule TourmanagerV2Web.Layouts do
         active: fn _assigns -> false end},
     ]
   end
+
+  defp user_initials(name) when is_binary(name) do
+    name
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map(&String.first/1)
+    |> Enum.join()
+    |> String.upcase()
+  end
+
+  defp user_initials(_), do: "?"
 
   @doc """
   Shows the flash group with standard titles and content.

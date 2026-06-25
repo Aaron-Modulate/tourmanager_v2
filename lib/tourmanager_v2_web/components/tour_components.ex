@@ -4,7 +4,7 @@ defmodule TourmanagerV2Web.TourComponents do
   """
   use Phoenix.Component
 
-  import TourmanagerV2Web.CoreComponents, only: [icon: 1]
+  import TourmanagerV2Web.CoreComponents, only: [icon: 1, input: 1]
 
   attr :size, :integer, default: 28
   attr :class, :string, default: nil
@@ -160,6 +160,7 @@ defmodule TourmanagerV2Web.TourComponents do
   attr :block, :boolean, default: false
   attr :icon_name, :string, default: nil
   attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(phx-click phx-target phx-value-id disabled id)
   slot :inner_block, required: true
 
   def tm_button(assigns) do
@@ -173,6 +174,7 @@ defmodule TourmanagerV2Web.TourComponents do
         @class
       ]}
       style={"font-family: var(--font-mono); letter-spacing: 0.06em; border-radius: var(--radius-md); #{button_style(@variant)}"}
+      {@rest}
     >
       <.icon :if={@icon_name} name={@icon_name} class="w-4 h-4" />
       {render_slot(@inner_block)}
@@ -333,6 +335,7 @@ defmodule TourmanagerV2Web.TourComponents do
 
   defp route_tone("today"), do: "live"
   defp route_tone("next"), do: "doors"
+  defp route_tone("upcoming"), do: "load"
   defp route_tone("hold"), do: "load"
   defp route_tone(_), do: "load"
 
@@ -400,4 +403,662 @@ defmodule TourmanagerV2Web.TourComponents do
     </div>
     """
   end
+
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :on_close, :string, default: "close_modal"
+  slot :inner_block, required: true
+
+  def tm_modal(assigns) do
+    ~H"""
+    <div
+      :if={@show}
+      id={@id}
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      phx-window-keydown={@on_close}
+      phx-key="Escape"
+    >
+      <div
+        class="absolute inset-0"
+        style="background: rgba(20, 17, 15, 0.55); backdrop-filter: blur(4px);"
+        phx-click={@on_close}
+      />
+      <div
+        class="relative z-10 w-full max-w-[480px] mx-4 rounded-[var(--radius-xl)] overflow-hidden"
+        style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);"
+        role="dialog"
+        aria-modal="true"
+      >
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
+  attr :current_user, :map, required: true
+  attr :show, :boolean, default: false
+
+  def settings_modal(assigns) do
+    plans = [
+      %{
+        id: "free",
+        name: "Crew",
+        price: "Free",
+        desc: "View tours, day sheets and schedules you're invited to.",
+        features: ["View assigned tours", "Day sheet access", "Schedule & alerts"]
+      },
+      %{
+        id: "paid",
+        name: "Manager",
+        price: "Pro",
+        desc: "Create tours, invite crew, and run the whole show.",
+        features: ["Everything in Crew", "Create & manage tours", "Invite crew members", "Full admin controls"]
+      }
+    ]
+
+    assigns = assign(assigns, :plans, plans)
+
+    ~H"""
+    <.tm_modal id="settings-modal" show={@show} on_close="close_settings">
+      <%!-- Header --%>
+      <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">SETTINGS</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Your account</div>
+        </div>
+        <button
+          type="button"
+          phx-click="close_settings"
+          class="w-8 h-8 flex items-center justify-center rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--ink-700)]"
+          aria-label="Close settings"
+        >
+          <.icon name="hero-x-mark" class="w-5 h-5 text-[var(--ink-300)]" />
+        </button>
+      </div>
+
+      <%!-- User info --%>
+      <div class="px-6 py-5 border-b border-[var(--paper-300)]">
+        <div class="flex items-center gap-3">
+          <%= if @current_user.avatar_url do %>
+            <img
+              src={@current_user.avatar_url}
+              class="w-10 h-10 rounded-[var(--radius-md)] object-cover"
+              alt={@current_user.name}
+              referrerpolicy="no-referrer"
+            />
+          <% else %>
+            <span
+              class="w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center"
+              style="background: var(--ink-900); color: var(--paper-100); font-family: var(--font-mono); font-weight: 700; font-size: 14px;"
+            >{initials(@current_user.name)}</span>
+          <% end %>
+          <div>
+            <div class="text-[15px] font-semibold text-[var(--ink-900)]">{@current_user.name}</div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">{@current_user.email}</div>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Plan selector --%>
+      <div class="px-6 py-5">
+        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 12px;">SELECT PLAN</div>
+        <div class="flex flex-col gap-3">
+          <button
+            :for={plan <- @plans}
+            type="button"
+            phx-click="select_plan"
+            phx-value-plan={plan.id}
+            class={[
+              "w-full text-left rounded-[var(--radius-md)] p-4 cursor-pointer transition-all",
+              if(@current_user.plan == plan.id,
+                do: "border-2 border-[var(--brand)]",
+                else: "border border-[var(--paper-300)] hover:border-[var(--ink-400)]"
+              )
+            ]}
+            style={"background: #{if @current_user.plan == plan.id, do: "var(--marker-050)", else: "var(--surface-card)"}; #{if @current_user.plan == plan.id, do: "box-shadow: var(--shadow-hard-sm);", else: ""}"}
+          >
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2.5">
+                <div style="font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--ink-900);">{plan.name}</div>
+                <span
+                  :if={@current_user.plan == plan.id}
+                  class="px-2 py-0.5 rounded-[var(--radius-stamp)]"
+                  style="background: var(--brand); color: #fff; font-family: var(--font-mono); font-weight: 700; font-size: 9px; letter-spacing: 0.1em;"
+                >ACTIVE</span>
+              </div>
+              <div style="font-family: var(--font-mono); font-weight: 700; font-size: 13px; color: var(--ink-400);">{plan.price}</div>
+            </div>
+            <div class="text-[13px] text-[var(--ink-400)] mb-3">{plan.desc}</div>
+            <div class="flex flex-col gap-1.5">
+              <div
+                :for={feature <- plan.features}
+                class="flex items-center gap-2"
+                style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500);"
+              >
+                <.icon name="hero-check-mini" class={["w-3.5 h-3.5", if(@current_user.plan == plan.id, do: "text-[var(--brand)]", else: "text-[var(--ink-300)]")]} />
+                {feature}
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <%!-- Distance unit preference --%>
+      <div class="px-6 py-4 border-t border-[var(--paper-300)]">
+        <div class="flex items-center justify-between">
+          <div>
+            <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 4px;">DISTANCE UNIT</div>
+            <div class="text-[13px] text-[var(--ink-500)]">Used for routing distances</div>
+          </div>
+          <button
+            type="button"
+            phx-click="toggle_distance_unit"
+            class="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] cursor-pointer transition-all"
+            style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; background: var(--ink-900); color: var(--paper-100); box-shadow: var(--shadow-hard-sm);"
+          >
+            {String.upcase(@current_user.distance_unit)}
+            <.icon name="hero-arrows-right-left-mini" class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <%!-- Footer --%>
+      <div class="px-6 py-4 border-t border-[var(--paper-300)] flex items-center justify-between">
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">
+          {String.upcase(@current_user.role)} · {String.upcase(@current_user.plan)} PLAN
+        </div>
+        <.link
+          href="/auth/sign_out"
+          method="delete"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] no-underline transition-colors hover:bg-[var(--paper-200)]"
+          style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
+        >
+          <.icon name="hero-arrow-right-on-rectangle-mini" class="w-3.5 h-3.5" />
+          SIGN OUT
+        </.link>
+      </div>
+    </.tm_modal>
+    """
+  end
+
+  attr :form, :map, required: true
+  attr :show, :boolean, default: false
+
+  def new_tour_modal(assigns) do
+    ~H"""
+    <.tm_modal id="new-tour-modal" show={@show} on_close="close_new_tour">
+      <%!-- Header --%>
+      <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">NEW</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Create tour</div>
+        </div>
+        <button
+          type="button"
+          phx-click="close_new_tour"
+          class="w-8 h-8 flex items-center justify-center rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--ink-700)]"
+          aria-label="Close"
+        >
+          <.icon name="hero-x-mark" class="w-5 h-5 text-[var(--ink-300)]" />
+        </button>
+      </div>
+
+      <%!-- Form --%>
+      <.form for={@form} id="new-tour-form" phx-change="validate_tour" phx-submit="save_tour" class="px-6 py-5">
+        <div class="flex flex-col gap-4">
+          <div>
+            <label
+              for={@form[:name].id}
+              style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;"
+            >TOUR NAME</label>
+            <.input
+              field={@form[:name]}
+              type="text"
+              placeholder="e.g. Nova Riot UK Run 2026"
+              class="w-full px-3 py-2.5 text-[15px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors"
+              style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);"
+            />
+          </div>
+
+          <div>
+            <label
+              for={@form[:description].id}
+              style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;"
+            >DESCRIPTION</label>
+            <.input
+              field={@form[:description]}
+              type="textarea"
+              placeholder="Optional notes about this tour"
+              rows="3"
+              class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors resize-none"
+              style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                for={@form[:start_date].id}
+                style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;"
+              >START DATE</label>
+              <.input
+                field={@form[:start_date]}
+                type="date"
+                class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors"
+                style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);"
+              />
+            </div>
+            <div>
+              <label
+                for={@form[:end_date].id}
+                style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;"
+              >END DATE</label>
+              <.input
+                field={@form[:end_date]}
+                type="date"
+                class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors"
+                style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);"
+              />
+            </div>
+          </div>
+        </div>
+
+        <%!-- Footer --%>
+        <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[var(--paper-300)]">
+          <button
+            type="button"
+            phx-click="close_new_tour"
+            class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]"
+            style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); background: var(--surface-card); border: 1px solid var(--paper-300);"
+          >CANCEL</button>
+          <button
+            type="submit"
+            id="save-tour-btn"
+            class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-all"
+            style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+          >CREATE TOUR</button>
+        </div>
+      </.form>
+    </.tm_modal>
+    """
+  end
+
+  attr :day, :integer, required: true
+  attr :date, :string, required: true
+  attr :city, :string, required: true
+  attr :venue, :string, required: true
+  attr :code, :string, required: true
+  attr :km, :integer, required: true
+  attr :status, :string, required: true
+  attr :type, :string, default: "gig"
+  attr :distance_label, :string, default: nil
+  attr :venue_image_url, :string, default: nil
+  attr :travel_duration, :integer, default: nil
+  attr :booking_ref, :string, default: nil
+  attr :address, :string, default: nil
+
+  def route_stop_enhanced(assigns) do
+    is_today = assigns.status == "today"
+    assigns = assign(assigns, :is_today, is_today)
+
+    ~H"""
+    <div class="relative mb-1.5">
+      <%!-- Distance connector between stops --%>
+      <div
+        :if={@distance_label}
+        class="flex items-center gap-2 ml-[70px] mb-1 py-1"
+      >
+        <div class="flex-1 h-px bg-[var(--paper-300)]" />
+        <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-[var(--radius-stamp)]" style="background: var(--paper-200);">
+          <.icon name="hero-truck-mini" class="w-3 h-3 text-[var(--ink-400)]" />
+          <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--ink-500); letter-spacing: 0.04em;">
+            {@distance_label}
+          </span>
+        </div>
+        <div class="flex-1 h-px bg-[var(--paper-300)]" />
+      </div>
+
+      <div class="grid grid-cols-[54px_1fr] gap-4 items-center">
+        <div class="text-right leading-tight" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+          <div class="font-bold text-[var(--ink-700)]">D{String.pad_leading(to_string(@day), 2, "0")}</div>
+          <div class="text-[9px]">{@date}</div>
+        </div>
+        <div
+          class={["flex items-center gap-3.5 px-3.5 py-3 rounded-[var(--radius-md)]",
+            if(@is_today, do: "border-2 border-[var(--ink-900)]", else: "border border-[var(--paper-300)]")
+          ]}
+          style={"background: #{if @is_today, do: "var(--surface-stage)", else: "var(--surface-card)"}; color: #{if @is_today, do: "var(--paper-100)", else: "var(--ink-700)"}; #{if @is_today, do: "box-shadow: var(--shadow-hard);", else: ""}"}
+        >
+          <%!-- Venue thumbnail --%>
+          <img
+            :if={@venue_image_url && @type == "gig"}
+            src={@venue_image_url}
+            class="w-12 h-12 rounded-[var(--radius-sm)] object-cover flex-none"
+            style="border: 1px solid var(--paper-300);"
+            loading="lazy"
+          />
+
+          <%!-- Type icon for non-gig entries --%>
+          <span
+            :if={@type != "gig"}
+            class="w-12 h-12 rounded-[var(--radius-sm)] flex items-center justify-center flex-none"
+            style={"background: #{if @type == "vehicle_travel", do: "var(--signal-load-tint)", else: "var(--paper-200)"}; border: 1px solid var(--paper-300);"}
+          >
+            <.icon
+              name={if @type == "vehicle_travel", do: "hero-truck", else: "hero-moon"}
+              class={["w-5 h-5", if(@type == "vehicle_travel", do: "text-[var(--signal-load)]", else: "text-[var(--ink-400)]")]}
+            />
+          </span>
+
+          <span
+            :if={!@venue_image_url && @type == "gig"}
+            class="w-3 h-3 flex-none rounded-full border-2 border-[var(--paper-50)]"
+            style={"background: var(--signal-#{route_tone(@status)}); opacity: #{if @status == "done", do: "0.3", else: "1"}; box-shadow: 0 0 0 2px var(--paper-300);"}
+          />
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <div
+                style={"font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; color: #{if @is_today, do: "#fff", else: "var(--ink-900)"};"}
+              >
+                {cond do
+                  @type == "gig" -> @venue
+                  @type == "vehicle_travel" -> "#{@venue} → #{@city}"
+                  true -> "Off day"
+                end}
+              </div>
+              <.signal_chip
+                :if={@type != "gig"}
+                tone={if @type == "vehicle_travel", do: "load", else: "ink"}
+                size="sm"
+                variant="tint"
+              >
+                TRAVEL
+              </.signal_chip>
+            </div>
+            <div style={"font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; color: #{if @is_today, do: "var(--ink-300)", else: "var(--ink-400)"};"}>{@city}{if @address, do: " · #{@address}", else: ""}</div>
+            <div
+              :if={@travel_duration}
+              class="flex items-center gap-1 mt-0.5"
+              style={"font-family: var(--font-mono); font-size: 10px; color: #{if @is_today, do: "var(--ink-300)", else: "var(--ink-400)"}"}
+            >
+              <.icon name="hero-clock-mini" class="w-3 h-3" />
+              {TourmanagerV2.GoogleMaps.format_duration(@travel_duration)}
+            </div>
+            <div
+              :if={@booking_ref}
+              class="flex items-center gap-1 mt-0.5"
+              style={"font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: #{if @is_today, do: "var(--ink-300)", else: "var(--ink-400)"}"}
+            >
+              REF: {@booking_ref}
+            </div>
+          </div>
+          <.signal_chip :if={@status not in ~w(done upcoming)} tone={route_tone(@status)} size="sm">
+            {@status}
+          </.signal_chip>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  attr :form, :map, required: true
+  attr :show, :boolean, default: false
+  attr :entry_type, :string, default: "gig"
+  attr :editing, :boolean, default: false
+  attr :place_suggestions, :list, default: []
+  attr :autocomplete_field, :string, default: nil
+
+  def route_entry_modal(assigns) do
+    close_event = if assigns.editing, do: "close_edit_route", else: "close_add_route"
+    submit_event = if assigns.editing, do: "update_route_entry", else: "save_route_entry"
+    modal_id = if assigns.editing, do: "edit-route-modal", else: "add-route-modal"
+
+    assigns =
+      assigns
+      |> assign(:close_event, close_event)
+      |> assign(:submit_event, submit_event)
+      |> assign(:modal_id, modal_id)
+
+    ~H"""
+    <.tm_modal id={@modal_id} show={@show} on_close={@close_event}>
+      <%!-- Header --%>
+      <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">
+            {if @editing, do: "EDIT STOP", else: "ADD TO ROUTE"}
+          </div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">
+            {if @editing, do: "Edit stop", else: "New stop"}
+          </div>
+        </div>
+        <button type="button" phx-click={@close_event} class="w-8 h-8 flex items-center justify-center rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--ink-700)]" aria-label="Close">
+          <.icon name="hero-x-mark" class="w-5 h-5 text-[var(--ink-300)]" />
+        </button>
+      </div>
+
+      <%!-- Type selector (only for new) --%>
+      <div :if={!@editing} class="px-6 pt-5 pb-3">
+        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 8px;">TYPE</div>
+        <div class="flex gap-2">
+          <button
+            :for={t <- [{"gig", "hero-musical-note", "Gig"}, {"vehicle_travel", "hero-truck", "Travel"}, {"off_day", "hero-moon", "Off day"}]}
+            type="button"
+            phx-click="set_route_type"
+            phx-value-type={elem(t, 0)}
+            class={[
+              "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-all",
+              if(@entry_type == elem(t, 0), do: "border-2 border-[var(--brand)]", else: "border border-[var(--paper-300)] hover:border-[var(--ink-400)]")
+            ]}
+            style={"font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; background: #{if @entry_type == elem(t, 0), do: "var(--marker-050)", else: "var(--surface-card)"}; color: #{if @entry_type == elem(t, 0), do: "var(--brand)", else: "var(--ink-500)"};"}
+          >
+            <.icon name={elem(t, 1)} class="w-4 h-4" />
+            {elem(t, 2)}
+          </button>
+        </div>
+      </div>
+
+      <%!-- Form --%>
+      <.form for={@form} id={"#{@modal_id}-form"} phx-change="validate_route_entry" phx-submit={@submit_event} class="px-6 pb-5" style="max-height: 60vh; overflow-y: auto;">
+        <.input field={@form[:type]} type="hidden" value={@entry_type} />
+
+        <div class="flex flex-col gap-4 mt-2">
+          <%!-- ===== GIG FIELDS ===== --%>
+          <%= if @entry_type == "gig" do %>
+            <.place_autocomplete_field
+              form={@form}
+              field={:venue}
+              label="LOCATION"
+              placeholder="Search venue or address"
+              suggestions={if @autocomplete_field == "venue", do: @place_suggestions, else: []}
+              autocomplete_field="venue"
+            />
+            <.input field={@form[:place_id]} type="hidden" />
+            <.input field={@form[:lat]} type="hidden" />
+            <.input field={@form[:lng]} type="hidden" />
+            <.input field={@form[:city]} type="hidden" />
+            <.input field={@form[:venue_image_url]} type="hidden" />
+
+            <.selected_place_chip
+              :if={Phoenix.HTML.Form.input_value(@form, :place_id) not in [nil, ""]}
+              name={Phoenix.HTML.Form.input_value(@form, :venue)}
+              subtitle={Phoenix.HTML.Form.input_value(@form, :city)}
+              place_id={Phoenix.HTML.Form.input_value(@form, :place_id)}
+            />
+
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">DATE</label>
+              <.input field={@form[:date]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+          <% end %>
+
+          <%!-- ===== VEHICLE TRAVEL FIELDS ===== --%>
+          <%= if @entry_type == "vehicle_travel" do %>
+            <.place_autocomplete_field
+              form={@form}
+              field={:origin}
+              label="FROM"
+              placeholder="Search origin"
+              suggestions={if @autocomplete_field == "origin", do: @place_suggestions, else: []}
+              autocomplete_field="origin"
+            />
+            <.input field={@form[:origin_place_id]} type="hidden" />
+            <.input field={@form[:origin_lat]} type="hidden" />
+            <.input field={@form[:origin_lng]} type="hidden" />
+            <.input field={@form[:origin_address]} type="hidden" />
+
+            <.selected_place_chip
+              :if={Phoenix.HTML.Form.input_value(@form, :origin_place_id) not in [nil, ""]}
+              name={Phoenix.HTML.Form.input_value(@form, :origin)}
+              subtitle={Phoenix.HTML.Form.input_value(@form, :origin_address)}
+              place_id={Phoenix.HTML.Form.input_value(@form, :origin_place_id)}
+            />
+
+            <.place_autocomplete_field
+              form={@form}
+              field={:destination}
+              label="TO"
+              placeholder="Search destination"
+              suggestions={if @autocomplete_field == "destination", do: @place_suggestions, else: []}
+              autocomplete_field="destination"
+            />
+            <.input field={@form[:dest_place_id]} type="hidden" />
+            <.input field={@form[:dest_lat]} type="hidden" />
+            <.input field={@form[:dest_lng]} type="hidden" />
+            <.input field={@form[:dest_address]} type="hidden" />
+
+            <.selected_place_chip
+              :if={Phoenix.HTML.Form.input_value(@form, :dest_place_id) not in [nil, ""]}
+              name={Phoenix.HTML.Form.input_value(@form, :destination)}
+              subtitle={Phoenix.HTML.Form.input_value(@form, :dest_address)}
+              place_id={Phoenix.HTML.Form.input_value(@form, :dest_place_id)}
+            />
+
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">DATE</label>
+              <.input field={@form[:date]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">BOOKING REFERENCE</label>
+              <.input field={@form[:booking_reference]} type="text" placeholder="Optional — e.g. confirmation #" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+          <% end %>
+
+          <%!-- ===== OFF DAY FIELDS ===== --%>
+          <%= if @entry_type == "off_day" do %>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">DATE</label>
+              <.input field={@form[:date]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+          <% end %>
+
+          <%!-- Notes (all types) --%>
+          <div>
+            <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">NOTES</label>
+            <.input field={@form[:notes]} type="textarea" rows="2" placeholder="Optional" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors resize-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+          </div>
+        </div>
+
+        <%!-- Footer --%>
+        <div class="flex items-center justify-between mt-6 pt-5 border-t border-[var(--paper-300)]">
+          <div>
+            <button
+              :if={@editing}
+              type="button"
+              phx-click="delete_route_entry"
+              data-confirm="Delete this stop? This cannot be undone."
+              class="px-3 py-2 rounded-[var(--radius-md)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]"
+              style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop); background: transparent; border: 1px solid var(--signal-stop);"
+            >DELETE</button>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" phx-click={@close_event} class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); background: var(--surface-card); border: 1px solid var(--paper-300);">CANCEL</button>
+            <button type="submit" class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-all" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">{if @editing, do: "SAVE CHANGES", else: "ADD STOP"}</button>
+          </div>
+        </div>
+      </.form>
+    </.tm_modal>
+    """
+  end
+
+  attr :form, :map, required: true
+  attr :field, :atom, required: true
+  attr :label, :string, required: true
+  attr :placeholder, :string, default: ""
+  attr :suggestions, :list, default: []
+  attr :autocomplete_field, :string, required: true
+
+  def place_autocomplete_field(assigns) do
+    ~H"""
+    <div class="relative">
+      <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">{@label}</label>
+      <.input
+        field={@form[@field]}
+        type="text"
+        placeholder={@placeholder}
+        phx-debounce="400"
+        phx-keyup="place_autocomplete"
+        phx-value-field={@autocomplete_field}
+        phx-key=""
+        autocomplete="off"
+        class="w-full px-3 py-2.5 text-[15px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors"
+        style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);"
+      />
+      <div
+        :if={@suggestions != []}
+        class="absolute left-0 right-0 top-full mt-1 rounded-[var(--radius-md)] overflow-hidden z-50"
+        style="background: var(--surface-card); border: 1px solid var(--paper-300); box-shadow: var(--shadow-hard);"
+      >
+        <button
+          :for={s <- @suggestions}
+          type="button"
+          phx-click="select_place"
+          phx-value-place-id={s.place_id}
+          phx-value-field={@autocomplete_field}
+          class="w-full text-left px-4 py-3 cursor-pointer transition-colors hover:bg-[var(--paper-200)] border-b border-[var(--paper-300)] last:border-b-0"
+        >
+          <div class="text-[14px] font-semibold text-[var(--ink-900)]">{s.main_text}</div>
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400); margin-top: 2px;">{s.secondary_text}</div>
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  attr :name, :string, required: true
+  attr :subtitle, :string, default: nil
+  attr :place_id, :string, default: nil
+
+  def selected_place_chip(assigns) do
+    ~H"""
+    <div class="flex items-center gap-3 p-3 rounded-[var(--radius-md)] border border-[var(--paper-300)]" style="background: var(--paper-200);">
+      <.icon name="hero-map-pin" class="w-4 h-4 text-[var(--brand)] flex-none" />
+      <div class="flex-1 min-w-0">
+        <div class="text-[13px] font-semibold text-[var(--ink-900)] truncate">{@name}</div>
+        <div :if={@subtitle} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">{@subtitle}</div>
+      </div>
+      <a
+        :if={@place_id}
+        href={"https://www.google.com/maps/place/?q=place_id:#{@place_id}"}
+        target="_blank"
+        class="text-[var(--brand)] hover:text-[var(--brand-hover)] transition-colors"
+        title="Open in Google Maps"
+      >
+        <.icon name="hero-arrow-top-right-on-square-mini" class="w-4 h-4" />
+      </a>
+    </div>
+    """
+  end
+
+  defp initials(name) when is_binary(name) do
+    name
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map(&String.first/1)
+    |> Enum.join()
+    |> String.upcase()
+  end
+
+  defp initials(_), do: "?"
 end

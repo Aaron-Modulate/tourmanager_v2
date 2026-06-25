@@ -28,7 +28,10 @@ import topbar from "../vendor/topbar"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
+  params: () => ({
+    _csrf_token: csrfToken,
+    current_tour_id: localStorage.getItem("current_tour_id") || ""
+  }),
   hooks: {...colocatedHooks},
 })
 
@@ -36,6 +39,35 @@ const liveSocket = new LiveSocket("/live", Socket, {
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+
+window.addEventListener("phx:persist_tour", (e) => {
+  localStorage.setItem("current_tour_id", e.detail.tour_id)
+  fetch("/api/set_tour", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-csrf-token": csrfToken
+    },
+    body: JSON.stringify({tour_id: e.detail.tour_id})
+  })
+})
+
+// Auto-detect distance unit for new users based on timezone
+window.addEventListener("phx:detect_distance_unit", () => {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""
+  const useMiles = tz.startsWith("America/") ||
+    tz === "Europe/London" || tz.startsWith("Europe/Isle") ||
+    tz === "Asia/Rangoon" || tz === "Asia/Yangon"
+
+  fetch("/api/set_distance_unit", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-csrf-token": csrfToken
+    },
+    body: JSON.stringify({ distance_unit: useMiles ? "mi" : "km" })
+  })
+})
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()
