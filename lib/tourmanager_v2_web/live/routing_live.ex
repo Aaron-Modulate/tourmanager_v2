@@ -7,16 +7,55 @@ defmodule TourmanagerV2Web.RoutingLive do
       socket
       |> assign(TourSwitching.default_assigns())
       |> assign(active_nav: "routing", page_title: "Routing")
-      |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
-      |> compute_route_assigns()
-      |> push_map_markers()
-      |> attach_hook(:push_map_on_change, :handle_event, fn
-        _event, _params, socket ->
-          socket = compute_route_assigns(socket)
-          {:cont, push_map_markers(socket)}
-      end)
+      |> load_and_compute(socket.assigns[:current_tour])
 
     {:ok, socket}
+  end
+
+  def handle_event("select_tour", %{"tour-id" => tour_id}, socket) do
+    entry = Enum.find(socket.assigns.user_tours, fn %{tour: t} -> t.id == tour_id end)
+
+    socket =
+      if entry do
+        socket
+        |> assign(:current_tour, entry.tour)
+        |> assign(:current_tour_role, entry.role)
+        |> assign(:tour_menu_open, false)
+        |> push_event("persist_tour", %{tour_id: tour_id})
+        |> load_and_compute(entry.tour)
+      else
+        assign(socket, :tour_menu_open, false)
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("save_route_entry", %{"route_entry" => params} = _full, socket) do
+    TourSwitching.handle_event("save_route_entry", %{"route_entry" => params}, socket)
+    |> then(fn {:noreply, socket} ->
+      {:noreply, compute_route_assigns(socket) |> push_map_markers()}
+    end)
+  end
+
+  def handle_event("update_route_entry", %{"route_entry" => params}, socket) do
+    TourSwitching.handle_event("update_route_entry", %{"route_entry" => params}, socket)
+    |> then(fn {:noreply, socket} ->
+      {:noreply, compute_route_assigns(socket) |> push_map_markers()}
+    end)
+  end
+
+  def handle_event("delete_route_entry", params, socket) do
+    TourSwitching.handle_event("delete_route_entry", params, socket)
+    |> then(fn {:noreply, socket} ->
+      {:noreply, compute_route_assigns(socket) |> push_map_markers()}
+    end)
+  end
+
+  defp load_and_compute(socket, tour) do
+    socket
+    |> TourSwitching.load_tour_data(tour)
+    |> compute_route_assigns()
+    |> push_map_markers()
   end
 
   defp compute_route_assigns(socket) do

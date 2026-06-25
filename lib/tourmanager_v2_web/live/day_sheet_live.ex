@@ -9,12 +9,13 @@ defmodule TourmanagerV2Web.DaySheetLive do
       |> assign(active_nav: "daysheet", active_tab: "show", page_title: "Day Sheet")
       |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
       |> compute_daysheet_assigns()
-      |> attach_hook(:recompute_daysheet, :handle_event, fn
-        _event, _params, socket ->
-          {:cont, compute_daysheet_assigns(socket)}
-      end)
 
     {:ok, socket}
+  end
+
+  def handle_event("select_tour", %{"tour-id" => tour_id}, socket) do
+    {:noreply, socket} = TourSwitching.handle_event("select_tour", %{"tour-id" => tour_id}, socket)
+    {:noreply, compute_daysheet_assigns(socket)}
   end
 
   def handle_event("switch_tab", %{"tab" => tab}, socket) do

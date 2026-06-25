@@ -9,12 +9,13 @@ defmodule TourmanagerV2Web.DashboardLive do
       |> assign(active_nav: "dashboard", page_title: "Dashboard")
       |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
       |> compute_dashboard_assigns()
-      |> attach_hook(:recompute_dashboard, :handle_event, fn
-        _event, _params, socket ->
-          {:cont, compute_dashboard_assigns(socket)}
-      end)
 
     {:ok, socket}
+  end
+
+  def handle_event("select_tour", %{"tour-id" => tour_id}, socket) do
+    {:noreply, socket} = TourSwitching.handle_event("select_tour", %{"tour-id" => tour_id}, socket)
+    {:noreply, compute_dashboard_assigns(socket)}
   end
 
   defp compute_dashboard_assigns(socket) do
