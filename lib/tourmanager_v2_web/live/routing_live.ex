@@ -176,12 +176,24 @@ defmodule TourmanagerV2Web.RoutingLive do
               <% end %>
             </div>
           <% end %>
+
+          <%!-- Onboarding nudge — directly under last stop --%>
+          <.onboarding_add_stop_nudge route_count={length(@route_data)} />
         </div>
 
-        <%!-- Right: interactive map + next move --%>
-        <div class="flex flex-col gap-[18px] sticky top-0">
-          <%!-- Tour map — always present, lazy-loaded via IntersectionObserver --%>
-          <div
+        <%!-- Right: pop-out sidebar with map + next move --%>
+        <div class="sticky top-0">
+          <input type="checkbox" id="routing-sidebar-toggle" class="hidden peer/rsb" checked />
+          <%!-- Sidebar content --%>
+          <div class="hidden peer-checked/rsb:flex flex-col gap-[18px]">
+            <div class="flex items-center justify-between">
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">MAP & INFO</div>
+              <label for="routing-sidebar-toggle" class="cursor-pointer p-1 rounded-[var(--radius-sm)] transition-colors hover:bg-[var(--paper-200)]" title="Close sidebar">
+                <.icon name="hero-x-mark" class="w-4 h-4 text-[var(--ink-400)]" />
+              </label>
+            </div>
+            <%!-- Tour map — always present, lazy-loaded via IntersectionObserver --%>
+            <div
             id="tour-map"
             phx-hook=".TourMap"
             data-api-key={System.get_env("GOOGLE_PLACES_API_KEY")}
@@ -422,8 +434,13 @@ defmodule TourmanagerV2Web.RoutingLive do
             </.stamp_card>
           <% end %>
 
-          <%!-- Onboarding nudge to add second stop --%>
-          <.onboarding_add_stop_nudge route_count={length(@route_data)} />
+          </div>
+          <%!-- Sidebar re-open button (visible when sidebar is closed) --%>
+          <div class="peer-checked/rsb:hidden flex items-start">
+            <label for="routing-sidebar-toggle" class="cursor-pointer p-2 rounded-[var(--radius-md)] border-2 border-[var(--ink-900)] transition-colors hover:bg-[var(--paper-200)]" style="background: var(--surface-card); box-shadow: var(--shadow-hard-sm);" title="Show map & info">
+              <.icon name="hero-map" class="w-5 h-5 text-[var(--ink-400)]" />
+            </label>
+          </div>
         </div>
       </div>
 

@@ -16,12 +16,16 @@
     <meta property="og:site_name" content="Tour Manager" />
     <meta property="og:title" content={assigns[:page_title] || "Tour Manager — Day Sheet OS"} />
     <meta property="og:description" content={assigns[:meta_description] || "Tour routing, day sheets, and crew logistics for touring artists and production crew."} />
-    <meta property="og:url" content="https://tourmanager.live" />
+    <meta property="og:url" content={"https://tourmanager.live#{assigns[:canonical_path] || "/"}"} />
+    <meta :if={assigns[:og_image]} property="og:image" content={assigns[:og_image]} />
+    <meta :if={assigns[:og_image]} property="og:image:width" content="1200" />
+    <meta :if={assigns[:og_image]} property="og:image:height" content="630" />
 
     <%!-- Twitter Card --%>
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={assigns[:page_title] || "Tour Manager — Day Sheet OS"} />
     <meta name="twitter:description" content={assigns[:meta_description] || "Tour routing, day sheets, and crew logistics for touring artists and production crew."} />
+    <meta :if={assigns[:og_image]} name="twitter:image" content={assigns[:og_image]} />
 
     <%!-- Canonical URL --%>
     <link rel="canonical" href={"https://tourmanager.live#{assigns[:canonical_path] || "/"}"} />
