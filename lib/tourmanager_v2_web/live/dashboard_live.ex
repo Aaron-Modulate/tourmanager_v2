@@ -52,7 +52,7 @@ defmodule TourmanagerV2Web.DashboardLive do
       billing_seats={@billing_seats}
       billing_error={@billing_error}
     >
-      <div id="dashboard" class="p-7">
+      <div id="dashboard" class="p-4 md:p-7">
         <div class="flex items-end justify-between mb-5">
           <div>
             <.overline>Management</.overline>
@@ -68,7 +68,7 @@ defmodule TourmanagerV2Web.DashboardLive do
 
         <%= if @current_tour do %>
           <%!-- Metric row — 4 tiles --%>
-          <div id="metrics-row" class="grid grid-cols-4 gap-3.5 mb-5">
+          <div id="metrics-row" class="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-5">
             <%!-- Tile 1: Gigs --%>
             <div
               class="relative p-[18px] rounded-[var(--radius-md)] tm-halftone tm-halftone--light border-2 border-[var(--ink-900)]"
@@ -134,7 +134,7 @@ defmodule TourmanagerV2Web.DashboardLive do
             />
           </div>
 
-          <div class="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-5 items-start">
+          <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-5 items-start">
             <%!-- Crew roster --%>
             <.stamp_card overline_text="Tour crew">
               <%= if @crew_cards == [] do %>

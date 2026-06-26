@@ -289,13 +289,13 @@ defmodule TourmanagerV2.Billing do
   defp success_url do
     base = System.get_env("PHX_HOST") || "localhost:4000"
     scheme = if System.get_env("PHX_HOST"), do: "https", else: "http"
-    "#{scheme}://#{base}/?billing=success"
+    "#{scheme}://#{base}/app?billing=success"
   end
 
   defp cancel_url do
     base = System.get_env("PHX_HOST") || "localhost:4000"
     scheme = if System.get_env("PHX_HOST"), do: "https", else: "http"
-    "#{scheme}://#{base}/?billing=cancelled"
+    "#{scheme}://#{base}/app?billing=cancelled"
   end
 
   def verify_webhook(payload, signature) do

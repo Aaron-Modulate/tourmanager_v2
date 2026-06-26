@@ -110,7 +110,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
       <%= if @onboarding_tour_form do %>
         <.onboarding_welcome current_user={@current_user} tour_form={@onboarding_tour_form} />
       <% else %>
-      <div id="day-sheet" class="p-7 grid grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5 items-start">
+      <div id="day-sheet" class="p-4 md:p-7 grid grid-cols-1 md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5 items-start">
         <%!-- Left: run of show --%>
         <div>
           <div class="flex items-center justify-between mb-3.5">
@@ -168,7 +168,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
           </div>
 
           <%!-- Crew tab --%>
-          <div :if={@active_tab == "crew"} id="crew-grid" class="grid grid-cols-2 gap-2.5">
+          <div :if={@active_tab == "crew"} id="crew-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <%= if @crew_cards == [] do %>
               <div class="col-span-2 py-12 text-center">
                 <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">

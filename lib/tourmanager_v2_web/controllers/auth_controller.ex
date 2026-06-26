@@ -17,7 +17,7 @@ defmodule TourmanagerV2Web.AuthController do
         |> put_session(:user_id, user.id)
         |> put_session(:detect_distance_unit, true)
         |> configure_session(renew: true)
-        |> redirect(to: "/")
+        |> redirect(to: "/app")
 
       {:ok, user} ->
         Accounts.update_last_login(user)
@@ -25,7 +25,7 @@ defmodule TourmanagerV2Web.AuthController do
         conn
         |> put_session(:user_id, user.id)
         |> configure_session(renew: true)
-        |> redirect(to: "/")
+        |> redirect(to: "/app")
 
       {:error, _changeset} ->
         conn

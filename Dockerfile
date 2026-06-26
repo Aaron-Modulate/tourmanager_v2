@@ -1,6 +1,6 @@
-ARG ELIXIR_VERSION=1.15.7
-ARG OTP_VERSION=26.2.1
-ARG DEBIAN_VERSION=bookworm-20240130-slim
+ARG ELIXIR_VERSION=1.18.3
+ARG OTP_VERSION=27.3.4
+ARG DEBIAN_VERSION=bookworm-20250428-slim
 
 ARG BUILDER_IMAGE="docker.io/hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="docker.io/debian:${DEBIAN_VERSION}"
@@ -24,26 +24,24 @@ RUN mkdir config
 COPY config/config.exs config/prod.exs config/
 RUN mix deps.compile
 
-# Install Node/esbuild/tailwind build tools
 RUN mix assets.setup
 
 COPY priv priv
 COPY lib lib
+COPY assets assets
+COPY "Tour Manager Design System" "Tour Manager Design System"
 
 RUN mix compile
-
-COPY assets assets
 RUN mix assets.deploy
 
 COPY config/runtime.exs config/
 COPY rel rel
 RUN mix release
 
-# ---- Runtime image ----
 FROM ${RUNNER_IMAGE} AS final
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates imagemagick \
+  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -58,7 +56,7 @@ RUN chown nobody /app
 ENV MIX_ENV="prod"
 ENV PHX_SERVER=true
 
-COPY --from=builder --chown=nobody:root /app/_build/prod/rel/tourmanager ./
+COPY --from=builder --chown=nobody:root /app/_build/prod/rel/tourmanager_v2 ./
 
 USER nobody
 

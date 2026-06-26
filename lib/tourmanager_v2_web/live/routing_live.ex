@@ -112,7 +112,7 @@ defmodule TourmanagerV2Web.RoutingLive do
       billing_seats={@billing_seats}
       billing_error={@billing_error}
     >
-      <div id="routing" class="p-7 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-start">
+      <div id="routing" class="p-4 md:p-7 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-start">
         <%!-- Left: the road list --%>
         <div>
           <div class="flex items-end justify-between mb-[18px]">

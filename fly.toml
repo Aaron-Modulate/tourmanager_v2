@@ -1,0 +1,30 @@
+app = 'tourmanager'
+primary_region = 'syd'
+kill_signal = 'SIGTERM'
+
+[build]
+
+[deploy]
+  release_command = '/app/bin/migrate'
+
+[env]
+  ECTO_IPV6 = 'true'
+  PHX_HOST = 'tourmanager.fly.dev'
+  POOL_SIZE = '10'
+  PORT = '8080'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 1000
+    soft_limit = 1000
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'

@@ -39,9 +39,13 @@ defmodule TourmanagerV2Web.Router do
   scope "/", TourmanagerV2Web do
     pipe_through :browser
 
+    live_session :public do
+      live "/", LandingLive
+    end
+
     live_session :default,
       on_mount: [{TourmanagerV2Web.AuthHooks, :default}] do
-      live "/", DaySheetLive
+      live "/app", DaySheetLive
       live "/routing", RoutingLive
       live "/dashboard", DashboardLive
       live "/admin/jobs", Admin.JobsLive
