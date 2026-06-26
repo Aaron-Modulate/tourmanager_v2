@@ -148,17 +148,25 @@ defmodule TourmanagerV2Web.Layouts do
                   </button>
                 </div>
               <% end %>
-              <button
-                :if={@current_tour_role == "manager"}
-                type="button"
-                phx-click="delete_tour"
-                data-confirm={"Delete \"#{@current_tour.name}\"? All stops, routes, and data will be permanently removed."}
-                class="w-full text-left px-3 py-2.5 mt-3 flex items-center gap-2 cursor-pointer rounded-[var(--radius-sm)] transition-colors active:bg-[var(--signal-stop-tint)] border-t border-[var(--ink-700)] pt-3"
-                style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
-              >
-                <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
-                DELETE TOUR
-              </button>
+              <details :if={@current_tour_role == "manager"} class="mt-3 border-t border-[var(--ink-700)] pt-3">
+                <summary class="flex items-center justify-between px-3 py-2 cursor-pointer rounded-[var(--radius-sm)] active:bg-[var(--ink-500)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-300); list-style: none;">
+                  <div class="flex items-center gap-2">
+                    <.icon name="hero-cog-6-tooth-mini" class="w-3.5 h-3.5" />
+                    MANAGE TOUR
+                  </div>
+                  <.icon name="hero-chevron-down-mini" class="w-3 h-3" />
+                </summary>
+                <button
+                  type="button"
+                  phx-click="delete_tour"
+                  data-confirm={"Delete \"#{@current_tour.name}\"? All stops, routes, and data will be permanently removed."}
+                  class="w-full text-left px-3 py-2.5 mt-1 flex items-center gap-2 cursor-pointer rounded-[var(--radius-sm)] transition-colors active:bg-[var(--signal-stop-tint)]"
+                  style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
+                >
+                  <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
+                  DELETE TOUR
+                </button>
+              </details>
             <% else %>
               <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">No tours yet</div>
             <% end %>
@@ -297,17 +305,27 @@ defmodule TourmanagerV2Web.Layouts do
                   </div>
                   <.icon :if={tour.id == @current_tour.id} name="hero-check" class="w-4 h-4 text-white" />
                 </button>
-                <button
-                  :if={@current_tour_role == "manager"}
-                  type="button"
-                  phx-click="delete_tour"
-                  data-confirm={"Delete \"#{@current_tour.name}\"? All stops, routes, and data will be permanently removed. This cannot be undone."}
-                  class="w-full text-left px-4 py-2.5 flex items-center gap-2 cursor-pointer transition-colors border-t border-[var(--ink-500)] hover:bg-[var(--signal-stop-tint)]"
-                  style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
-                >
-                  <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
-                  DELETE TOUR
-                </button>
+                <div :if={@current_tour_role == "manager"} class="border-t border-[var(--ink-500)] group/manage relative">
+                  <button type="button" class="w-full text-left px-4 py-2.5 flex items-center justify-between cursor-pointer transition-colors hover:bg-[var(--ink-500)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-300);">
+                    <div class="flex items-center gap-2">
+                      <.icon name="hero-cog-6-tooth-mini" class="w-3.5 h-3.5" />
+                      MANAGE TOUR
+                    </div>
+                    <.icon name="hero-chevron-right-mini" class="w-3 h-3" />
+                  </button>
+                  <div class="absolute left-full top-0 ml-1 hidden group-hover/manage:block rounded-[var(--radius-md)] overflow-hidden z-50" style="background: var(--ink-700); border: 1px solid var(--ink-500); box-shadow: var(--shadow-hard); min-width: 160px;">
+                    <button
+                      type="button"
+                      phx-click="delete_tour"
+                      data-confirm={"Delete \"#{@current_tour.name}\"? All stops, routes, and data will be permanently removed. This cannot be undone."}
+                      class="w-full text-left px-4 py-2.5 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]"
+                      style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
+                    >
+                      <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
+                      DELETE TOUR
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           <% else %>

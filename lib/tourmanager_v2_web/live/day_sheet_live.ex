@@ -220,7 +220,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
         <%!-- Right column --%>
         <div class="flex flex-col gap-[18px]">
           <%= if @active_entry do %>
-            <.stamp_card hard overline_text="Next gig" padding="18px">
+            <.stamp_card hard overline_text="Next up" padding="18px">
               <div>
                 <.display size={22}>{@active_entry.venue || @active_entry.city || "Upcoming"}</.display>
                 <div class="mt-1.5" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
@@ -232,12 +232,12 @@ defmodule TourmanagerV2Web.DaySheetLive do
               </div>
             </.stamp_card>
           <% else %>
-            <.stamp_card overline_text="No upcoming gigs" padding="18px">
+            <.stamp_card overline_text="Next up" padding="18px">
               <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">
                 <%= if @current_tour do %>
-                  No gigs scheduled on this tour.
+                  Nothing scheduled yet.
                 <% else %>
-                  Select a tour to see gig details.
+                  Select a tour to see what's next.
                 <% end %>
               </div>
             </.stamp_card>
