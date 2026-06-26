@@ -741,28 +741,19 @@ defmodule TourmanagerV2Web.TourComponents do
 
     ~H"""
     <div class="relative mb-1.5">
-      <%!-- Distance connector between stops --%>
-      <div
-        :if={@distance_label}
-        class="flex items-center gap-2 ml-[70px] mb-1 py-1"
-      >
-        <div class="flex-1 h-px bg-[var(--paper-300)]" />
-        <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-[var(--radius-stamp)]" style="background: var(--paper-200);">
-          <.icon name="hero-truck-mini" class="w-3 h-3 text-[var(--ink-400)]" />
-          <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--ink-500); letter-spacing: 0.04em;">
-            {@distance_label}
-          </span>
-        </div>
-        <div class="flex-1 h-px bg-[var(--paper-300)]" />
-      </div>
-
-      <div class="grid grid-cols-[54px_1fr] gap-4 items-center">
-        <div class="text-right leading-tight" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+      <div class="grid grid-cols-[54px_8px_1fr] gap-0 items-center">
+        <%!-- Date label --%>
+        <div class="text-right leading-tight pr-2" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
           <div class="font-bold text-[var(--ink-700)]">D{String.pad_leading(to_string(@day), 2, "0")}</div>
           <div class="text-[9px]">{@date}</div>
         </div>
+        <%!-- Timeline line (right of date, between date and card) --%>
+        <div class="flex flex-col items-center self-stretch py-1">
+          <div class="flex-1 w-0.5 bg-[var(--paper-300)]" />
+        </div>
+        <%!-- Stop card --%>
         <div
-          class={["flex items-center gap-3.5 px-3.5 py-3 rounded-[var(--radius-md)]",
+          class={["flex items-center gap-3.5 px-3.5 py-3 ml-3 rounded-[var(--radius-md)]",
             if(@is_today, do: "border-2 border-[var(--ink-900)]", else: "border border-[var(--paper-300)]")
           ]}
           style={"background: #{if @is_today, do: "var(--surface-stage)", else: "var(--surface-card)"}; color: #{if @is_today, do: "var(--paper-100)", else: "var(--ink-700)"}; #{if @is_today, do: "box-shadow: var(--shadow-hard);", else: ""}"}

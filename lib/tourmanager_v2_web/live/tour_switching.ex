@@ -8,6 +8,8 @@ defmodule TourmanagerV2Web.TourSwitching do
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView, only: [push_event: 3, redirect: 2]
 
+  alias TourmanagerV2.TourBroadcast
+
   def default_assigns do
     %{
       tour_menu_open: false,
@@ -36,6 +38,14 @@ defmodule TourmanagerV2Web.TourSwitching do
     quote do
       def handle_event(event, params, socket) do
         TourmanagerV2Web.TourSwitching.handle_event(event, params, socket)
+      end
+
+      def handle_info({:tour_data_changed, tour_id, source_pid}, socket) do
+        if source_pid != self() && socket.assigns[:current_tour] && socket.assigns.current_tour.id == tour_id do
+          {:noreply, TourmanagerV2Web.TourSwitching.load_tour_data(socket, socket.assigns.current_tour)}
+        else
+          {:noreply, socket}
+        end
       end
     end
   end
@@ -217,6 +227,8 @@ defmodule TourmanagerV2Web.TourSwitching do
 
       case TourmanagerV2.Touring.create_route_entry(tour, tour.workspace_id, params) do
         {:ok, _entry} ->
+          TourBroadcast.broadcast_change(tour.id)
+
           {:noreply,
            socket
            |> assign(:add_route_open, false)
@@ -240,6 +252,8 @@ defmodule TourmanagerV2Web.TourSwitching do
 
       case TourmanagerV2.Touring.update_route_entry(entry, params) do
         {:ok, _updated} ->
+          TourBroadcast.broadcast_change(tour.id)
+
           {:noreply,
            socket
            |> assign(:add_route_open, false)
@@ -261,6 +275,7 @@ defmodule TourmanagerV2Web.TourSwitching do
 
     if entry && tour do
       TourmanagerV2.Touring.delete_route_entry(entry)
+      TourBroadcast.broadcast_change(tour.id)
 
       {:noreply,
        socket
@@ -393,6 +408,48 @@ defmodule TourmanagerV2Web.TourSwitching do
     end
   end
 
+  def handle_event("delete_tour", _params, socket) do
+    user = socket.assigns.current_user
+    tour = socket.assigns.current_tour
+
+    if user && tour do
+      case TourmanagerV2.Accounts.delete_tour(user, tour.id) do
+        {:ok, _deleted} ->
+          tours = TourmanagerV2.Accounts.list_tours_for_user(user.id)
+          next_entry = List.first(tours)
+
+          socket =
+            socket
+            |> assign(:user_tours, tours)
+            |> assign(:tour_menu_open, false)
+
+          socket =
+            if next_entry do
+              socket
+              |> assign(:current_tour, next_entry.tour)
+              |> assign(:current_tour_role, next_entry.role)
+              |> push_event("persist_tour", %{tour_id: next_entry.tour.id})
+              |> load_tour_data(next_entry.tour)
+            else
+              socket
+              |> assign(:current_tour, nil)
+              |> assign(:current_tour_role, nil)
+              |> load_tour_data(nil)
+            end
+
+          {:noreply, socket}
+
+        {:error, :unauthorized} ->
+          {:noreply, socket}
+
+        {:error, _reason} ->
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("complete_onboarding", _params, socket) do
     user = socket.assigns.current_user
 
@@ -412,6 +469,8 @@ defmodule TourmanagerV2Web.TourSwitching do
   # --- Data loading ---
 
   def load_tour_data(socket, nil) do
+    old_tour = socket.assigns[:current_tour]
+    if old_tour, do: TourBroadcast.unsubscribe(old_tour.id)
     socket
     |> assign(:gigs, [])
     |> assign(:today_gig, nil)
@@ -427,6 +486,10 @@ defmodule TourmanagerV2Web.TourSwitching do
   end
 
   def load_tour_data(socket, tour) do
+    old_tour = socket.assigns[:current_tour]
+    if old_tour && old_tour.id != tour.id, do: TourBroadcast.unsubscribe(old_tour.id)
+    TourBroadcast.subscribe(tour.id)
+
     alias TourmanagerV2.Touring
 
     gigs = Touring.list_gigs_for_tour(tour.id)

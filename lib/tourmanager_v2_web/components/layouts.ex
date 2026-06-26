@@ -148,6 +148,17 @@ defmodule TourmanagerV2Web.Layouts do
                   </button>
                 </div>
               <% end %>
+              <button
+                :if={@current_tour_role == "manager"}
+                type="button"
+                phx-click="delete_tour"
+                data-confirm={"Delete \"#{@current_tour.name}\"? All stops, routes, and data will be permanently removed."}
+                class="w-full text-left px-3 py-2.5 mt-3 flex items-center gap-2 cursor-pointer rounded-[var(--radius-sm)] transition-colors active:bg-[var(--signal-stop-tint)] border-t border-[var(--ink-700)] pt-3"
+                style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
+              >
+                <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
+                DELETE TOUR
+              </button>
             <% else %>
               <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">No tours yet</div>
             <% end %>
@@ -285,6 +296,17 @@ defmodule TourmanagerV2Web.Layouts do
                     <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-300); margin-top: 2px;">{String.upcase(role)}</div>
                   </div>
                   <.icon :if={tour.id == @current_tour.id} name="hero-check" class="w-4 h-4 text-white" />
+                </button>
+                <button
+                  :if={@current_tour_role == "manager"}
+                  type="button"
+                  phx-click="delete_tour"
+                  data-confirm={"Delete \"#{@current_tour.name}\"? All stops, routes, and data will be permanently removed. This cannot be undone."}
+                  class="w-full text-left px-4 py-2.5 flex items-center gap-2 cursor-pointer transition-colors border-t border-[var(--ink-500)] hover:bg-[var(--signal-stop-tint)]"
+                  style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
+                >
+                  <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
+                  DELETE TOUR
                 </button>
               </div>
             </div>

@@ -69,6 +69,37 @@ window.addEventListener("phx:detect_distance_unit", () => {
   })
 })
 
+// Reconnection: suppress the "connection lost" banner for brief disconnects.
+// LiveView's built-in reconnect handles the WebSocket; we just delay the
+// error UI so backgrounding the phone doesn't flash a scary banner.
+let disconnectTimer = null
+const DISCONNECT_GRACE_MS = 5000
+
+window.addEventListener("phx:page-loading-start", info => {
+  if (info.detail?.kind === "error") {
+    // Connection lost — start grace timer before showing error
+    if (!disconnectTimer) {
+      disconnectTimer = setTimeout(() => {
+        document.querySelectorAll("#client-error").forEach(el => {
+          el.removeAttribute("hidden")
+        })
+      }, DISCONNECT_GRACE_MS)
+    }
+    return
+  }
+})
+
+window.addEventListener("phx:page-loading-stop", info => {
+  // Connection restored — cancel any pending error display
+  if (disconnectTimer) {
+    clearTimeout(disconnectTimer)
+    disconnectTimer = null
+  }
+  document.querySelectorAll("#client-error").forEach(el => {
+    el.setAttribute("hidden", "")
+  })
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 

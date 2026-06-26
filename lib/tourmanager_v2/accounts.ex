@@ -109,6 +109,22 @@ defmodule TourmanagerV2.Accounts do
     end)
   end
 
+  def delete_tour(%User{} = user, tour_id) do
+    membership = get_tour_membership(tour_id, user.id)
+
+    cond do
+      is_nil(membership) ->
+        {:error, :not_found}
+
+      membership.role != "manager" ->
+        {:error, :unauthorized}
+
+      true ->
+        tour = Repo.get!(Tour, tour_id)
+        Repo.delete(tour)
+    end
+  end
+
   def change_tour(tour \\ %Tour{}, attrs \\ %{}) do
     Tour.changeset(tour, attrs)
   end

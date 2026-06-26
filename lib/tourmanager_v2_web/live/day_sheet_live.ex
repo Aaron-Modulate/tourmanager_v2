@@ -28,6 +28,19 @@ defmodule TourmanagerV2Web.DaySheetLive do
     {:noreply, compute_daysheet_assigns(socket)}
   end
 
+  def handle_info({:tour_data_changed, tour_id, source_pid}, socket) do
+    if source_pid != self() && socket.assigns[:current_tour] && socket.assigns.current_tour.id == tour_id do
+      socket =
+        socket
+        |> TourSwitching.load_tour_data(socket.assigns.current_tour)
+        |> compute_daysheet_assigns()
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, :active_tab, tab)}
   end

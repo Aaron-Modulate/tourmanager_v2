@@ -18,6 +18,19 @@ defmodule TourmanagerV2Web.DashboardLive do
     {:noreply, compute_dashboard_assigns(socket)}
   end
 
+  def handle_info({:tour_data_changed, tour_id, source_pid}, socket) do
+    if source_pid != self() && socket.assigns[:current_tour] && socket.assigns.current_tour.id == tour_id do
+      socket =
+        socket
+        |> TourSwitching.load_tour_data(socket.assigns.current_tour)
+        |> compute_dashboard_assigns()
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
   defp compute_dashboard_assigns(socket) do
     stats = socket.assigns[:tour_stats] || %{
       shows_played: 0, shows_total: 0, days_on_road: 0, total_days: 0,

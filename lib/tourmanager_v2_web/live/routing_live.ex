@@ -51,6 +51,14 @@ defmodule TourmanagerV2Web.RoutingLive do
     end)
   end
 
+  def handle_info({:tour_data_changed, tour_id, source_pid}, socket) do
+    if source_pid != self() && socket.assigns[:current_tour] && socket.assigns.current_tour.id == tour_id do
+      {:noreply, load_and_compute(socket, socket.assigns.current_tour)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   defp load_and_compute(socket, tour) do
     socket
     |> TourSwitching.load_tour_data(tour)
@@ -136,8 +144,7 @@ defmodule TourmanagerV2Web.RoutingLive do
               </div>
             </div>
           <% else %>
-            <div class="relative pl-2">
-              <div class="absolute left-[35px] top-3 bottom-3 w-0.5 bg-[var(--paper-300)]" />
+            <div class="relative">
               <%= for r <- @route_data do %>
                 <div class="group relative">
                   <.route_stop_enhanced
@@ -160,7 +167,7 @@ defmodule TourmanagerV2Web.RoutingLive do
                     origin_address={r.entry.origin_address}
                     dest_address={r.entry.dest_address}
                     directions_url={TourmanagerV2.GoogleMaps.directions_url(r.entry)}
-                    distance_label={if r.km > 0, do: TourmanagerV2.GoogleMaps.format_distance_dual(r.km)}
+                    distance_label={if(r.type == "vehicle_travel" && r.km > 0, do: TourmanagerV2.GoogleMaps.format_distance(r.km, @distance_unit))}
                   />
                   <button
                     type="button"
@@ -177,265 +184,270 @@ defmodule TourmanagerV2Web.RoutingLive do
             </div>
           <% end %>
 
-          <%!-- Onboarding nudge — directly under last stop --%>
           <.onboarding_add_stop_nudge route_count={length(@route_data)} />
         </div>
 
-        <%!-- Right: pop-out sidebar with map + next move --%>
+        <%!-- Right: map + next move in collapsible info pane --%>
         <div class="sticky top-0">
-          <input type="checkbox" id="routing-sidebar-toggle" class="hidden peer/rsb" checked />
+          <input type="checkbox" id="routing-sidebar-toggle" class="hidden peer/rsb md:checked:block" checked />
+
           <%!-- Sidebar content --%>
           <div class="hidden peer-checked/rsb:flex flex-col gap-[18px]">
             <div class="flex items-center justify-between">
               <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">MAP & INFO</div>
-              <label for="routing-sidebar-toggle" class="cursor-pointer p-1 rounded-[var(--radius-sm)] transition-colors hover:bg-[var(--paper-200)]" title="Close sidebar">
+              <label for="routing-sidebar-toggle" class="cursor-pointer p-1 rounded-[var(--radius-sm)] transition-colors hover:bg-[var(--paper-200)]" title="Close">
                 <.icon name="hero-x-mark" class="w-4 h-4 text-[var(--ink-400)]" />
               </label>
             </div>
-            <%!-- Tour map — always present, lazy-loaded via IntersectionObserver --%>
-            <div
-            id="tour-map"
-            phx-hook=".TourMap"
-            data-api-key={System.get_env("GOOGLE_PLACES_API_KEY")}
-            class="rounded-[var(--radius-md)] overflow-hidden border-2 border-[var(--ink-900)]"
-            style="height: 360px; background: var(--ink-900); box-shadow: var(--shadow-hard);"
-          >
-            <%= if @route_data == [] do %>
-              <div class="flex items-center justify-center h-full">
-                <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500); letter-spacing: 0.06em;">
-                  ADD STOPS TO SEE THE MAP
-                </div>
-              </div>
-            <% end %>
-          </div>
-          <script :type={Phoenix.LiveView.ColocatedHook} name=".TourMap">
-            export default {
-              mounted() {
-                this._markers = []
-                this._mapInstance = null
-                this._gMarkers = []
-                this._polyline = null
-                this._infoWindow = null
-                this._apiLoaded = false
-                this._visible = false
 
-                this.handleEvent("map_markers", ({markers}) => {
-                  this._markers = markers || []
-                  if (this._visible && this._apiLoaded) this.renderMap()
-                })
-
-                this.observer = new IntersectionObserver(([entry]) => {
-                  if (entry.isIntersecting && !this._visible) {
-                    this._visible = true
-                    this.loadApi()
-                  }
-                }, { threshold: 0.1 })
-                this.observer.observe(this.el)
-              },
-
-              destroyed() {
-                if (this.observer) this.observer.disconnect()
-                this.clearMap()
-              },
-
-              loadApi() {
-                const apiKey = this.el.dataset.apiKey
-                if (!apiKey) return
-
-                if (window.google && window.google.maps) {
-                  this._apiLoaded = true
-                  this.renderMap()
-                  return
-                }
-
-                if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-                  const check = setInterval(() => {
-                    if (window.google && window.google.maps) {
-                      clearInterval(check)
-                      this._apiLoaded = true
-                      this.renderMap()
-                    }
-                  }, 100)
-                  return
-                }
-
-                const script = document.createElement("script")
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`
-                script.async = true
-                script.defer = true
-                script.onload = () => {
-                  this._apiLoaded = true
-                  this.renderMap()
-                }
-                document.head.appendChild(script)
-              },
-
-              clearMap() {
-                if (this._gMarkers) this._gMarkers.forEach(m => m.setMap(null))
-                if (this._polyline) this._polyline.setMap(null)
-                if (this._infoWindow) this._infoWindow.close()
-                this._gMarkers = []
-                this._polyline = null
-              },
-
-              renderMap() {
-                const markers = this._markers
-                if (!markers.length) return
-
-                this.clearMap()
-
-                const bounds = new google.maps.LatLngBounds()
-                markers.forEach(m => bounds.extend({lat: m.lat, lng: m.lng}))
-
-                if (!this._mapInstance) {
-                  this._mapInstance = new google.maps.Map(this.el, {
-                    center: bounds.getCenter(),
-                    zoom: 6,
-                    disableDefaultUI: true,
-                    zoomControl: true,
-                    styles: [
-                      {elementType: "geometry", stylers: [{color: "#14110F"}]},
-                      {elementType: "labels.text.fill", stylers: [{color: "#A89E92"}]},
-                      {elementType: "labels.text.stroke", stylers: [{color: "#14110F"}]},
-                      {featureType: "road", elementType: "geometry", stylers: [{color: "#2A2520"}]},
-                      {featureType: "water", elementType: "geometry", stylers: [{color: "#1E1A17"}]},
-                      {featureType: "poi", stylers: [{visibility: "off"}]},
-                      {featureType: "transit", stylers: [{visibility: "off"}]}
-                    ]
-                  })
-                  this._infoWindow = new google.maps.InfoWindow()
-                }
-
-                this._mapInstance.fitBounds(bounds, 40)
-
-                markers.forEach(m => {
-                  const statusColor = m.status === "today" ? "#2B4FF0"
-                    : m.status === "done" ? "#574E45"
-                    : "#F5F1E8"
-
-                  const gm = new google.maps.Marker({
-                    position: {lat: m.lat, lng: m.lng},
-                    map: this._mapInstance,
-                    label: {
-                      text: m.label,
-                      color: m.status === "done" ? "#A89E92" : "#14110F",
-                      fontFamily: "'Space Mono', monospace",
-                      fontWeight: "700",
-                      fontSize: "10px"
-                    },
-                    icon: {
-                      path: google.maps.SymbolPath.CIRCLE,
-                      scale: 16,
-                      fillColor: statusColor,
-                      fillOpacity: 1,
-                      strokeColor: "#14110F",
-                      strokeWeight: 2
-                    }
-                  })
-                  this._gMarkers.push(gm)
-
-                  const imgHtml = m.image_url
-                    ? `<img src="${m.image_url}" style="width:100%;height:100px;object-fit:cover;border-radius:4px 4px 0 0;" />`
-                    : ""
-
-                  const mapsLink = m.maps_link
-                    ? `<a href="${m.maps_link}" target="_blank" style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.06em;color:#837A6F;text-decoration:none;display:flex;align-items:center;gap:4px;margin-top:8px;">OPEN IN GOOGLE ↗</a>`
-                    : ""
-
-                  const content = `
-                    <div style="width:220px;background:#FBF9F3;border:2px solid #14110F;border-radius:8px;overflow:hidden;box-shadow:3px 3px 0 #14110F;font-family:'Archivo',sans-serif;">
-                      ${imgHtml}
-                      <div style="padding:10px;">
-                        <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:14px;color:#14110F;">${m.venue || "Stop"}</div>
-                        <div style="font-family:'Space Mono',monospace;font-size:10px;color:#837A6F;margin-top:3px;">${m.city || ""}</div>
-                        ${m.address ? `<div style="font-family:'Space Mono',monospace;font-size:9px;color:#A89E92;margin-top:2px;">${m.address}</div>` : ""}
-                        ${mapsLink}
-                      </div>
+            <%!-- Tour map in branded container --%>
+            <.stamp_card hard overline_text="Route map" padding="0px">
+              <div
+                id="tour-map"
+                phx-hook=".TourMap"
+                data-api-key={System.get_env("GOOGLE_PLACES_API_KEY")}
+                class="rounded-b-[6px] overflow-hidden"
+                style="height: 320px; background: var(--ink-900);"
+              >
+                <%= if @route_data == [] do %>
+                  <div class="flex items-center justify-center h-full">
+                    <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500); letter-spacing: 0.06em;">
+                      ADD STOPS TO SEE THE MAP
                     </div>
-                  `
+                  </div>
+                <% end %>
+              </div>
+            </.stamp_card>
+            <script :type={Phoenix.LiveView.ColocatedHook} name=".TourMap">
+              export default {
+                mounted() {
+                  this._markers = []
+                  this._mapInstance = null
+                  this._gMarkers = []
+                  this._polyline = null
+                  this._infoWindow = null
+                  this._apiLoaded = false
+                  this._visible = false
 
-                  gm.addListener("click", () => {
-                    this._infoWindow.setContent(content)
-                    this._infoWindow.open(this._mapInstance, gm)
+                  this.handleEvent("map_markers", ({markers}) => {
+                    this._markers = markers || []
+                    if (this._visible && this._apiLoaded) this.renderMap()
                   })
 
-                  gm.addListener("mouseover", () => {
-                    this._infoWindow.setContent(content)
-                    this._infoWindow.open(this._mapInstance, gm)
-                  })
-                })
+                  this.observer = new IntersectionObserver(([entry]) => {
+                    if (entry.isIntersecting && !this._visible) {
+                      this._visible = true
+                      this.loadApi()
+                    }
+                  }, { threshold: 0.1 })
+                  this.observer.observe(this.el)
+                },
 
-                if (markers.length > 1) {
-                  this._polyline = new google.maps.Polyline({
-                    path: markers.map(m => ({lat: m.lat, lng: m.lng})),
-                    geodesic: true,
-                    strokeColor: "#2B4FF0",
-                    strokeOpacity: 0.6,
-                    strokeWeight: 2
+                destroyed() {
+                  if (this.observer) this.observer.disconnect()
+                  this.clearMap()
+                },
+
+                loadApi() {
+                  const apiKey = this.el.dataset.apiKey
+                  if (!apiKey) return
+
+                  if (window.google && window.google.maps) {
+                    this._apiLoaded = true
+                    this.renderMap()
+                    return
+                  }
+
+                  if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+                    const check = setInterval(() => {
+                      if (window.google && window.google.maps) {
+                        clearInterval(check)
+                        this._apiLoaded = true
+                        this.renderMap()
+                      }
+                    }, 100)
+                    return
+                  }
+
+                  const script = document.createElement("script")
+                  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`
+                  script.async = true
+                  script.defer = true
+                  script.onload = () => {
+                    this._apiLoaded = true
+                    this.renderMap()
+                  }
+                  document.head.appendChild(script)
+                },
+
+                clearMap() {
+                  if (this._gMarkers) this._gMarkers.forEach(m => m.setMap(null))
+                  if (this._polyline) this._polyline.setMap(null)
+                  if (this._infoWindow) this._infoWindow.close()
+                  this._gMarkers = []
+                  this._polyline = null
+                },
+
+                renderMap() {
+                  const markers = this._markers
+                  if (!markers.length) return
+
+                  this.clearMap()
+
+                  const bounds = new google.maps.LatLngBounds()
+                  markers.forEach(m => bounds.extend({lat: m.lat, lng: m.lng}))
+
+                  if (!this._mapInstance) {
+                    this._mapInstance = new google.maps.Map(this.el, {
+                      center: bounds.getCenter(),
+                      zoom: 6,
+                      disableDefaultUI: true,
+                      zoomControl: true,
+                      styles: [
+                        {elementType: "geometry", stylers: [{color: "#14110F"}]},
+                        {elementType: "labels.text.fill", stylers: [{color: "#A89E92"}]},
+                        {elementType: "labels.text.stroke", stylers: [{color: "#14110F"}]},
+                        {featureType: "road", elementType: "geometry", stylers: [{color: "#2A2520"}]},
+                        {featureType: "water", elementType: "geometry", stylers: [{color: "#1E1A17"}]},
+                        {featureType: "poi", stylers: [{visibility: "off"}]},
+                        {featureType: "transit", stylers: [{visibility: "off"}]}
+                      ]
+                    })
+                    this._infoWindow = new google.maps.InfoWindow()
+                  }
+
+                  this._mapInstance.fitBounds(bounds, 40)
+
+                  markers.forEach(m => {
+                    const statusColor = m.status === "today" ? "#2B4FF0"
+                      : m.status === "done" ? "#574E45"
+                      : "#F5F1E8"
+
+                    const gm = new google.maps.Marker({
+                      position: {lat: m.lat, lng: m.lng},
+                      map: this._mapInstance,
+                      label: {
+                        text: m.label,
+                        color: m.status === "done" ? "#A89E92" : "#14110F",
+                        fontFamily: "'Space Mono', monospace",
+                        fontWeight: "700",
+                        fontSize: "10px"
+                      },
+                      icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 16,
+                        fillColor: statusColor,
+                        fillOpacity: 1,
+                        strokeColor: "#14110F",
+                        strokeWeight: 2
+                      }
+                    })
+                    this._gMarkers.push(gm)
+
+                    const imgHtml = m.image_url
+                      ? `<img src="${m.image_url}" style="width:100%;height:100px;object-fit:cover;border-radius:4px 4px 0 0;" />`
+                      : ""
+
+                    const mapsLink = m.maps_link
+                      ? `<a href="${m.maps_link}" target="_blank" style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.06em;color:#837A6F;text-decoration:none;display:flex;align-items:center;gap:4px;margin-top:8px;">OPEN IN GOOGLE ↗</a>`
+                      : ""
+
+                    const content = `
+                      <div style="width:220px;background:#FBF9F3;border:2px solid #14110F;border-radius:8px;overflow:hidden;box-shadow:3px 3px 0 #14110F;font-family:'Archivo',sans-serif;">
+                        ${imgHtml}
+                        <div style="padding:10px;">
+                          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:14px;color:#14110F;">${m.venue || "Stop"}</div>
+                          <div style="font-family:'Space Mono',monospace;font-size:10px;color:#837A6F;margin-top:3px;">${m.city || ""}</div>
+                          ${m.address ? `<div style="font-family:'Space Mono',monospace;font-size:9px;color:#A89E92;margin-top:2px;">${m.address}</div>` : ""}
+                          ${mapsLink}
+                        </div>
+                      </div>
+                    `
+
+                    gm.addListener("click", () => {
+                      this._infoWindow.setContent(content)
+                      this._infoWindow.open(this._mapInstance, gm)
+                    })
+
+                    gm.addListener("mouseover", () => {
+                      this._infoWindow.setContent(content)
+                      this._infoWindow.open(this._mapInstance, gm)
+                    })
                   })
-                  this._polyline.setMap(this._mapInstance)
+
+                  if (markers.length > 1) {
+                    this._polyline = new google.maps.Polyline({
+                      path: markers.map(m => ({lat: m.lat, lng: m.lng})),
+                      geodesic: true,
+                      strokeColor: "#2B4FF0",
+                      strokeOpacity: 0.6,
+                      strokeWeight: 2
+                    })
+                    this._polyline.setMap(this._mapInstance)
+                  }
                 }
               }
-            }
-          </script>
+            </script>
 
-          <%!-- Next move --%>
-          <%= if @next_stop do %>
-            <.stamp_card hard overline_text="Next move" padding="18px">
-              <img
-                :if={@next_stop.entry.venue_image_url}
-                src={@next_stop.entry.venue_image_url}
-                class="w-full h-32 object-cover rounded-[var(--radius-sm)] mb-3"
-                style="border: 1px solid var(--paper-300);"
-                loading="lazy"
-              />
-              <div class="flex items-center gap-3.5">
-                <.pass init={@next_stop.code} tone="brand" size={46} />
-                <div class="flex-1">
-                  <.display size={20}>{@next_stop.venue}</.display>
-                  <div class="mt-1" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
-                    {@next_stop.city}
-                    <%= if @next_stop.travel_duration do %>
-                      · {TourmanagerV2.GoogleMaps.format_duration(@next_stop.travel_duration)}
-                    <% end %>
+            <%!-- Next move --%>
+            <%= if @next_stop do %>
+              <.stamp_card hard overline_text="Next move" padding="18px">
+                <img
+                  :if={@next_stop.entry.venue_image_url}
+                  src={@next_stop.entry.venue_image_url}
+                  class="w-full h-32 object-cover rounded-[var(--radius-sm)] mb-3"
+                  style="border: 1px solid var(--paper-300);"
+                  loading="lazy"
+                />
+                <div class="flex items-center gap-3.5">
+                  <.pass init={@next_stop.code} tone="brand" size={46} />
+                  <div class="flex-1">
+                    <.display size={20}>{@next_stop.venue}</.display>
+                    <div class="mt-1" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                      {@next_stop.city}
+                      <%= if @next_stop.travel_duration do %>
+                        · {TourmanagerV2.GoogleMaps.format_duration(@next_stop.travel_duration)}
+                      <% end %>
+                    </div>
+                    <div :if={@next_stop.booking_ref} class="mt-0.5" style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: var(--ink-400);">
+                      REF: {@next_stop.booking_ref}
+                    </div>
                   </div>
-                  <div :if={@next_stop.booking_ref} class="mt-0.5" style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: var(--ink-400);">
-                    REF: {@next_stop.booking_ref}
-                  </div>
+                  <.signal_chip tone="doors">D{String.pad_leading(to_string(@next_stop.day), 2, "0")}</.signal_chip>
                 </div>
-                <.signal_chip tone="doors">D{String.pad_leading(to_string(@next_stop.day), 2, "0")}</.signal_chip>
-              </div>
-              <%= cond do %>
-                <% @next_stop.type == "vehicle_travel" -> %>
-                  <a
-                    :if={TourmanagerV2.GoogleMaps.directions_url(@next_stop.entry)}
-                    href={TourmanagerV2.GoogleMaps.directions_url(@next_stop.entry)}
-                    target="_blank"
-                    class="flex items-center gap-1.5 mt-3 no-underline transition-colors hover:text-[var(--brand)]"
-                    style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
-                  >
-                    <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" />
-                    OPEN ROUTE IN MAPS
-                    <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
-                  </a>
-                <% @next_stop.type == "gig" -> %>
-                  <a
-                    href={TourmanagerV2.GoogleMaps.search_url(%{venue: @next_stop.venue, city: @next_stop.city})}
-                    target="_blank"
-                    class="flex items-center gap-1.5 mt-3 no-underline transition-colors hover:text-[var(--brand)]"
-                    style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
-                  >
-                    <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" />
-                    OPEN IN MAPS
-                    <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
-                  </a>
-                <% true -> %>
-              <% end %>
-            </.stamp_card>
-          <% end %>
+                <%= cond do %>
+                  <% @next_stop.type == "vehicle_travel" -> %>
+                    <a
+                      :if={TourmanagerV2.GoogleMaps.directions_url(@next_stop.entry)}
+                      href={TourmanagerV2.GoogleMaps.directions_url(@next_stop.entry)}
+                      target="_blank"
+                      class="flex items-center gap-1.5 mt-3 no-underline transition-colors hover:text-[var(--brand)]"
+                      style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
+                    >
+                      <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" />
+                      OPEN ROUTE IN MAPS
+                      <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+                    </a>
+                  <% @next_stop.type == "gig" -> %>
+                    <a
+                      href={TourmanagerV2.GoogleMaps.search_url(%{venue: @next_stop.venue, city: @next_stop.city})}
+                      target="_blank"
+                      class="flex items-center gap-1.5 mt-3 no-underline transition-colors hover:text-[var(--brand)]"
+                      style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
+                    >
+                      <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" />
+                      OPEN IN MAPS
+                      <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+                    </a>
+                  <% true -> %>
+                <% end %>
+              </.stamp_card>
+            <% end %>
 
+            <.onboarding_add_stop_nudge route_count={length(@route_data)} />
           </div>
-          <%!-- Sidebar re-open button (visible when sidebar is closed) --%>
+
+          <%!-- Sidebar re-open button --%>
           <div class="peer-checked/rsb:hidden flex items-start">
             <label for="routing-sidebar-toggle" class="cursor-pointer p-2 rounded-[var(--radius-md)] border-2 border-[var(--ink-900)] transition-colors hover:bg-[var(--paper-200)]" style="background: var(--surface-card); box-shadow: var(--shadow-hard-sm);" title="Show map & info">
               <.icon name="hero-map" class="w-5 h-5 text-[var(--ink-400)]" />
