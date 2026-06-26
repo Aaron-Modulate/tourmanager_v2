@@ -1,3 +1,8 @@
+# fly.toml app configuration file generated for tourmanager on 2026-06-26T15:50:49+12:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
 app = 'tourmanager'
 primary_region = 'syd'
 kill_signal = 'SIGTERM'
