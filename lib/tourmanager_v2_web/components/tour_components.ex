@@ -758,96 +758,126 @@ defmodule TourmanagerV2Web.TourComponents do
           ]}
           style={"background: #{if @is_today, do: "var(--surface-stage)", else: "var(--surface-card)"}; color: #{if @is_today, do: "var(--paper-100)", else: "var(--ink-700)"}; #{if @is_today, do: "box-shadow: var(--shadow-hard);", else: ""}"}
         >
-          <%!-- Venue thumbnail with hover popover (gig or off-day with location) --%>
-          <div :if={@venue_image_url && @type in ~w(gig off_day)} class="relative flex-none group/venue">
-            <img
-              src={@venue_image_url}
-              class="w-12 h-12 rounded-[var(--radius-sm)] object-cover cursor-pointer transition-all group-hover/venue:ring-2 group-hover/venue:ring-[var(--brand)]"
-              style="border: 1px solid var(--paper-300);"
-              loading="lazy"
-            />
-            <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/venue:opacity-100 group-hover/venue:pointer-events-auto transition-opacity" style="width: 340px;">
-              <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
+          <%!-- Venue thumbnail — desktop: hover popover, mobile: tap modal --%>
+          <div :if={@venue_image_url && @type in ~w(gig off_day)} class="relative flex-none">
+            <%!-- Desktop hover popover --%>
+            <div class="hidden md:block group/venue">
+              <img
+                src={@venue_image_url}
+                class="w-12 h-12 rounded-[var(--radius-sm)] object-cover cursor-pointer transition-all group-hover/venue:ring-2 group-hover/venue:ring-[var(--brand)]"
+                style="border: 1px solid var(--paper-300);"
+                loading="lazy"
+              />
+              <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/venue:opacity-100 group-hover/venue:pointer-events-auto transition-opacity" style="width: 340px;">
+                <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
+                  <img src={@venue_image_url} class="w-full h-40 object-cover" loading="lazy" />
+                  <div class="p-3">
+                    <div style="font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-900);">{@venue}</div>
+                    <div :if={@address || @city} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 3px;">{@address || @city}</div>
+                    <a href={venue_maps_link(@venue, @city, @address, @lat, @lng)} target="_blank" class="flex items-center gap-1.5 mt-2.5 no-underline transition-colors hover:text-[var(--brand)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);">
+                      <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" /> OPEN IN GOOGLE <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <%!-- Mobile tap modal --%>
+            <div class="md:hidden">
+              <label for={"stop-modal-#{@entry_id}"}>
                 <img
                   src={@venue_image_url}
-                  class="w-full h-40 object-cover"
+                  class="w-12 h-12 rounded-[var(--radius-sm)] object-cover cursor-pointer active:ring-2 active:ring-[var(--brand)]"
+                  style="border: 1px solid var(--paper-300);"
                   loading="lazy"
                 />
-                <div class="p-3">
-                  <div style="font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-900);">{@venue}</div>
-                  <div :if={@address || @city} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 3px;">
-                    {@address || @city}
+              </label>
+              <input type="checkbox" id={"stop-modal-#{@entry_id}"} class="hidden peer/stop" />
+              <div class="fixed inset-0 z-50 hidden peer-checked/stop:flex items-end justify-center">
+                <label for={"stop-modal-#{@entry_id}"} class="absolute inset-0" style="background: rgba(20, 17, 15, 0.55); backdrop-filter: blur(4px);" />
+                <div class="relative z-10 w-full max-w-md rounded-t-[var(--radius-xl)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); border-bottom: none; box-shadow: var(--shadow-hard);">
+                  <img src={@venue_image_url} class="w-full h-48 object-cover" loading="lazy" />
+                  <div class="p-5">
+                    <div style="font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--ink-900);">{@venue}</div>
+                    <div :if={@address || @city} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400); margin-top: 4px;">{@address || @city}</div>
+                    <a href={venue_maps_link(@venue, @city, @address, @lat, @lng)} target="_blank" class="flex items-center justify-center gap-2 mt-4 py-3 rounded-[var(--radius-md)] no-underline transition-colors" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">
+                      <.icon name="hero-map-pin-mini" class="w-4 h-4" /> OPEN IN GOOGLE MAPS
+                    </a>
+                    <label for={"stop-modal-#{@entry_id}"} class="flex items-center justify-center mt-3 py-2.5 cursor-pointer rounded-[var(--radius-md)]" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">
+                      CLOSE
+                    </label>
                   </div>
-                  <a
-                    href={venue_maps_link(@venue, @city, @address, @lat, @lng)}
-                    target="_blank"
-                    class="flex items-center gap-1.5 mt-2.5 no-underline transition-colors hover:text-[var(--brand)]"
-                    style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
-                  >
-                    <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" />
-                    OPEN IN GOOGLE
-                    <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
-                  </a>
                 </div>
               </div>
             </div>
           </div>
 
-          <%!-- Travel icon with hover popover showing route details --%>
-          <div :if={@type == "vehicle_travel"} class="relative flex-none group/travel">
-            <span
-              class="w-12 h-12 rounded-[var(--radius-sm)] flex items-center justify-center cursor-pointer transition-all group-hover/travel:ring-2 group-hover/travel:ring-[var(--signal-load)]"
-              style="background: var(--signal-load-tint); border: 1px solid var(--paper-300);"
-            >
-              <.icon name="hero-truck" class="w-5 h-5 text-[var(--signal-load)]" />
-            </span>
-            <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/travel:opacity-100 group-hover/travel:pointer-events-auto transition-opacity" style="width: 300px;">
-              <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
-                <div class="px-3 py-2.5 flex items-center gap-2" style="background: var(--signal-load-tint); border-bottom: 1px solid var(--paper-300);">
-                  <.icon name="hero-truck" class="w-4 h-4 text-[var(--signal-load)]" />
-                  <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--signal-load);">VEHICLE TRAVEL</div>
+          <%!-- Travel icon — desktop: hover popover, mobile: tap modal --%>
+          <div :if={@type == "vehicle_travel"} class="relative flex-none">
+            <%!-- Desktop hover --%>
+            <div class="hidden md:block group/travel">
+              <span class="w-12 h-12 rounded-[var(--radius-sm)] flex items-center justify-center cursor-pointer transition-all group-hover/travel:ring-2 group-hover/travel:ring-[var(--signal-load)]" style="background: var(--signal-load-tint); border: 1px solid var(--paper-300);">
+                <.icon name="hero-truck" class="w-5 h-5 text-[var(--signal-load)]" />
+              </span>
+              <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/travel:opacity-100 group-hover/travel:pointer-events-auto transition-opacity" style="width: 300px;">
+                <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
+                  <div class="px-3 py-2.5 flex items-center gap-2" style="background: var(--signal-load-tint); border-bottom: 1px solid var(--paper-300);">
+                    <.icon name="hero-truck" class="w-4 h-4 text-[var(--signal-load)]" />
+                    <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--signal-load);">VEHICLE TRAVEL</div>
+                  </div>
+                  <div class="p-3">
+                    <div class="flex items-start gap-2 mb-2">
+                      <div class="flex flex-col items-center gap-0.5 pt-0.5 flex-none">
+                        <span class="w-2 h-2 rounded-full" style="background: var(--signal-load);" />
+                        <span class="w-px h-5" style="background: var(--paper-300);" />
+                        <span class="w-2 h-2 rounded-full" style="background: var(--signal-load);" />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div>
+                          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-400);">FROM</div>
+                          <div style="font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-900);">{@venue}</div>
+                        </div>
+                        <div class="mt-2">
+                          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-400);">TO</div>
+                          <div style="font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-900);">{@city}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <a :if={@directions_url} href={@directions_url} target="_blank" class="flex items-center gap-1.5 mt-2.5 no-underline transition-colors hover:text-[var(--brand)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);">
+                      <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" /> OPEN ROUTE IN MAPS <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
-                <div class="p-3">
-                  <div class="flex items-start gap-2 mb-2">
-                    <div class="flex flex-col items-center gap-0.5 pt-0.5 flex-none">
-                      <span class="w-2 h-2 rounded-full" style="background: var(--signal-load);" />
-                      <span class="w-px h-5" style="background: var(--paper-300);" />
-                      <span class="w-2 h-2 rounded-full" style="background: var(--signal-load);" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <div>
-                        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-400);">FROM</div>
-                        <div style="font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-900);">{@venue}</div>
-                        <div :if={@origin_address} style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-400); margin-top: 1px;">{@origin_address}</div>
-                      </div>
-                      <div class="mt-2">
-                        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-400);">TO</div>
-                        <div style="font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-900);">{@city}</div>
-                        <div :if={@dest_address} style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-400); margin-top: 1px;">{@dest_address}</div>
-                      </div>
-                    </div>
+              </div>
+            </div>
+            <%!-- Mobile tap modal --%>
+            <div class="md:hidden">
+              <label for={"travel-modal-#{@entry_id}"}>
+                <span class="w-12 h-12 rounded-[var(--radius-sm)] flex items-center justify-center cursor-pointer active:ring-2 active:ring-[var(--signal-load)]" style="background: var(--signal-load-tint); border: 1px solid var(--paper-300);">
+                  <.icon name="hero-truck" class="w-5 h-5 text-[var(--signal-load)]" />
+                </span>
+              </label>
+              <input type="checkbox" id={"travel-modal-#{@entry_id}"} class="hidden peer/trav" />
+              <div class="fixed inset-0 z-50 hidden peer-checked/trav:flex items-end justify-center">
+                <label for={"travel-modal-#{@entry_id}"} class="absolute inset-0" style="background: rgba(20, 17, 15, 0.55); backdrop-filter: blur(4px);" />
+                <div class="relative z-10 w-full max-w-md rounded-t-[var(--radius-xl)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); border-bottom: none; box-shadow: var(--shadow-hard);">
+                  <div class="px-5 py-3 flex items-center gap-2" style="background: var(--signal-load-tint); border-bottom: 1px solid var(--paper-300);">
+                    <.icon name="hero-truck" class="w-4 h-4 text-[var(--signal-load)]" />
+                    <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--signal-load);">VEHICLE TRAVEL</div>
                   </div>
-                  <div :if={@travel_duration || @km > 0} class="flex items-center gap-3 mt-2 pt-2 border-t border-[var(--paper-300)]">
-                    <div :if={@travel_duration} class="flex items-center gap-1" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--ink-500);">
-                      <.icon name="hero-clock-mini" class="w-3 h-3" />
-                      {TourmanagerV2.GoogleMaps.format_duration(@travel_duration)}
-                    </div>
-                    <div :if={@km > 0} class="flex items-center gap-1" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--ink-500);">
-                      <.icon name="hero-truck-mini" class="w-3 h-3" />
-                      {TourmanagerV2.GoogleMaps.format_distance(@km, "km")}
-                    </div>
+                  <div class="p-5">
+                    <div class="mb-1" style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-400);">FROM</div>
+                    <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink-900);">{@venue}</div>
+                    <div :if={@origin_address} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 2px;">{@origin_address}</div>
+                    <div class="mt-4 mb-1" style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-400);">TO</div>
+                    <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink-900);">{@city}</div>
+                    <div :if={@dest_address} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 2px;">{@dest_address}</div>
+                    <a :if={@directions_url} href={@directions_url} target="_blank" class="flex items-center justify-center gap-2 mt-5 py-3 rounded-[var(--radius-md)] no-underline" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">
+                      <.icon name="hero-map-pin-mini" class="w-4 h-4" /> OPEN ROUTE IN MAPS
+                    </a>
+                    <label for={"travel-modal-#{@entry_id}"} class="flex items-center justify-center mt-3 py-2.5 cursor-pointer rounded-[var(--radius-md)]" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">
+                      CLOSE
+                    </label>
                   </div>
-                  <a
-                    :if={@directions_url}
-                    href={@directions_url}
-                    target="_blank"
-                    class="flex items-center gap-1.5 mt-2.5 no-underline transition-colors hover:text-[var(--brand)]"
-                    style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
-                  >
-                    <.icon name="hero-map-pin-mini" class="w-3.5 h-3.5" />
-                    OPEN ROUTE IN MAPS
-                    <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
-                  </a>
                 </div>
               </div>
             </div>

@@ -106,29 +106,20 @@ defmodule TourmanagerV2Web.Layouts do
             </label>
           </div>
 
-          <%!-- Tour switcher (same as desktop sidebar) --%>
+          <%!-- Tour switcher dropdown --%>
           <div class="px-[18px] py-[14px] border-b border-[var(--ink-700)]">
-            <div class="flex items-center justify-between" style="margin-bottom: 6px;">
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">CURRENT TOUR</div>
-              <button
-                :if={@current_user}
-                type="button"
-                phx-click="new_tour"
-                class="w-[22px] h-[22px] flex items-center justify-center rounded-[var(--radius-sm)] cursor-pointer transition-colors active:bg-[var(--ink-500)]"
-                style="background: var(--ink-700); border: 1px solid var(--ink-500);"
-              >
-                <.icon name="hero-plus-mini" class="w-3.5 h-3.5 text-[var(--ink-300)]" />
-              </button>
-            </div>
             <%= if @current_tour do %>
-              <div style="font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.01em; color: #fff;">
-                {String.upcase(@current_tour.name)}
-              </div>
-              <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-300); margin-top: 4px;">
-                {String.upcase(@current_tour_role || "crew")}
-              </div>
-              <%!-- Tour list --%>
-              <%= if length(@user_tours) > 1 do %>
+              <details class="group/tour-dd">
+                <summary class="flex items-center justify-between cursor-pointer list-none" style="list-style: none;">
+                  <div class="min-w-0">
+                    <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">CURRENT TOUR</div>
+                    <div class="truncate" style="font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.01em; color: #fff; margin-top: 4px;">
+                      {String.upcase(@current_tour.name)}
+                    </div>
+                  </div>
+                  <.icon name="hero-chevron-down" class="w-4 h-4 text-[var(--ink-300)] flex-none transition-transform group-open/tour-dd:rotate-180" />
+                </summary>
+
                 <div class="mt-3 flex flex-col gap-1">
                   <button
                     :for={%{tour: tour, role: role} <- @user_tours}
@@ -146,29 +137,54 @@ defmodule TourmanagerV2Web.Layouts do
                     </div>
                     <.icon :if={@current_tour && tour.id == @current_tour.id} name="hero-check" class="w-4 h-4 text-white" />
                   </button>
+
+                  <%!-- Create new tour --%>
+                  <button
+                    :if={@current_user}
+                    type="button"
+                    phx-click="new_tour"
+                    class="w-full text-left px-3 py-2.5 rounded-[var(--radius-sm)] flex items-center gap-2 cursor-pointer transition-colors active:bg-[var(--ink-500)]"
+                    style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-300);"
+                  >
+                    <.icon name="hero-plus-mini" class="w-3.5 h-3.5" />
+                    NEW TOUR
+                  </button>
+
+                  <%!-- Manage (hidden submenu) --%>
+                  <details :if={@current_tour_role == "manager"} class="mt-1 border-t border-[var(--ink-700)] pt-2">
+                    <summary class="flex items-center justify-between px-3 py-2 cursor-pointer rounded-[var(--radius-sm)] active:bg-[var(--ink-500)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); list-style: none;">
+                      <div class="flex items-center gap-2">
+                        <.icon name="hero-cog-6-tooth-mini" class="w-3.5 h-3.5" />
+                        MANAGE
+                      </div>
+                      <.icon name="hero-chevron-down-mini" class="w-3 h-3" />
+                    </summary>
+                    <button
+                      type="button"
+                      phx-click="delete_tour"
+                      data-confirm={"Delete \"#{@current_tour.name}\"? All stops, routes, and data will be permanently removed."}
+                      class="w-full text-left px-3 py-2.5 mt-1 flex items-center gap-2 cursor-pointer rounded-[var(--radius-sm)] transition-colors active:bg-[var(--signal-stop-tint)]"
+                      style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
+                    >
+                      <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
+                      DELETE TOUR
+                    </button>
+                  </details>
                 </div>
-              <% end %>
-              <details :if={@current_tour_role == "manager"} class="mt-3 border-t border-[var(--ink-700)] pt-3">
-                <summary class="flex items-center justify-between px-3 py-2 cursor-pointer rounded-[var(--radius-sm)] active:bg-[var(--ink-500)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-300); list-style: none;">
-                  <div class="flex items-center gap-2">
-                    <.icon name="hero-cog-6-tooth-mini" class="w-3.5 h-3.5" />
-                    MANAGE TOUR
-                  </div>
-                  <.icon name="hero-chevron-down-mini" class="w-3 h-3" />
-                </summary>
-                <button
-                  type="button"
-                  phx-click="delete_tour"
-                  data-confirm={"Delete \"#{@current_tour.name}\"? All stops, routes, and data will be permanently removed."}
-                  class="w-full text-left px-3 py-2.5 mt-1 flex items-center gap-2 cursor-pointer rounded-[var(--radius-sm)] transition-colors active:bg-[var(--signal-stop-tint)]"
-                  style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
-                >
-                  <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
-                  DELETE TOUR
-                </button>
               </details>
             <% else %>
-              <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">No tours yet</div>
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">CURRENT TOUR</div>
+              <div class="mt-2" style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">No tours yet</div>
+              <button
+                :if={@current_user}
+                type="button"
+                phx-click="new_tour"
+                class="w-full text-left px-3 py-2.5 mt-2 rounded-[var(--radius-sm)] flex items-center gap-2 cursor-pointer transition-colors active:bg-[var(--ink-500)]"
+                style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-300);"
+              >
+                <.icon name="hero-plus-mini" class="w-3.5 h-3.5" />
+                CREATE TOUR
+              </button>
             <% end %>
           </div>
 
@@ -422,7 +438,7 @@ defmodule TourmanagerV2Web.Layouts do
           </div>
         </header>
 
-        <main class="flex-1 overflow-auto">
+        <main class="flex-1 overflow-y-auto overflow-x-hidden">
           <.trial_banner :if={@current_user} current_user={@current_user} />
           <.trial_expired_banner :if={@current_user} current_user={@current_user} />
           <.flash_group flash={@flash} />
