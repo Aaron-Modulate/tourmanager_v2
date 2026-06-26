@@ -14,7 +14,7 @@ kill_signal = 'SIGTERM'
 
 [env]
   ECTO_IPV6 = 'true'
-  PHX_HOST = 'tourmanager.fly.dev'
+  PHX_HOST = 'tourmanager.live'
   POOL_SIZE = '10'
   PORT = '8080'
 
