@@ -25,7 +25,9 @@ defmodule TourmanagerV2Web.LandingLive do
       {:ok, push_navigate(socket, to: "/app")}
     else
       {:ok, assign(socket,
-        page_title: "Tour Manager — Day Sheet OS",
+        page_title: "Tour Manager — Tour Routing, Day Sheets & Crew Logistics for Music Tours",
+        meta_description: "Plan tour routes, manage day sheets, and coordinate crew for music tours. Google Maps integration, real-time scheduling, and crew management. Free to start, 7-day manager trial.",
+        canonical_path: "/",
         demo_stops: @demo_stops,
         demo_schedule: @demo_schedule
       )}
@@ -34,9 +36,9 @@ defmodule TourmanagerV2Web.LandingLive do
 
   def render(assigns) do
     ~H"""
-    <div style="background: var(--paper-100); color: var(--ink-700); font-family: var(--font-sans); min-height: 100vh;">
+    <main style="background: var(--paper-100); color: var(--ink-700); font-family: var(--font-sans); min-height: 100vh;">
       <%!-- Hero section --%>
-      <div class="tm-halftone tm-halftone--light relative" style="background: var(--surface-stage); border-bottom: 2px solid var(--ink-900);">
+      <section class="tm-halftone tm-halftone--light relative" style="background: var(--surface-stage); border-bottom: 2px solid var(--ink-900);" aria-label="Tour management software for music tours">
         <div class="relative z-[2] max-w-5xl mx-auto px-6 md:px-10 py-12 md:py-20">
           <div class="flex items-center gap-3 mb-6">
             <span
@@ -49,13 +51,13 @@ defmodule TourmanagerV2Web.LandingLive do
             </div>
           </div>
 
-          <div style="font-family: var(--font-display); font-weight: 800; font-size: clamp(32px, 6vw, 56px); letter-spacing: -0.02em; line-height: 1.05; color: #fff; max-width: 600px;">
-            Show night. Everything, front of house.
-          </div>
+          <h1 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(32px, 6vw, 56px); letter-spacing: -0.02em; line-height: 1.05; color: #fff; max-width: 600px; margin: 0;">
+            Tour management software for music tours
+          </h1>
 
-          <div class="mt-5 max-w-md" style="font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--ink-300);">
-            Routing, day sheets, and crew logistics for touring artists and production teams. Come gig-day, everything you need to know is right in front of you.
-          </div>
+          <p class="mt-5 max-w-md" style="font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--ink-300); margin-bottom: 0;">
+            Tour routing, day sheets, and crew logistics for touring artists and production teams. Plan routes with Google Maps, manage gig schedules, and keep your crew informed — a modern alternative to spreadsheets and MasterTour.
+          </p>
 
           <div class="mt-8 flex flex-wrap gap-3">
             <.link
@@ -79,14 +81,14 @@ defmodule TourmanagerV2Web.LandingLive do
             7-day manager trial · No credit card required
           </div>
         </div>
-      </div>
+      </section>
 
       <%!-- Live preview section — show real components with demo data --%>
-      <div class="max-w-5xl mx-auto px-6 md:px-10 py-12 md:py-16">
+      <section class="max-w-5xl mx-auto px-6 md:px-10 py-12 md:py-16" aria-label="Tour management features preview">
         <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 8px;">LIVE PREVIEW</div>
-        <div style="font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 4vw, 36px); letter-spacing: -0.02em; color: var(--ink-900); margin-bottom: 24px;">
-          Built for the road
-        </div>
+        <h2 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 4vw, 36px); letter-spacing: -0.02em; color: var(--ink-900); margin: 0 0 24px 0;">
+          Tour routing and day sheet management built for the road
+        </h2>
 
         <%!-- Desktop: side by side app previews. Mobile: single preview --%>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -171,10 +173,10 @@ defmodule TourmanagerV2Web.LandingLive do
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <%!-- Features section --%>
-      <div style="background: var(--surface-stage); border-top: 2px solid var(--ink-900); border-bottom: 2px solid var(--ink-900);">
+      <section style="background: var(--surface-stage); border-top: 2px solid var(--ink-900); border-bottom: 2px solid var(--ink-900);" aria-label="Tour management features">
         <div class="max-w-5xl mx-auto px-6 md:px-10 py-12 md:py-16">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div>
@@ -182,7 +184,7 @@ defmodule TourmanagerV2Web.LandingLive do
                 <.icon name="hero-map" class="w-5 h-5 text-[var(--brand)]" />
                 <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">ROUTING</div>
               </div>
-              <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin-bottom: 6px;">Build the route</div>
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Plan tour routes with Google Maps</h3>
               <div style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5;">
                 Add gigs, travel days, and off days. Google Maps integration shows distances and drive times between every stop.
               </div>
@@ -192,7 +194,7 @@ defmodule TourmanagerV2Web.LandingLive do
                 <.icon name="hero-clipboard-document-list" class="w-5 h-5 text-[var(--brand)]" />
                 <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">DAY SHEET</div>
               </div>
-              <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin-bottom: 6px;">Run of show</div>
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Day sheets and run of show scheduling</h3>
               <div style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5;">
                 Times, locations, and statuses for every moment of gig day. Call sheet format your crew already knows.
               </div>
@@ -202,22 +204,22 @@ defmodule TourmanagerV2Web.LandingLive do
                 <.icon name="hero-users" class="w-5 h-5 text-[var(--brand)]" />
                 <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">CREW</div>
               </div>
-              <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin-bottom: 6px;">Your people</div>
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Crew management and logistics</h3>
               <div style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5;">
                 Invite crew members who see exactly what they need. Managers run the show, crew stays informed.
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <%!-- Pricing section --%>
-      <div class="max-w-5xl mx-auto px-6 md:px-10 py-12 md:py-16">
+      <section class="max-w-5xl mx-auto px-6 md:px-10 py-12 md:py-16" aria-label="Tour manager pricing plans">
         <div class="text-center mb-10">
           <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 8px;">PRICING</div>
-          <div style="font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 4vw, 32px); letter-spacing: -0.02em; color: var(--ink-900);">
-            Start free. Scale when you're ready.
-          </div>
+          <h2 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 4vw, 32px); letter-spacing: -0.02em; color: var(--ink-900); margin: 0;">
+            Tour management software pricing — start free
+          </h2>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto">
@@ -248,18 +250,18 @@ defmodule TourmanagerV2Web.LandingLive do
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <%!-- Footer CTA --%>
-      <div class="tm-halftone tm-halftone--light" style="background: var(--surface-stage); border-top: 2px solid var(--ink-900);">
+      <section class="tm-halftone tm-halftone--light" style="background: var(--surface-stage); border-top: 2px solid var(--ink-900);" aria-label="Start your free trial">
         <div class="max-w-5xl mx-auto px-6 md:px-10 py-12 text-center">
           <div class="relative z-[2]">
-            <div style="font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 4vw, 36px); letter-spacing: -0.02em; color: #fff;">
-              Get on the road
-            </div>
-            <div class="mt-3" style="font-family: var(--font-sans); font-size: 15px; color: var(--ink-300);">
+            <h2 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 4vw, 36px); letter-spacing: -0.02em; color: #fff; margin: 0;">
+              Start managing your tour today
+            </h2>
+            <p class="mt-3" style="font-family: var(--font-sans); font-size: 15px; color: var(--ink-300); margin-bottom: 0;">
               7-day manager trial. No credit card. Set up your first tour in under a minute.
-            </div>
+            </p>
             <div class="mt-6 flex justify-center">
               <.link
                 href="/auth/google"
@@ -272,8 +274,8 @@ defmodule TourmanagerV2Web.LandingLive do
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
     """
   end
 end

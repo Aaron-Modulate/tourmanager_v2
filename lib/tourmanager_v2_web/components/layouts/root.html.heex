@@ -4,7 +4,56 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title default="TourmanagerV2" suffix=" · Phoenix Framework" phx-no-format>{assigns[:page_title]}</.live_title>
+
+    <%!-- SEO meta tags — page_title set per LiveView, defaults handled here --%>
+    <.live_title default="Tour Manager — Day Sheet OS for Touring Artists & Production Crew" suffix="" phx-no-format>{assigns[:page_title]}</.live_title>
+
+    <meta name="description" content={assigns[:meta_description] || "Tour routing, day sheets, and crew logistics for music artists, tour managers, and production crew. Plan routes, manage gig schedules, and keep your crew informed — all in one place."} />
+    <meta name="keywords" content="tour management software, tour routing, day sheet, tour manager app, music tour planning, gig scheduling, production crew management, touring logistics, MasterTour alternative" />
+
+    <%!-- Open Graph --%>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Tour Manager" />
+    <meta property="og:title" content={assigns[:page_title] || "Tour Manager — Day Sheet OS"} />
+    <meta property="og:description" content={assigns[:meta_description] || "Tour routing, day sheets, and crew logistics for touring artists and production crew."} />
+    <meta property="og:url" content="https://tourmanager.live" />
+
+    <%!-- Twitter Card --%>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={assigns[:page_title] || "Tour Manager — Day Sheet OS"} />
+    <meta name="twitter:description" content={assigns[:meta_description] || "Tour routing, day sheets, and crew logistics for touring artists and production crew."} />
+
+    <%!-- Canonical URL --%>
+    <link rel="canonical" href={"https://tourmanager.live#{assigns[:canonical_path] || "/"}"} />
+
+    <%!-- Structured data: SoftwareApplication schema --%>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Tour Manager",
+        "alternateName": "Day Sheet OS",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Tour routing, day sheets, and crew logistics for music artists, tour managers, and production crew.",
+        "url": "https://tourmanager.live",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "NZD",
+          "description": "Free crew access. Manager plans from $49 NZD/month with 7-day free trial."
+        },
+        "featureList": [
+          "Tour route planning with Google Maps",
+          "Day sheet and run-of-show management",
+          "Crew logistics and scheduling",
+          "Venue management with Google Places",
+          "Travel day and off-day tracking",
+          "Real-time distance and drive time calculations"
+        ]
+      }
+    </script>
+
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
@@ -27,7 +76,7 @@
           setTheme(localStorage.getItem("phx:theme") || "system");
         }
         window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-        
+
         window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
 
         matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {

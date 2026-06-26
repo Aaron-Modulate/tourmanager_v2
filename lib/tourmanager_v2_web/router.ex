@@ -39,6 +39,8 @@ defmodule TourmanagerV2Web.Router do
   scope "/", TourmanagerV2Web do
     pipe_through :browser
 
+    get "/sitemap.xml", SitemapController, :index
+
     live_session :public do
       live "/", LandingLive
     end
