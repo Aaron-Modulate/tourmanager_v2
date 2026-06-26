@@ -1201,4 +1201,181 @@ defmodule TourmanagerV2Web.TourComponents do
     """
   end
 
+  attr :current_user, :map, required: true
+  attr :tour_form, :map, default: nil
+
+  def onboarding_welcome(assigns) do
+    ~H"""
+    <div class="flex items-center justify-center min-h-[60vh]">
+      <div class="w-full max-w-[480px]">
+        <div
+          class="tm-halftone tm-halftone--light rounded-[var(--radius-xl)] overflow-hidden"
+          style="border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);"
+        >
+          <%!-- Stage header --%>
+          <div class="px-8 py-6" style="background: var(--surface-stage);">
+            <div class="relative z-[2]">
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.24em; color: var(--brand);">WELCOME</div>
+              <div style="font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: -0.02em; line-height: 1.1; color: #fff; margin-top: 6px;">
+                Your first tour
+              </div>
+              <div class="mt-3" style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5;">
+                You're in with a 7-day manager trial. Create tours, add stops, and build your routing. After the trial, subscribe or continue as crew with read-only access.
+              </div>
+            </div>
+          </div>
+
+          <%!-- Trial badge --%>
+          <div class="px-8 py-3 flex items-center gap-3 border-b border-[var(--paper-300)]" style="background: var(--signal-live-tint);">
+            <.icon name="hero-clock" class="w-4 h-4 text-[var(--signal-live)]" />
+            <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-live);">
+              7-DAY MANAGER TRIAL · FULL ACCESS
+            </div>
+          </div>
+
+          <%!-- Form --%>
+          <div class="px-8 py-6" style="background: var(--surface-card);">
+            <.form for={@tour_form} id="onboarding-tour-form" phx-submit="create_first_tour" phx-change="validate_tour">
+              <div class="flex flex-col gap-4">
+                <div>
+                  <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">TOUR NAME</label>
+                  <.input
+                    field={@tour_form[:name]}
+                    type="text"
+                    placeholder="e.g. UK Summer Run 2026"
+                    class="w-full px-3 py-2.5 text-[15px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors"
+                    style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);"
+                  />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">START DATE</label>
+                    <.input
+                      field={@tour_form[:start_date]}
+                      type="date"
+                      class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors"
+                      style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);"
+                    />
+                  </div>
+                  <div>
+                    <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">END DATE</label>
+                    <.input
+                      field={@tour_form[:end_date]}
+                      type="date"
+                      class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors"
+                      style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  class="w-full mt-2 px-5 py-3 rounded-[var(--radius-md)] cursor-pointer transition-all flex items-center justify-center gap-2"
+                  style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+                >
+                  <.icon name="hero-map" class="w-4 h-4" />
+                  CREATE TOUR
+                </button>
+              </div>
+            </.form>
+
+            <%!-- What happens after trial --%>
+            <div class="mt-5 pt-4 border-t border-[var(--paper-300)]">
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 8px;">AFTER YOUR TRIAL</div>
+              <div class="flex flex-col gap-2">
+                <div class="flex items-start gap-2.5">
+                  <.icon name="hero-check-mini" class="w-3.5 h-3.5 text-[var(--signal-live)] mt-0.5 flex-none" />
+                  <div style="font-family: var(--font-sans); font-size: 13px; color: var(--ink-500);">Subscribe to keep creating tours and managing crew</div>
+                </div>
+                <div class="flex items-start gap-2.5">
+                  <.icon name="hero-check-mini" class="w-3.5 h-3.5 text-[var(--ink-300)] mt-0.5 flex-none" />
+                  <div style="font-family: var(--font-sans); font-size: 13px; color: var(--ink-500);">Or continue as crew with read-only access to your tours</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  attr :current_user, :map, required: true
+
+  def trial_banner(assigns) do
+    days = TourmanagerV2.Accounts.User.trial_days_remaining(assigns.current_user)
+    urgent = days <= 2
+
+    assigns =
+      assigns
+      |> assign(:days, days)
+      |> assign(:urgent, urgent)
+
+    ~H"""
+    <div
+      :if={TourmanagerV2.Accounts.User.trial_active?(@current_user) && !TourmanagerV2.Accounts.User.subscribed?(@current_user)}
+      class="flex items-center justify-between px-5 py-2.5"
+      style={"background: #{if @urgent, do: "var(--signal-stop-tint)", else: "var(--signal-live-tint)"}; border-bottom: 1px solid #{if @urgent, do: "var(--signal-stop)", else: "var(--signal-live)"};"}
+    >
+      <div class="flex items-center gap-2">
+        <.icon name="hero-clock" class={["w-3.5 h-3.5", if(@urgent, do: "text-[var(--signal-stop)]", else: "text-[var(--signal-live)]")]} />
+        <div style={"font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #{if @urgent, do: "var(--signal-stop)", else: "var(--signal-live)"};"}>
+          {cond do
+            @days == 0 -> "TRIAL ENDS TODAY"
+            @days == 1 -> "1 DAY LEFT ON TRIAL"
+            true -> "#{@days} DAYS LEFT ON TRIAL"
+          end}
+        </div>
+      </div>
+      <button
+        type="button"
+        phx-click="open_settings"
+        class="px-3 py-1 rounded-[var(--radius-sm)] cursor-pointer transition-colors"
+        style={"font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: #{if @urgent, do: "var(--signal-stop)", else: "var(--brand)"};"}
+      >SUBSCRIBE</button>
+    </div>
+    """
+  end
+
+  def trial_expired_banner(assigns) do
+    ~H"""
+    <div
+      :if={TourmanagerV2.Accounts.User.trial_expired?(@current_user) && !TourmanagerV2.Accounts.User.subscribed?(@current_user)}
+      class="flex items-center justify-between px-5 py-2.5"
+      style="background: var(--paper-200); border-bottom: 1px solid var(--paper-300);"
+    >
+      <div class="flex items-center gap-2">
+        <.icon name="hero-lock-closed-mini" class="w-3.5 h-3.5 text-[var(--ink-400)]" />
+        <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">
+          CREW ACCESS · SUBSCRIBE TO CREATE TOURS
+        </div>
+      </div>
+      <button
+        type="button"
+        phx-click="open_settings"
+        class="px-3 py-1 rounded-[var(--radius-sm)] cursor-pointer transition-colors"
+        style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand);"
+      >SUBSCRIBE</button>
+    </div>
+    """
+  end
+
+  attr :route_count, :integer, default: 0
+
+  def onboarding_add_stop_nudge(assigns) do
+    ~H"""
+    <div
+      :if={@route_count == 1}
+      class="rounded-[var(--radius-md)] p-4 border border-[var(--paper-300)]"
+      style="background: var(--surface-card);"
+    >
+      <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 6px;">KEEP GOING</div>
+      <div style="font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink-900);">Add your next stop</div>
+      <div class="mt-1.5" style="font-family: var(--font-sans); font-size: 13px; color: var(--ink-400); line-height: 1.4;">
+        Add a second venue to see the route. Distance and drive time calculated automatically.
+      </div>
+    </div>
+    """
+  end
 end

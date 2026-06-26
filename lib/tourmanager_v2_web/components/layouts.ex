@@ -257,6 +257,8 @@ defmodule TourmanagerV2Web.Layouts do
         </header>
 
         <main class="flex-1 overflow-auto">
+          <.trial_banner :if={@current_user} current_user={@current_user} />
+          <.trial_expired_banner :if={@current_user} current_user={@current_user} />
           <.flash_group flash={@flash} />
           {render_slot(@inner_block)}
         </main>

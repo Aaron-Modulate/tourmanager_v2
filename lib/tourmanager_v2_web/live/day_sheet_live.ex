@@ -3,10 +3,20 @@ defmodule TourmanagerV2Web.DaySheetLive do
   use TourmanagerV2Web.TourSwitching
 
   def mount(_params, _session, socket) do
+    user = socket.assigns[:current_user]
+    tours = socket.assigns[:user_tours] || []
+    needs_onboarding = user && tours == [] && !TourmanagerV2.Accounts.User.onboarded?(user)
+
+    tour_form =
+      if needs_onboarding do
+        TourmanagerV2.Accounts.change_tour() |> Phoenix.Component.to_form()
+      end
+
     socket =
       socket
       |> assign(TourSwitching.default_assigns())
       |> assign(active_nav: "daysheet", active_tab: "show", page_title: "Day Sheet")
+      |> assign(:onboarding_tour_form, tour_form)
       |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
       |> compute_daysheet_assigns()
 
@@ -96,6 +106,10 @@ defmodule TourmanagerV2Web.DaySheetLive do
       billing_seats={@billing_seats}
       billing_error={@billing_error}
     >
+      <%!-- Onboarding: show welcome card for new users with no tours --%>
+      <%= if @onboarding_tour_form do %>
+        <.onboarding_welcome current_user={@current_user} tour_form={@onboarding_tour_form} />
+      <% else %>
       <div id="day-sheet" class="p-7 grid grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5 items-start">
         <%!-- Left: run of show --%>
         <div>
@@ -217,6 +231,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
           <% end %>
         </div>
       </div>
+      <% end %>
     </Layouts.app>
     """
   end

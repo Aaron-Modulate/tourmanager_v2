@@ -372,6 +372,39 @@ defmodule TourmanagerV2Web.TourSwitching do
     end
   end
 
+  def handle_event("create_first_tour", %{"tour" => tour_params}, socket) do
+    user = socket.assigns.current_user
+
+    case TourmanagerV2.Accounts.create_tour(user, tour_params) do
+      {:ok, tour} ->
+        tours = TourmanagerV2.Accounts.list_tours_for_user(user.id)
+        entry = Enum.find(tours, fn %{tour: t} -> t.id == tour.id end)
+
+        {:noreply,
+         socket
+         |> assign(:user_tours, tours)
+         |> assign(:current_tour, tour)
+         |> assign(:current_tour_role, entry && entry.role)
+         |> push_event("persist_tour", %{tour_id: tour.id})
+         |> Phoenix.LiveView.push_navigate(to: "/routing")}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("complete_onboarding", _params, socket) do
+    user = socket.assigns.current_user
+
+    case TourmanagerV2.Accounts.complete_onboarding(user) do
+      {:ok, updated} ->
+        {:noreply, assign(socket, :current_user, updated)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event(_event, _params, socket) do
     {:noreply, socket}
   end

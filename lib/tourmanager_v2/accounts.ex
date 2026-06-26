@@ -24,9 +24,24 @@ defmodule TourmanagerV2.Accounts do
           avatar_url: auth.info.image
         }
 
+        now = DateTime.utc_now()
+        trial_end = DateTime.add(now, 7, :day)
+
         case %User{} |> User.oauth_changeset(attrs) |> Repo.insert() do
-          {:ok, user} -> {:ok, Map.put(user, :new_user, true)}
-          error -> error
+          {:ok, user} ->
+            {:ok, updated} =
+              user
+              |> User.changeset(%{
+                role: "manager",
+                trial_started_at: now,
+                trial_ends_at: trial_end
+              })
+              |> Repo.update()
+
+            {:ok, Map.put(updated, :new_user, true)}
+
+          error ->
+            error
         end
 
       user ->
@@ -96,6 +111,22 @@ defmodule TourmanagerV2.Accounts do
 
   def change_tour(tour \\ %Tour{}, attrs \\ %{}) do
     Tour.changeset(tour, attrs)
+  end
+
+  def complete_onboarding(%User{} = user) do
+    user
+    |> User.changeset(%{onboarding_completed_at: DateTime.utc_now()})
+    |> Repo.update()
+  end
+
+  def expire_trial(%User{} = user) do
+    if User.trial_expired?(user) && !User.subscribed?(user) do
+      user
+      |> User.changeset(%{role: "crew"})
+      |> Repo.update()
+    else
+      {:ok, user}
+    end
   end
 
   def update_distance_unit(%User{} = user, unit) when unit in ~w(km mi) do

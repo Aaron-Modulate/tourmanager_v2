@@ -29,6 +29,9 @@ defmodule TourmanagerV2.Accounts.User do
     field :cancelled_at, :utc_datetime
     field :is_admin, :boolean, default: false
     field :last_login_at, :utc_datetime
+    field :trial_started_at, :utc_datetime
+    field :trial_ends_at, :utc_datetime
+    field :onboarding_completed_at, :utc_datetime
 
     has_many :memberships, TourmanagerV2.Accounts.WorkspaceMembership
     has_many :workspaces, through: [:memberships, :workspace]
@@ -44,7 +47,8 @@ defmodule TourmanagerV2.Accounts.User do
     |> cast(attrs, [:email, :name, :role, :plan, :avatar_url, :distance_unit,
                     :stripe_customer_id, :stripe_subscription_id, :stripe_price_id,
                     :crew_seats, :subscription_quantity, :subscription_status,
-                    :subscription_period_end, :cancelled_at, :is_admin, :last_login_at])
+                    :subscription_period_end, :cancelled_at, :is_admin, :last_login_at,
+                    :trial_started_at, :trial_ends_at, :onboarding_completed_at])
     |> validate_required([:email, :name])
     |> unique_constraint(:email)
     |> validate_inclusion(:role, @roles)
@@ -84,4 +88,30 @@ defmodule TourmanagerV2.Accounts.User do
 
   def admin?(%__MODULE__{is_admin: true}), do: true
   def admin?(_), do: false
+
+  def trial_active?(%__MODULE__{trial_ends_at: ends_at}) when not is_nil(ends_at) do
+    DateTime.compare(ends_at, DateTime.utc_now()) == :gt
+  end
+
+  def trial_active?(_), do: false
+
+  def trial_expired?(%__MODULE__{trial_ends_at: ends_at}) when not is_nil(ends_at) do
+    DateTime.compare(ends_at, DateTime.utc_now()) != :gt
+  end
+
+  def trial_expired?(_), do: false
+
+  def trial_days_remaining(%__MODULE__{trial_ends_at: ends_at}) when not is_nil(ends_at) do
+    diff = DateTime.diff(ends_at, DateTime.utc_now(), :second)
+    max(0, div(diff, 86400))
+  end
+
+  def trial_days_remaining(_), do: 0
+
+  def can_create_tours?(%__MODULE__{} = user) do
+    subscribed?(user) || trial_active?(user)
+  end
+
+  def onboarded?(%__MODULE__{onboarding_completed_at: ts}) when not is_nil(ts), do: true
+  def onboarded?(_), do: false
 end

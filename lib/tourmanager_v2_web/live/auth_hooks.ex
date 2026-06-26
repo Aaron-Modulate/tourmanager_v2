@@ -1,6 +1,7 @@
 defmodule TourmanagerV2Web.AuthHooks do
   import Phoenix.Component
   alias TourmanagerV2.Accounts
+  alias TourmanagerV2.Accounts.User
 
   def on_mount(:default, _params, session, socket) do
     user =
@@ -15,6 +16,8 @@ defmodule TourmanagerV2Web.AuthHooks do
         _ ->
           nil
       end
+
+    user = maybe_expire_trial(user)
 
     tours = if user, do: Accounts.list_tours_for_user(user.id), else: []
 
@@ -53,5 +56,18 @@ defmodule TourmanagerV2Web.AuthHooks do
       end
 
     {:cont, socket}
+  end
+
+  defp maybe_expire_trial(nil), do: nil
+
+  defp maybe_expire_trial(%User{} = user) do
+    if User.trial_expired?(user) && User.manager?(user) && !User.subscribed?(user) do
+      case Accounts.expire_trial(user) do
+        {:ok, updated} -> updated
+        _ -> user
+      end
+    else
+      user
+    end
   end
 end

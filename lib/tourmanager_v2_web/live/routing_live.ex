@@ -421,6 +421,9 @@ defmodule TourmanagerV2Web.RoutingLive do
               <% end %>
             </.stamp_card>
           <% end %>
+
+          <%!-- Onboarding nudge to add second stop --%>
+          <.onboarding_add_stop_nudge route_count={length(@route_data)} />
         </div>
       </div>
 
