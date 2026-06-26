@@ -29,7 +29,7 @@ RUN mix assets.setup
 COPY priv priv
 COPY lib lib
 COPY assets assets
-COPY "Tour Manager Design System" "Tour Manager Design System"
+COPY ["Tour Manager Design System", "Tour Manager Design System/"]
 
 RUN mix compile
 RUN mix assets.deploy
