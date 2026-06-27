@@ -489,7 +489,9 @@ defmodule TourmanagerV2Web.TourSwitching do
 
     changeset = TourmanagerV2.Touring.change_event(%TourmanagerV2.Scheduling.Event{}, %{
       starts_at: default_start,
-      ends_at: default_end
+      ends_at: default_end,
+      category: "other",
+      name: "Other"
     })
 
     {:noreply,
@@ -509,8 +511,32 @@ defmodule TourmanagerV2Web.TourSwitching do
     {:noreply, assign(socket, :event_modal_open, false)}
   end
 
+  @category_labels %{
+    "load_in" => "Load in", "soundcheck" => "Soundcheck", "doors" => "Doors",
+    "showtime" => "Showtime", "curfew" => "Curfew", "load_out" => "Load out",
+    "catering" => "Catering", "travel" => "Travel", "other" => "Other"
+  }
+
   def handle_event("validate_event", %{"event" => params}, socket) do
     source = socket.assigns[:editing_event] || %TourmanagerV2.Scheduling.Event{}
+
+    params =
+      if is_nil(socket.assigns[:editing_event]) do
+        category = params["category"]
+        current_name = params["name"] || ""
+        old_category_name = Map.get(@category_labels, Ecto.Changeset.get_field(
+          TourmanagerV2.Touring.change_event(source, %{}), :category
+        ) || "", "")
+
+        if current_name == "" || current_name == old_category_name || Enum.member?(Map.values(@category_labels), current_name) do
+          Map.put(params, "name", Map.get(@category_labels, category, current_name))
+        else
+          params
+        end
+      else
+        params
+      end
+
     changeset = TourmanagerV2.Touring.change_event(source, params) |> Map.put(:action, :validate)
     {:noreply, assign(socket, :event_form, Phoenix.Component.to_form(changeset))}
   end
