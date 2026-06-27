@@ -714,6 +714,64 @@ defmodule TourmanagerV2Web.TourComponents do
     """
   end
 
+  attr :form, :map, required: true
+  attr :show, :boolean, default: false
+
+  def manage_tour_modal(assigns) do
+    ~H"""
+    <.tm_modal id="manage-tour-modal" show={@show} on_close="close_manage_tour">
+      <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">MANAGE</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Edit tour</div>
+        </div>
+        <button type="button" phx-click="close_manage_tour" class="w-8 h-8 flex items-center justify-center rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--ink-700)]" aria-label="Close">
+          <.icon name="hero-x-mark" class="w-5 h-5 text-[var(--ink-300)]" />
+        </button>
+      </div>
+
+      <.form for={@form} id="manage-tour-form" phx-change="validate_manage_tour" phx-submit="save_manage_tour" class="px-6 py-5">
+        <div class="flex flex-col gap-4">
+          <div>
+            <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">TOUR NAME</label>
+            <.input field={@form[:name]} type="text" class="w-full px-3 py-2.5 text-[15px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">START DATE</label>
+              <.input field={@form[:start_date]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">END DATE</label>
+              <.input field={@form[:end_date]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+          </div>
+
+          <div>
+            <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">STATUS</label>
+            <.input field={@form[:status]} type="select" options={[{"Draft", "draft"}, {"Active", "active"}, {"Completed", "completed"}, {"Cancelled", "cancelled"}]} class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mt-6 pt-5 border-t border-[var(--paper-300)]">
+          <button
+            type="button"
+            phx-click="delete_tour"
+            data-confirm="Delete this tour? All stops, routes, crew, and data will be permanently removed."
+            class="px-3 py-2 rounded-[var(--radius-md)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]"
+            style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop); background: transparent; border: 1px solid var(--signal-stop);"
+          >DELETE</button>
+          <div class="flex items-center gap-3">
+            <button type="button" phx-click="close_manage_tour" class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); background: var(--surface-card); border: 1px solid var(--paper-300);">CANCEL</button>
+            <button type="submit" class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-all" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">SAVE</button>
+          </div>
+        </div>
+      </.form>
+    </.tm_modal>
+    """
+  end
+
   attr :day, :integer, required: true
   attr :date, :string, required: true
   attr :city, :string, required: true

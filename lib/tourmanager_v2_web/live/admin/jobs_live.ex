@@ -81,6 +81,8 @@ defmodule TourmanagerV2Web.Admin.JobsLive do
       headerbar_is_today={@headerbar_is_today}
       billing_seats={@billing_seats}
       billing_error={@billing_error}
+      manage_tour_open={@manage_tour_open}
+      manage_tour_form={@manage_tour_form}
     >
       <div id="admin-jobs" class="p-7 max-w-3xl">
         <div class="mb-5">

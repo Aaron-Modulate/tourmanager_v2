@@ -64,6 +64,8 @@ defmodule TourmanagerV2Web.DashboardLive do
       headerbar_is_today={@headerbar_is_today}
       billing_seats={@billing_seats}
       billing_error={@billing_error}
+      manage_tour_open={@manage_tour_open}
+      manage_tour_form={@manage_tour_form}
     >
       <div id="dashboard" class="p-4 md:p-7">
         <div class="flex items-end justify-between mb-5">

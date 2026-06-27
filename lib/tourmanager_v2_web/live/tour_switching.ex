@@ -24,7 +24,9 @@ defmodule TourmanagerV2Web.TourSwitching do
       place_suggestions: [],
       autocomplete_field: nil,
       editing_route: false,
-      editing_route_entry: nil
+      editing_route_entry: nil,
+      manage_tour_open: false,
+      manage_tour_form: nil
     }
   end
 
@@ -405,6 +407,59 @@ defmodule TourmanagerV2Web.TourSwitching do
 
       {:error, _reason} ->
         {:noreply, socket}
+    end
+  end
+
+  def handle_event("open_manage_tour", _params, socket) do
+    tour = socket.assigns.current_tour
+
+    if tour do
+      changeset = TourmanagerV2.Accounts.change_tour(tour, %{})
+
+      {:noreply,
+       socket
+       |> assign(:manage_tour_open, true)
+       |> assign(:manage_tour_form, Phoenix.Component.to_form(changeset))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("close_manage_tour", _params, socket) do
+    {:noreply, assign(socket, :manage_tour_open, false)}
+  end
+
+  def handle_event("validate_manage_tour", %{"tour" => params}, socket) do
+    tour = socket.assigns.current_tour
+
+    changeset =
+      TourmanagerV2.Accounts.change_tour(tour, params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :manage_tour_form, Phoenix.Component.to_form(changeset))}
+  end
+
+  def handle_event("save_manage_tour", %{"tour" => params}, socket) do
+    tour = socket.assigns.current_tour
+
+    if tour do
+      case TourmanagerV2.Repo.get!(TourmanagerV2.Touring.Tour, tour.id)
+           |> TourmanagerV2.Touring.Tour.changeset(params)
+           |> TourmanagerV2.Repo.update() do
+        {:ok, updated_tour} ->
+          tours = TourmanagerV2.Accounts.list_tours_for_user(socket.assigns.current_user.id)
+
+          {:noreply,
+           socket
+           |> assign(:current_tour, updated_tour)
+           |> assign(:user_tours, tours)
+           |> assign(:manage_tour_open, false)}
+
+        {:error, changeset} ->
+          {:noreply, assign(socket, :manage_tour_form, Phoenix.Component.to_form(changeset))}
+      end
+    else
+      {:noreply, socket}
     end
   end
 

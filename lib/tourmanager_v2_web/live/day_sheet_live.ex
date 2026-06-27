@@ -66,6 +66,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
               "doors" -> "doors"
               "showtime" -> "live"
               "curfew" -> "stop"
+              "load_out" -> "load"
+              "catering" -> "ink"
               _ -> "ink"
             end
 
@@ -79,7 +81,11 @@ defmodule TourmanagerV2Web.DaySheetLive do
           }
         end)
       else
-        []
+        if active_entry do
+          default_day_events()
+        else
+          []
+        end
       end
 
     crew_cards =
@@ -96,6 +102,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
     assign(socket,
       run_of_show_data: run_of_show,
       crew_cards: crew_cards,
+      crew_count: length(crew),
       active_entry: active_entry,
       active_gig: today_gig
     )
@@ -118,6 +125,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
       headerbar_is_today={@headerbar_is_today}
       billing_seats={@billing_seats}
       billing_error={@billing_error}
+      manage_tour_open={@manage_tour_open}
+      manage_tour_form={@manage_tour_form}
     >
       <%!-- Onboarding: show welcome card for new users with no tours --%>
       <%= if @onboarding_tour_form do %>
@@ -247,5 +256,20 @@ defmodule TourmanagerV2Web.DaySheetLive do
       <% end %>
     </Layouts.app>
     """
+  end
+
+  defp default_day_events do
+    [
+      %{time: "08:00", label: "Bus call / Travel", tone: "ink", loc: "Hotel lobby", done: false, flag: false},
+      %{time: "10:00", label: "Load in", tone: "load", loc: "Stage door", done: false, flag: false},
+      %{time: "12:00", label: "Lunch", tone: "ink", loc: "Catering", done: false, flag: false},
+      %{time: "14:00", label: "Soundcheck", tone: "sound", loc: "Main stage", done: false, flag: false},
+      %{time: "17:00", label: "Dinner", tone: "ink", loc: "Catering", done: false, flag: false},
+      %{time: "18:00", label: "Doors", tone: "doors", loc: "FOH", done: false, flag: true},
+      %{time: "19:00", label: "Support", tone: "doors", loc: "Main stage", done: false, flag: false},
+      %{time: "20:30", label: "Headline", tone: "live", loc: "Main stage", done: false, flag: true},
+      %{time: "22:30", label: "Curfew", tone: "stop", loc: "House", done: false, flag: true},
+      %{time: "23:00", label: "Load out", tone: "load", loc: "Stage door", done: false, flag: false}
+    ]
   end
 end
