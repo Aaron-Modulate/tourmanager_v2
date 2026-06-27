@@ -59,53 +59,101 @@ defmodule TourmanagerV2Web.LandingLive do
             Tour routing, day sheets, and crew logistics for touring artists and production teams. Plan routes with Google Maps, manage gig schedules, and keep your crew informed — a modern alternative to spreadsheets and MasterTour.
           </p>
 
-          <div class="mt-8 flex flex-col gap-3 max-w-xs">
-            <.link
-              href="/auth/google"
-              class="w-full px-6 py-3 rounded-[var(--radius-md)] no-underline flex items-center justify-center gap-2.5 transition-all"
+          <div class="mt-8 flex flex-wrap gap-3">
+            <label
+              for="auth-modal-trial"
+              class="px-6 py-3 rounded-[var(--radius-md)] flex items-center gap-2 cursor-pointer transition-all"
               style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
             >
-              <.icon name="hero-globe-alt" class="w-4 h-4" />
-              CONTINUE WITH GOOGLE
-            </.link>
-            <.link
-              href="/auth/microsoft"
-              class="w-full px-6 py-3 rounded-[var(--radius-md)] no-underline flex items-center justify-center gap-2.5 transition-all"
+              <.icon name="hero-play" class="w-4 h-4" />
+              START FREE TRIAL
+            </label>
+            <label
+              for="auth-modal-signin"
+              class="px-6 py-3 rounded-[var(--radius-md)] flex items-center gap-2 cursor-pointer transition-all"
               style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100); background: var(--ink-700); border: 1px solid var(--ink-500);"
             >
-              <.icon name="hero-building-office" class="w-4 h-4" />
-              CONTINUE WITH MICROSOFT
-            </.link>
-
-            <div class="flex items-center gap-3 my-1">
-              <div class="flex-1 border-t border-[var(--ink-500)]" />
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">OR</div>
-              <div class="flex-1 border-t border-[var(--ink-500)]" />
-            </div>
-
-            <form action="/auth/magic_link" method="post" class="flex flex-col gap-2">
-              <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-              <input
-                type="email"
-                name="email"
-                placeholder="you@example.com"
-                required
-                class="w-full px-4 py-3 text-[14px] rounded-[var(--radius-md)] outline-none"
-                style="background: var(--ink-700); color: var(--paper-100); font-family: var(--font-mono); border: 1px solid var(--ink-500);"
-              />
-              <button
-                type="submit"
-                class="w-full px-6 py-3 rounded-[var(--radius-md)] cursor-pointer flex items-center justify-center gap-2.5 transition-all"
-                style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100); background: transparent; border: 1px solid var(--ink-500);"
-              >
-                <.icon name="hero-envelope" class="w-4 h-4" />
-                SIGN IN WITH EMAIL
-              </button>
-            </form>
+              SIGN IN
+            </label>
           </div>
 
           <div class="mt-4" style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-400);">
             7-day manager trial · No credit card required
+          </div>
+
+          <%!-- Auth modal: Start Free Trial --%>
+          <input type="checkbox" id="auth-modal-trial" class="hidden peer/trial" />
+          <div class="fixed inset-0 z-50 hidden peer-checked/trial:flex items-center justify-center">
+            <label for="auth-modal-trial" class="absolute inset-0" style="background: rgba(20, 17, 15, 0.55); backdrop-filter: blur(4px);" />
+            <div class="relative z-10 w-full max-w-sm mx-4 rounded-[var(--radius-xl)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
+              <div class="px-6 py-5" style="background: var(--surface-stage);">
+                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">FREE TRIAL</div>
+                <div style="font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff; margin-top: 4px;">Start your 7-day trial</div>
+                <div class="mt-2" style="font-family: var(--font-sans); font-size: 13px; color: var(--ink-300);">Full manager access. No credit card required.</div>
+              </div>
+              <div class="px-6 py-5 flex flex-col gap-3">
+                <.link href="/auth/google" class="w-full px-5 py-3 rounded-[var(--radius-md)] no-underline flex items-center justify-center gap-2.5 transition-all" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">
+                  <.icon name="hero-globe-alt" class="w-4 h-4" /> CONTINUE WITH GOOGLE
+                </.link>
+                <.link href="/auth/microsoft" class="w-full px-5 py-3 rounded-[var(--radius-md)] no-underline flex items-center justify-center gap-2.5 transition-all" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-700); background: var(--surface-card); border: 1px solid var(--paper-300);">
+                  <.icon name="hero-building-office" class="w-4 h-4" /> CONTINUE WITH MICROSOFT
+                </.link>
+                <div class="flex items-center gap-3 my-1">
+                  <div class="flex-1 border-t border-[var(--paper-300)]" />
+                  <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">OR</div>
+                  <div class="flex-1 border-t border-[var(--paper-300)]" />
+                </div>
+                <form action="/auth/magic_link" method="post" class="flex flex-col gap-2">
+                  <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                  <input type="email" name="email" placeholder="you@example.com" required class="w-full px-4 py-3 text-[13px] rounded-[var(--radius-md)] outline-none" style="background: var(--paper-200); color: var(--ink-700); font-family: var(--font-mono); border: 1px solid var(--paper-300);" />
+                  <button type="submit" class="w-full px-5 py-3 rounded-[var(--radius-md)] cursor-pointer flex items-center justify-center gap-2.5 transition-all" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500); background: var(--surface-card); border: 1px solid var(--paper-300);">
+                    <.icon name="hero-envelope" class="w-4 h-4" /> SIGN IN WITH EMAIL
+                  </button>
+                </form>
+              </div>
+              <div class="px-6 pb-5">
+                <label for="auth-modal-trial" class="flex items-center justify-center py-2.5 cursor-pointer rounded-[var(--radius-md)]" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);">
+                  CANCEL
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <%!-- Auth modal: Sign In --%>
+          <input type="checkbox" id="auth-modal-signin" class="hidden peer/signin" />
+          <div class="fixed inset-0 z-50 hidden peer-checked/signin:flex items-center justify-center">
+            <label for="auth-modal-signin" class="absolute inset-0" style="background: rgba(20, 17, 15, 0.55); backdrop-filter: blur(4px);" />
+            <div class="relative z-10 w-full max-w-sm mx-4 rounded-[var(--radius-xl)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
+              <div class="px-6 py-5" style="background: var(--surface-stage);">
+                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">WELCOME BACK</div>
+                <div style="font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff; margin-top: 4px;">Sign in</div>
+              </div>
+              <div class="px-6 py-5 flex flex-col gap-3">
+                <.link href="/auth/google" class="w-full px-5 py-3 rounded-[var(--radius-md)] no-underline flex items-center justify-center gap-2.5 transition-all" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">
+                  <.icon name="hero-globe-alt" class="w-4 h-4" /> CONTINUE WITH GOOGLE
+                </.link>
+                <.link href="/auth/microsoft" class="w-full px-5 py-3 rounded-[var(--radius-md)] no-underline flex items-center justify-center gap-2.5 transition-all" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-700); background: var(--surface-card); border: 1px solid var(--paper-300);">
+                  <.icon name="hero-building-office" class="w-4 h-4" /> CONTINUE WITH MICROSOFT
+                </.link>
+                <div class="flex items-center gap-3 my-1">
+                  <div class="flex-1 border-t border-[var(--paper-300)]" />
+                  <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">OR</div>
+                  <div class="flex-1 border-t border-[var(--paper-300)]" />
+                </div>
+                <form action="/auth/magic_link" method="post" class="flex flex-col gap-2">
+                  <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                  <input type="email" name="email" placeholder="you@example.com" required class="w-full px-4 py-3 text-[13px] rounded-[var(--radius-md)] outline-none" style="background: var(--paper-200); color: var(--ink-700); font-family: var(--font-mono); border: 1px solid var(--paper-300);" />
+                  <button type="submit" class="w-full px-5 py-3 rounded-[var(--radius-md)] cursor-pointer flex items-center justify-center gap-2.5 transition-all" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500); background: var(--surface-card); border: 1px solid var(--paper-300);">
+                    <.icon name="hero-envelope" class="w-4 h-4" /> SIGN IN WITH EMAIL
+                  </button>
+                </form>
+              </div>
+              <div class="px-6 pb-5">
+                <label for="auth-modal-signin" class="flex items-center justify-center py-2.5 cursor-pointer rounded-[var(--radius-md)]" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);">
+                  CANCEL
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -290,22 +338,21 @@ defmodule TourmanagerV2Web.LandingLive do
               7-day manager trial. No credit card. Set up your first tour in under a minute.
             </p>
             <div class="mt-6 flex flex-wrap justify-center gap-3">
-              <.link
-                href="/auth/google"
-                class="px-8 py-3.5 rounded-[var(--radius-md)] no-underline flex items-center gap-2 transition-all"
+              <label
+                for="auth-modal-trial"
+                class="px-8 py-3.5 rounded-[var(--radius-md)] flex items-center gap-2 cursor-pointer transition-all"
                 style="font-family: var(--font-mono); font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);"
               >
-                <.icon name="hero-globe-alt" class="w-5 h-5" />
-                START WITH GOOGLE
-              </.link>
-              <.link
-                href="/auth/microsoft"
-                class="px-8 py-3.5 rounded-[var(--radius-md)] no-underline flex items-center gap-2 transition-all"
+                <.icon name="hero-play" class="w-5 h-5" />
+                START FREE TRIAL
+              </label>
+              <label
+                for="auth-modal-signin"
+                class="px-8 py-3.5 rounded-[var(--radius-md)] flex items-center gap-2 cursor-pointer transition-all"
                 style="font-family: var(--font-mono); font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100); background: var(--ink-700); border: 1px solid var(--ink-500);"
               >
-                <.icon name="hero-building-office" class="w-5 h-5" />
-                START WITH MICROSOFT
-              </.link>
+                SIGN IN
+              </label>
             </div>
           </div>
         </div>
