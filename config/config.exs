@@ -63,6 +63,11 @@ config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+# Sentry error tracking
+config :sentry,
+  enable_source_code_context: true,
+  root_source_code_paths: [File.cwd!()]
+
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 

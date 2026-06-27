@@ -82,6 +82,12 @@ if config_env() == :prod do
 
   config :tourmanager_v2, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  if sentry_dsn = System.get_env("SENTRY_DSN") do
+    config :sentry,
+      dsn: sentry_dsn,
+      environment_name: :prod
+  end
+
   config :tourmanager_v2, TourmanagerV2Web.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     check_origin: [
