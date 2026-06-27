@@ -107,6 +107,7 @@ defmodule TourmanagerV2Web.TourSwitching do
 
     case TourmanagerV2.Accounts.create_tour(user, tour_params) do
       {:ok, tour} ->
+        TourBroadcast.broadcast_change(tour.id)
         tours = TourmanagerV2.Accounts.list_tours_for_user(user.id)
         entry = Enum.find(tours, fn %{tour: t} -> t.id == tour.id end)
 
@@ -397,6 +398,7 @@ defmodule TourmanagerV2Web.TourSwitching do
 
     case TourmanagerV2.Accounts.create_tour(user, tour_params) do
       {:ok, tour} ->
+        TourBroadcast.broadcast_change(tour.id)
         tours = TourmanagerV2.Accounts.list_tours_for_user(user.id)
         entry = Enum.find(tours, fn %{tour: t} -> t.id == tour.id end)
 
@@ -450,6 +452,7 @@ defmodule TourmanagerV2Web.TourSwitching do
            |> TourmanagerV2.Touring.Tour.changeset(params)
            |> TourmanagerV2.Repo.update() do
         {:ok, updated_tour} ->
+          TourBroadcast.broadcast_change(updated_tour.id)
           tours = TourmanagerV2.Accounts.list_tours_for_user(socket.assigns.current_user.id)
 
           {:noreply,
@@ -550,6 +553,8 @@ defmodule TourmanagerV2Web.TourSwitching do
       if gig do
         case TourmanagerV2.Touring.create_event(gig, tour.workspace_id, params) do
           {:ok, _event} ->
+            TourBroadcast.broadcast_change(tour.id)
+
             {:noreply,
              socket
              |> assign(:event_modal_open, false)
@@ -573,6 +578,8 @@ defmodule TourmanagerV2Web.TourSwitching do
     if event && tour do
       case TourmanagerV2.Touring.update_event(event, params) do
         {:ok, _updated} ->
+          TourBroadcast.broadcast_change(tour.id)
+
           {:noreply,
            socket
            |> assign(:event_modal_open, false)
@@ -593,6 +600,7 @@ defmodule TourmanagerV2Web.TourSwitching do
     if tour do
       event = TourmanagerV2.Touring.get_event!(id)
       TourmanagerV2.Touring.delete_event(event)
+      TourBroadcast.broadcast_change(tour.id)
       {:noreply, load_tour_data(socket, tour)}
     else
       {:noreply, socket}
@@ -606,6 +614,7 @@ defmodule TourmanagerV2Web.TourSwitching do
     if user && tour do
       case TourmanagerV2.Accounts.delete_tour(user, tour.id) do
         {:ok, _deleted} ->
+          TourBroadcast.broadcast_change(tour.id)
           tours = TourmanagerV2.Accounts.list_tours_for_user(user.id)
           next_entry = List.first(tours)
 

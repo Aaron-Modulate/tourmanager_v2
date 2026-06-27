@@ -65,6 +65,7 @@ defmodule TourmanagerV2Web.CrewLive do
 
     if tour do
       Touring.remove_crew_from_tour(tour.id, user_id)
+      TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
       {:noreply, load_crew_data(socket)}
     else
       {:noreply, socket}
@@ -89,7 +90,9 @@ defmodule TourmanagerV2Web.CrewLive do
 
     if tour do
       case Touring.promote_to_manager(tour.id, user_id) do
-        {:ok, _} -> {:noreply, load_crew_data(socket)}
+        {:ok, _} ->
+          TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+          {:noreply, load_crew_data(socket)}
         {:error, :not_subscribed} ->
           {:noreply, Phoenix.LiveView.put_flash(socket, :error, "This member needs a manager subscription before they can be promoted.")}
         _ -> {:noreply, socket}
@@ -104,7 +107,9 @@ defmodule TourmanagerV2Web.CrewLive do
 
     if tour do
       case Touring.demote_to_crew(tour.id, user_id) do
-        {:ok, _} -> {:noreply, load_crew_data(socket)}
+        {:ok, _} ->
+          TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+          {:noreply, load_crew_data(socket)}
         {:error, :no_seats} ->
           {:noreply, Phoenix.LiveView.put_flash(socket, :error, "No crew seats available. Cannot demote to crew.")}
         _ -> {:noreply, socket}
