@@ -90,7 +90,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
       socket =
         socket
         |> TourSwitching.load_tour_data(socket.assigns.current_tour)
-        |> compute_daysheet_assigns()
+        |> reload_selected_date()
 
       {:noreply, socket}
     else
