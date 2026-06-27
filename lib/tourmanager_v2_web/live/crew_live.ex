@@ -140,9 +140,7 @@ defmodule TourmanagerV2Web.CrewLive do
   end
 
   defp invite_url(token) do
-    host = System.get_env("PHX_HOST") || "localhost:4000"
-    scheme = if System.get_env("PHX_HOST"), do: "https", else: "http"
-    "#{scheme}://#{host}/invite/#{token}"
+    TourmanagerV2Web.Endpoint.url() <> "/invite/#{token}"
   end
 
   def render(assigns) do

@@ -22,6 +22,7 @@ defmodule TourmanagerV2Web.InviteLive do
         socket =
           socket
           |> assign(:invite, invite)
+          |> assign(:invite_token, token)
           |> assign(:current_user, user)
           |> assign(:accepted, false)
           |> assign(:error, nil)
@@ -46,6 +47,7 @@ defmodule TourmanagerV2Web.InviteLive do
         {:ok,
          socket
          |> assign(:invite, nil)
+         |> assign(:invite_token, nil)
          |> assign(:current_user, user)
          |> assign(:accepted, false)
          |> assign(:error, "This invite link is invalid or has expired.")
@@ -96,11 +98,11 @@ defmodule TourmanagerV2Web.InviteLive do
                   <div style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-700); margin-bottom: 16px;">
                     Sign in to join {@invite.tour.name} as crew.
                   </div>
-                  <.link href="/auth/google" class="flex items-center justify-center gap-2 py-3 rounded-[var(--radius-md)] no-underline" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">
+                  <.link href={"/auth/google?invite_token=#{@invite_token}"} class="flex items-center justify-center gap-2 py-3 rounded-[var(--radius-md)] no-underline" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">
                     <.icon name="hero-globe-alt" class="w-4 h-4" />
                     SIGN IN WITH GOOGLE
                   </.link>
-                  <.link href="/auth/microsoft" class="flex items-center justify-center gap-2 mt-3 py-3 rounded-[var(--radius-md)] no-underline" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500); background: var(--surface-card); border: 1px solid var(--paper-300);">
+                  <.link href={"/auth/microsoft?invite_token=#{@invite_token}"} class="flex items-center justify-center gap-2 mt-3 py-3 rounded-[var(--radius-md)] no-underline" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500); background: var(--surface-card); border: 1px solid var(--paper-300);">
                     <.icon name="hero-building-office" class="w-4 h-4" />
                     SIGN IN WITH MICROSOFT
                   </.link>
