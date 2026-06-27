@@ -212,6 +212,11 @@ defmodule TourmanagerV2Web.RoutingLive do
                   />
                   <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <.overflow_menu id={"route-menu-#{r.id}"}>
+                      <%= if r.type == "gig" && r.raw_date do %>
+                        <.link navigate={"/app?date=#{Date.to_iso8601(r.raw_date)}"} class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)] no-underline" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">
+                          <.icon name="hero-clipboard-document-list-mini" class="w-3.5 h-3.5" /> DAY SHEET
+                        </.link>
+                      <% end %>
                       <button type="button" phx-click="edit_route" phx-value-id={r.id} class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">
                         <.icon name="hero-pencil-mini" class="w-3.5 h-3.5" /> EDIT
                       </button>

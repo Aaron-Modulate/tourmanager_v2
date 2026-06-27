@@ -186,6 +186,13 @@ defmodule TourmanagerV2.Touring do
     |> Repo.all()
   end
 
+  def get_gig_for_date(tour_id, date) do
+    Gig
+    |> where(tour_id: ^tour_id, date: ^date)
+    |> limit(1)
+    |> Repo.one()
+  end
+
   def get_today_gig(tour_id) do
     today = Date.utc_today()
 
