@@ -49,6 +49,61 @@ defmodule TourmanagerV2Web.AuthController do
     end
   end
 
+  def send_magic_link(conn, %{"email" => email}) do
+    email = String.trim(email) |> String.downcase()
+
+    if String.match?(email, ~r/^[^\s]+@[^\s]+\.[^\s]+$/) do
+      case Accounts.create_magic_link(email) do
+        {:ok, token} ->
+          url = TourmanagerV2Web.Endpoint.url() <> "/auth/magic_link/verify?token=#{token}"
+
+          TourmanagerV2.Accounts.AuthEmail.magic_link_email(email, url)
+          |> TourmanagerV2.Mailer.deliver()
+
+        _ ->
+          :ok
+      end
+    end
+
+    conn
+    |> put_flash(:info, "If that email is valid, a sign-in link has been sent.")
+    |> redirect(to: "/")
+  end
+
+  def verify_magic_link(conn, %{"token" => token}) do
+    case Accounts.verify_magic_link(token) do
+      {:ok, %{new_user: true} = user} ->
+        conn
+        |> put_session(:user_id, user.id)
+        |> put_session(:detect_distance_unit, true)
+        |> configure_session(renew: true)
+        |> redirect(to: "/app")
+
+      {:ok, user} ->
+        Accounts.update_last_login(user)
+
+        conn
+        |> put_session(:user_id, user.id)
+        |> configure_session(renew: true)
+        |> redirect(to: "/app")
+
+      {:error, :expired} ->
+        conn
+        |> put_flash(:error, "This sign-in link has expired. Request a new one.")
+        |> redirect(to: "/")
+
+      {:error, :already_used} ->
+        conn
+        |> put_flash(:error, "This sign-in link has already been used. Request a new one.")
+        |> redirect(to: "/")
+
+      {:error, _} ->
+        conn
+        |> put_flash(:error, "Invalid sign-in link.")
+        |> redirect(to: "/")
+    end
+  end
+
   def sign_out(conn, _params) do
     conn
     |> configure_session(drop: true)

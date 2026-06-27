@@ -99,8 +99,8 @@ defmodule TourmanagerV2Web.InviteLive do
                 </div>
 
               <% !@current_user -> %>
-                <div class="text-center">
-                  <div style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-700); margin-bottom: 16px;">
+                <div>
+                  <div class="text-center" style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-700); margin-bottom: 16px;">
                     Sign in to join {@invite.tour.name} as crew.
                   </div>
                   <.link href={"/auth/google?invite_token=#{@invite_token}"} class="flex items-center justify-center gap-2 py-3 rounded-[var(--radius-md)] no-underline" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">
@@ -111,6 +111,32 @@ defmodule TourmanagerV2Web.InviteLive do
                     <.icon name="hero-building-office" class="w-4 h-4" />
                     SIGN IN WITH MICROSOFT
                   </.link>
+
+                  <div class="flex items-center gap-3 my-4">
+                    <div class="flex-1 border-t border-[var(--paper-300)]" />
+                    <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">OR</div>
+                    <div class="flex-1 border-t border-[var(--paper-300)]" />
+                  </div>
+
+                  <form action="/auth/magic_link" method="post">
+                    <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="you@example.com"
+                      required
+                      class="w-full px-3 py-2.5 text-[13px] rounded-[var(--radius-md)] outline-none mb-2"
+                      style="background: var(--paper-200); color: var(--ink-700); font-family: var(--font-mono); border: 1px solid var(--paper-300);"
+                    />
+                    <button
+                      type="submit"
+                      class="w-full py-3 rounded-[var(--radius-md)] cursor-pointer flex items-center justify-center gap-2"
+                      style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500); background: var(--surface-card); border: 1px solid var(--paper-300);"
+                    >
+                      <.icon name="hero-envelope" class="w-4 h-4" />
+                      SIGN IN WITH EMAIL
+                    </button>
+                  </form>
                 </div>
 
               <% true -> %>

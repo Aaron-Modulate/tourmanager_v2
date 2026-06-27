@@ -18,6 +18,8 @@ defmodule TourmanagerV2Web.Router do
   scope "/auth", TourmanagerV2Web do
     pipe_through :browser
 
+    post "/magic_link", AuthController, :send_magic_link
+    get "/magic_link/verify", AuthController, :verify_magic_link
     get "/:provider", AuthController, :request
     get "/:provider/callback", AuthController, :callback
     delete "/sign_out", AuthController, :sign_out

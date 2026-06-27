@@ -59,22 +59,49 @@ defmodule TourmanagerV2Web.LandingLive do
             Tour routing, day sheets, and crew logistics for touring artists and production teams. Plan routes with Google Maps, manage gig schedules, and keep your crew informed — a modern alternative to spreadsheets and MasterTour.
           </p>
 
-          <div class="mt-8 flex flex-wrap gap-3">
+          <div class="mt-8 flex flex-col gap-3 max-w-xs">
             <.link
               href="/auth/google"
-              class="px-6 py-3 rounded-[var(--radius-md)] no-underline flex items-center gap-2 transition-all"
+              class="w-full px-6 py-3 rounded-[var(--radius-md)] no-underline flex items-center justify-center gap-2.5 transition-all"
               style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
             >
-              <.icon name="hero-play" class="w-4 h-4" />
-              TRY IT FREE
+              <.icon name="hero-globe-alt" class="w-4 h-4" />
+              CONTINUE WITH GOOGLE
             </.link>
             <.link
-              href="/auth/google"
-              class="px-6 py-3 rounded-[var(--radius-md)] no-underline flex items-center gap-2 transition-all"
+              href="/auth/microsoft"
+              class="w-full px-6 py-3 rounded-[var(--radius-md)] no-underline flex items-center justify-center gap-2.5 transition-all"
               style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100); background: var(--ink-700); border: 1px solid var(--ink-500);"
             >
-              SIGN IN
+              <.icon name="hero-building-office" class="w-4 h-4" />
+              CONTINUE WITH MICROSOFT
             </.link>
+
+            <div class="flex items-center gap-3 my-1">
+              <div class="flex-1 border-t border-[var(--ink-500)]" />
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">OR</div>
+              <div class="flex-1 border-t border-[var(--ink-500)]" />
+            </div>
+
+            <form action="/auth/magic_link" method="post" class="flex flex-col gap-2">
+              <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <input
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                required
+                class="w-full px-4 py-3 text-[14px] rounded-[var(--radius-md)] outline-none"
+                style="background: var(--ink-700); color: var(--paper-100); font-family: var(--font-mono); border: 1px solid var(--ink-500);"
+              />
+              <button
+                type="submit"
+                class="w-full px-6 py-3 rounded-[var(--radius-md)] cursor-pointer flex items-center justify-center gap-2.5 transition-all"
+                style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100); background: transparent; border: 1px solid var(--ink-500);"
+              >
+                <.icon name="hero-envelope" class="w-4 h-4" />
+                SIGN IN WITH EMAIL
+              </button>
+            </form>
           </div>
 
           <div class="mt-4" style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-400);">
@@ -262,14 +289,22 @@ defmodule TourmanagerV2Web.LandingLive do
             <p class="mt-3" style="font-family: var(--font-sans); font-size: 15px; color: var(--ink-300); margin-bottom: 0;">
               7-day manager trial. No credit card. Set up your first tour in under a minute.
             </p>
-            <div class="mt-6 flex justify-center">
+            <div class="mt-6 flex flex-wrap justify-center gap-3">
               <.link
                 href="/auth/google"
                 class="px-8 py-3.5 rounded-[var(--radius-md)] no-underline flex items-center gap-2 transition-all"
                 style="font-family: var(--font-mono); font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);"
               >
-                <.icon name="hero-play" class="w-5 h-5" />
-                START FREE TRIAL
+                <.icon name="hero-globe-alt" class="w-5 h-5" />
+                START WITH GOOGLE
+              </.link>
+              <.link
+                href="/auth/microsoft"
+                class="px-8 py-3.5 rounded-[var(--radius-md)] no-underline flex items-center gap-2 transition-all"
+                style="font-family: var(--font-mono); font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100); background: var(--ink-700); border: 1px solid var(--ink-500);"
+              >
+                <.icon name="hero-building-office" class="w-5 h-5" />
+                START WITH MICROSOFT
               </.link>
             </div>
           </div>

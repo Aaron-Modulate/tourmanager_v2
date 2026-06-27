@@ -1,10 +1,86 @@
 defmodule TourmanagerV2.Accounts do
   import Ecto.Query
   alias TourmanagerV2.Repo
-  alias TourmanagerV2.Accounts.User
+  alias TourmanagerV2.Accounts.{User, MagicLink}
   alias TourmanagerV2.Touring.{Tour, TourMembership}
 
   def get_user!(id), do: Repo.get!(User, id)
+
+  def get_user_by_email(email) do
+    Repo.get_by(User, email: email)
+  end
+
+  # --- Magic links ---
+
+  def create_magic_link(email) do
+    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+    token_hash = :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
+    expires_at = DateTime.add(DateTime.utc_now(), MagicLink.token_validity_minutes(), :minute)
+
+    case %MagicLink{}
+         |> MagicLink.changeset(%{email: email, token_hash: token_hash, expires_at: expires_at})
+         |> Repo.insert() do
+      {:ok, _link} -> {:ok, token}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  def verify_magic_link(token) do
+    token_hash = :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
+    now = DateTime.utc_now()
+
+    case Repo.one(from m in MagicLink, where: m.token_hash == ^token_hash) do
+      nil ->
+        {:error, :invalid}
+
+      %MagicLink{used_at: used_at} when not is_nil(used_at) ->
+        {:error, :already_used}
+
+      %MagicLink{expires_at: expires_at} = link ->
+        if DateTime.compare(expires_at, now) == :gt do
+          link
+          |> Ecto.Changeset.change(%{used_at: now})
+          |> Repo.update()
+
+          find_or_create_magic_link_user(link.email)
+        else
+          {:error, :expired}
+        end
+    end
+  end
+
+  defp find_or_create_magic_link_user(email) do
+    case get_user_by_email(email) do
+      nil ->
+        now = DateTime.utc_now()
+        trial_end = DateTime.add(now, 7, :day)
+        name = email |> String.split("@") |> List.first() |> String.capitalize()
+
+        case %User{}
+             |> User.changeset(%{
+               email: email,
+               name: name,
+               role: "manager",
+               trial_started_at: now,
+               trial_ends_at: trial_end
+             })
+             |> Repo.insert() do
+          {:ok, user} -> {:ok, Map.put(user, :new_user, true)}
+          error -> error
+        end
+
+      user ->
+        update_last_login(user)
+        {:ok, user}
+    end
+  end
+
+  def cleanup_expired_magic_links do
+    now = DateTime.utc_now()
+
+    from(m in MagicLink, where: m.expires_at < ^now)
+    |> Repo.delete_all()
+  end
 
   def get_user_by_provider(provider, uid) do
     Repo.get_by(User, provider: to_string(provider), provider_uid: to_string(uid))

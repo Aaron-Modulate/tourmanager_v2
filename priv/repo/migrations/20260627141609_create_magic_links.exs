@@ -1,0 +1,18 @@
+defmodule TourmanagerV2.Repo.Migrations.CreateMagicLinks do
+  use Ecto.Migration
+
+  def change do
+    create table(:magic_links, primary_key: false) do
+      add :id, :binary_id, primary_key: true
+      add :email, :string, null: false
+      add :token_hash, :string, null: false
+      add :expires_at, :utc_datetime, null: false
+      add :used_at, :utc_datetime
+
+      timestamps()
+    end
+
+    create unique_index(:magic_links, [:token_hash])
+    create index(:magic_links, [:email])
+  end
+end
