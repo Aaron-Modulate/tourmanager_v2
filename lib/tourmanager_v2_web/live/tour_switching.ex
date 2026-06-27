@@ -474,6 +474,9 @@ defmodule TourmanagerV2Web.TourSwitching do
   def handle_event("add_event", _params, socket) do
     active_date =
       cond do
+        socket.assigns[:selected_date] ->
+          socket.assigns[:selected_date]
+
         socket.assigns[:today_route_entry] && socket.assigns.today_route_entry.date ->
           socket.assigns.today_route_entry.date
 
@@ -830,25 +833,24 @@ defmodule TourmanagerV2Web.TourSwitching do
   defp extract_city(_), do: nil
 
   defp ensure_gig_for_tour(tour, socket) do
+    date = socket.assigns[:selected_date]
     active_entry = socket.assigns[:today_route_entry] || socket.assigns[:next_route_entry]
 
-    if active_entry do
-      date = active_entry.date || Date.utc_today()
-      name = active_entry.venue || active_entry.city || "Show"
+    {date, name} =
+      cond do
+        date -> {date, "Show"}
+        active_entry -> {active_entry.date || Date.utc_today(), active_entry.venue || active_entry.city || "Show"}
+        true -> {Date.utc_today(), "Show"}
+      end
 
+    existing = TourmanagerV2.Touring.get_gig_for_date(tour.id, date)
+
+    if existing do
+      existing
+    else
       case TourmanagerV2.Repo.insert(
              %TourmanagerV2.Touring.Gig{tour_id: tour.id, workspace_id: tour.workspace_id}
              |> TourmanagerV2.Touring.Gig.changeset(%{name: name, date: date})
-           ) do
-        {:ok, gig} -> gig
-        _ -> nil
-      end
-    else
-      date = Date.utc_today()
-
-      case TourmanagerV2.Repo.insert(
-             %TourmanagerV2.Touring.Gig{tour_id: tour.id, workspace_id: tour.workspace_id}
-             |> TourmanagerV2.Touring.Gig.changeset(%{name: "Show", date: date})
            ) do
         {:ok, gig} -> gig
         _ -> nil

@@ -104,20 +104,37 @@ defmodule TourmanagerV2Web.DaySheetLive do
 
   def handle_event("save_event", params, socket) do
     {:noreply, socket} = TourSwitching.handle_event("save_event", params, socket)
-    {:noreply, compute_daysheet_assigns(socket)}
+    {:noreply, reload_selected_date(socket)}
   end
 
   def handle_event("update_event", params, socket) do
     {:noreply, socket} = TourSwitching.handle_event("update_event", params, socket)
-    {:noreply, compute_daysheet_assigns(socket)}
+    {:noreply, reload_selected_date(socket)}
   end
 
   def handle_event("delete_event", params, socket) do
     {:noreply, socket} = TourSwitching.handle_event("delete_event", params, socket)
-    {:noreply, compute_daysheet_assigns(socket)}
+    {:noreply, reload_selected_date(socket)}
   end
 
-  def handle_event("insert_standard_day", _params, socket) do
+  def handle_event("insert_standard_day", params, socket) do
+    {:noreply, socket} = handle_insert_standard_day(params, socket)
+    {:noreply, reload_selected_date(socket)}
+  end
+
+  defp reload_selected_date(socket) do
+    date = socket.assigns[:selected_date]
+
+    if date do
+      socket
+      |> load_events_for_date(date)
+      |> compute_daysheet_assigns()
+    else
+      compute_daysheet_assigns(socket)
+    end
+  end
+
+  defp handle_insert_standard_day(_params, socket) do
     tour = socket.assigns.current_tour
     selected_date = socket.assigns[:selected_date] || Date.utc_today()
 
@@ -139,11 +156,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
           })
         end)
 
-        socket =
-          socket
-          |> load_events_for_date(selected_date)
-          |> compute_daysheet_assigns()
-
+        TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
         {:noreply, socket}
       else
         {:noreply, socket}
@@ -558,18 +571,4 @@ defmodule TourmanagerV2Web.DaySheetLive do
     """
   end
 
-  defp default_day_events do
-    [
-      %{time: "08:00", label: "Bus call / Travel", tone: "ink", loc: "Hotel lobby", done: false, flag: false},
-      %{time: "10:00", label: "Load in", tone: "load", loc: "Stage door", done: false, flag: false},
-      %{time: "12:00", label: "Lunch", tone: "ink", loc: "Catering", done: false, flag: false},
-      %{time: "14:00", label: "Soundcheck", tone: "sound", loc: "Main stage", done: false, flag: false},
-      %{time: "17:00", label: "Dinner", tone: "ink", loc: "Catering", done: false, flag: false},
-      %{time: "18:00", label: "Doors", tone: "doors", loc: "FOH", done: false, flag: true},
-      %{time: "19:00", label: "Support", tone: "doors", loc: "Main stage", done: false, flag: false},
-      %{time: "20:30", label: "Headline", tone: "live", loc: "Main stage", done: false, flag: true},
-      %{time: "22:30", label: "Curfew", tone: "stop", loc: "House", done: false, flag: true},
-      %{time: "23:00", label: "Load out", tone: "load", loc: "Stage door", done: false, flag: false}
-    ]
-  end
 end
