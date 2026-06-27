@@ -65,6 +65,7 @@ config :logger, :default_formatter,
 
 # Sentry error tracking
 config :sentry,
+  client: Sentry.FinchClient,
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()]
 
