@@ -69,6 +69,16 @@ window.addEventListener("phx:detect_distance_unit", () => {
   })
 })
 
+// Copy to clipboard handler for invite links
+window.addEventListener("phx:copy", (e) => {
+  const input = e.target
+  if (input && input.value) {
+    navigator.clipboard.writeText(input.value).then(() => {
+      input.select()
+    })
+  }
+})
+
 // Reconnection: suppress the "connection lost" banner for brief disconnects.
 // LiveView's built-in reconnect handles the WebSocket; we just delay the
 // error UI so backgrounding the phone doesn't flash a scary banner.

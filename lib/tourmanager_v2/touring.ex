@@ -1,10 +1,94 @@
 defmodule TourmanagerV2.Touring do
   import Ecto.Query
   alias TourmanagerV2.Repo
-  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry}
+  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite}
   alias TourmanagerV2.Scheduling.Event
 
   def get_tour!(id), do: Repo.get!(Tour, id)
+
+  # --- Crew management ---
+
+  def list_crew_memberships(tour_id) do
+    TourMembership
+    |> where(tour_id: ^tour_id, role: "crew")
+    |> join(:inner, [tm], u in assoc(tm, :user))
+    |> select([tm, u], %{membership: tm, user: u})
+    |> order_by([_tm, u], asc: u.name)
+    |> Repo.all()
+  end
+
+  def count_crew_on_tour(tour_id) do
+    TourMembership
+    |> where(tour_id: ^tour_id, role: "crew")
+    |> Repo.aggregate(:count)
+  end
+
+  def crew_seats_remaining(tour_id, manager_seats) do
+    used = count_crew_on_tour(tour_id)
+    max(manager_seats - used, 0)
+  end
+
+  def remove_crew_from_tour(tour_id, user_id) do
+    case Repo.get_by(TourMembership, tour_id: tour_id, user_id: user_id, role: "crew") do
+      nil -> {:error, :not_found}
+      membership -> Repo.delete(membership)
+    end
+  end
+
+  # --- Tour invites ---
+
+  def create_tour_invite(tour, invited_by) do
+    %TourInvite{tour_id: tour.id, invited_by_id: invited_by.id}
+    |> TourInvite.changeset(%{role: "crew"})
+    |> Repo.insert()
+  end
+
+  def get_or_create_active_invite(tour, invited_by) do
+    case Repo.one(
+           from i in TourInvite,
+             where: i.tour_id == ^tour.id and i.status == "pending",
+             order_by: [desc: :inserted_at],
+             limit: 1
+         ) do
+      nil -> create_tour_invite(tour, invited_by)
+      invite -> {:ok, invite}
+    end
+  end
+
+  def get_invite_by_token(token) do
+    case Repo.get_by(TourInvite, token: token, status: "pending") do
+      nil -> {:error, :not_found}
+      invite -> {:ok, Repo.preload(invite, :tour)}
+    end
+  end
+
+  def accept_invite(invite, user) do
+    Repo.transaction(fn ->
+      case Repo.get_by(TourMembership, tour_id: invite.tour_id, user_id: user.id) do
+        nil ->
+          %TourMembership{tour_id: invite.tour_id, user_id: user.id}
+          |> TourMembership.changeset(%{role: invite.role})
+          |> Repo.insert!()
+
+        existing ->
+          existing
+      end
+
+      invite
+      |> TourInvite.changeset(%{status: "accepted"})
+      |> Repo.update!()
+    end)
+  end
+
+  def revoke_invite(invite_id) do
+    case Repo.get(TourInvite, invite_id) do
+      nil -> {:error, :not_found}
+      invite ->
+        invite
+        |> TourInvite.changeset(%{status: "revoked"})
+        |> Repo.update()
+    end
+  end
 
   def list_gigs_for_tour(tour_id) do
     Gig

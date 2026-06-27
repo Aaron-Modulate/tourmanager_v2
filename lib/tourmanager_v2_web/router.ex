@@ -43,12 +43,14 @@ defmodule TourmanagerV2Web.Router do
 
     live_session :public do
       live "/", LandingLive
+      live "/invite/:token", InviteLive
     end
 
     live_session :default,
       on_mount: [{TourmanagerV2Web.AuthHooks, :default}] do
       live "/app", DaySheetLive
       live "/routing", RoutingLive
+      live "/crew", CrewLive
       live "/dashboard", DashboardLive
       live "/admin/jobs", Admin.JobsLive
       live "/admin/users", Admin.UsersLive
