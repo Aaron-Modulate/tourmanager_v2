@@ -44,6 +44,19 @@ defmodule TourmanagerV2Web.RoutingLive do
     end)
   end
 
+  def handle_event("delete_route_inline", %{"id" => id}, socket) do
+    entry = TourmanagerV2.Touring.get_route_entry!(id)
+    tour = socket.assigns.current_tour
+
+    if entry && tour do
+      TourmanagerV2.Touring.delete_route_entry(entry)
+      TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+      {:noreply, compute_route_assigns(socket |> TourSwitching.load_tour_data(tour)) |> push_map_markers()}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("delete_route_entry", params, socket) do
     TourSwitching.handle_event("delete_route_entry", params, socket)
     |> then(fn {:noreply, socket} ->
@@ -197,16 +210,16 @@ defmodule TourmanagerV2Web.RoutingLive do
                     directions_url={TourmanagerV2.GoogleMaps.directions_url(r.entry)}
                     distance_label={if(r.type == "vehicle_travel" && r.km > 0, do: TourmanagerV2.GoogleMaps.format_distance(r.km, @distance_unit))}
                   />
-                  <button
-                    type="button"
-                    phx-click="edit_route"
-                    phx-value-id={r.id}
-                    class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-[var(--radius-sm)] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                    style="background: var(--surface-card); border: 1px solid var(--paper-300); box-shadow: var(--shadow-sm);"
-                    title="Edit stop"
-                  >
-                    <.icon name="hero-pencil-mini" class="w-3.5 h-3.5 text-[var(--ink-400)]" />
-                  </button>
+                  <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <.overflow_menu id={"route-menu-#{r.id}"}>
+                      <button type="button" phx-click="edit_route" phx-value-id={r.id} class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">
+                        <.icon name="hero-pencil-mini" class="w-3.5 h-3.5" /> EDIT
+                      </button>
+                      <button type="button" phx-click="delete_route_inline" phx-value-id={r.id} data-confirm="Delete this stop?" class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)] border-t border-[var(--paper-300)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);">
+                        <.icon name="hero-trash-mini" class="w-3.5 h-3.5" /> DELETE
+                      </button>
+                    </.overflow_menu>
+                  </div>
                 </div>
               <% end %>
             </div>

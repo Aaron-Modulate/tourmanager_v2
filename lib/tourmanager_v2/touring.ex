@@ -155,6 +155,30 @@ defmodule TourmanagerV2.Touring do
     end
   end
 
+  # --- Event CRUD ---
+
+  def get_event!(id), do: Repo.get!(Event, id)
+
+  def create_event(gig, workspace_id, attrs) do
+    %Event{gig_id: gig.id, workspace_id: workspace_id}
+    |> Event.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_event(%Event{} = event, attrs) do
+    event
+    |> Event.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_event(%Event{} = event) do
+    Repo.delete(event)
+  end
+
+  def change_event(event \\ %Event{}, attrs \\ %{}) do
+    Event.changeset(event, attrs)
+  end
+
   def list_gigs_for_tour(tour_id) do
     Gig
     |> where(tour_id: ^tour_id)

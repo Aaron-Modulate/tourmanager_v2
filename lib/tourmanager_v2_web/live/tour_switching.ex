@@ -26,7 +26,10 @@ defmodule TourmanagerV2Web.TourSwitching do
       editing_route: false,
       editing_route_entry: nil,
       manage_tour_open: false,
-      manage_tour_form: nil
+      manage_tour_form: nil,
+      event_modal_open: false,
+      event_form: nil,
+      editing_event: nil
     }
   end
 
@@ -463,6 +466,113 @@ defmodule TourmanagerV2Web.TourSwitching do
     end
   end
 
+  # --- Event management ---
+
+  def handle_event("add_event", _params, socket) do
+    active_date =
+      cond do
+        socket.assigns[:today_route_entry] && socket.assigns.today_route_entry.date ->
+          socket.assigns.today_route_entry.date
+
+        socket.assigns[:next_route_entry] && socket.assigns.next_route_entry.date ->
+          socket.assigns.next_route_entry.date
+
+        socket.assigns[:today_gig] && socket.assigns.today_gig.date ->
+          socket.assigns.today_gig.date
+
+        true ->
+          Date.utc_today()
+      end
+
+    default_start = DateTime.new!(active_date, ~T[12:00:00])
+    default_end = DateTime.add(default_start, 3600, :second)
+
+    changeset = TourmanagerV2.Touring.change_event(%TourmanagerV2.Scheduling.Event{}, %{
+      starts_at: default_start,
+      ends_at: default_end
+    })
+
+    {:noreply,
+     socket
+     |> assign(:event_modal_open, true)
+     |> assign(:event_form, Phoenix.Component.to_form(changeset))
+     |> assign(:editing_event, nil)}
+  end
+
+  def handle_event("edit_event", %{"id" => id}, socket) do
+    event = TourmanagerV2.Touring.get_event!(id)
+    changeset = TourmanagerV2.Touring.change_event(event, %{})
+    {:noreply, assign(socket, :event_modal_open, true) |> assign(:event_form, Phoenix.Component.to_form(changeset)) |> assign(:editing_event, event)}
+  end
+
+  def handle_event("close_event_modal", _params, socket) do
+    {:noreply, assign(socket, :event_modal_open, false)}
+  end
+
+  def handle_event("validate_event", %{"event" => params}, socket) do
+    source = socket.assigns[:editing_event] || %TourmanagerV2.Scheduling.Event{}
+    changeset = TourmanagerV2.Touring.change_event(source, params) |> Map.put(:action, :validate)
+    {:noreply, assign(socket, :event_form, Phoenix.Component.to_form(changeset))}
+  end
+
+  def handle_event("save_event", %{"event" => params}, socket) do
+    tour = socket.assigns.current_tour
+
+    if tour do
+      gig = socket.assigns[:today_gig] || ensure_gig_for_tour(tour, socket)
+
+      if gig do
+        case TourmanagerV2.Touring.create_event(gig, tour.workspace_id, params) do
+          {:ok, _event} ->
+            {:noreply,
+             socket
+             |> assign(:event_modal_open, false)
+             |> load_tour_data(tour)}
+
+          {:error, changeset} ->
+            {:noreply, assign(socket, :event_form, Phoenix.Component.to_form(changeset))}
+        end
+      else
+        {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("update_event", %{"event" => params}, socket) do
+    event = socket.assigns[:editing_event]
+    tour = socket.assigns.current_tour
+
+    if event && tour do
+      case TourmanagerV2.Touring.update_event(event, params) do
+        {:ok, _updated} ->
+          {:noreply,
+           socket
+           |> assign(:event_modal_open, false)
+           |> assign(:editing_event, nil)
+           |> load_tour_data(tour)}
+
+        {:error, changeset} ->
+          {:noreply, assign(socket, :event_form, Phoenix.Component.to_form(changeset))}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("delete_event", %{"id" => id}, socket) do
+    tour = socket.assigns.current_tour
+
+    if tour do
+      event = TourmanagerV2.Touring.get_event!(id)
+      TourmanagerV2.Touring.delete_event(event)
+      {:noreply, load_tour_data(socket, tour)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("delete_tour", _params, socket) do
     user = socket.assigns.current_user
     tour = socket.assigns.current_tour
@@ -683,4 +793,31 @@ defmodule TourmanagerV2Web.TourSwitching do
   end
 
   defp extract_city(_), do: nil
+
+  defp ensure_gig_for_tour(tour, socket) do
+    active_entry = socket.assigns[:today_route_entry] || socket.assigns[:next_route_entry]
+
+    if active_entry do
+      date = active_entry.date || Date.utc_today()
+      name = active_entry.venue || active_entry.city || "Show"
+
+      case TourmanagerV2.Repo.insert(
+             %TourmanagerV2.Touring.Gig{tour_id: tour.id, workspace_id: tour.workspace_id}
+             |> TourmanagerV2.Touring.Gig.changeset(%{name: name, date: date})
+           ) do
+        {:ok, gig} -> gig
+        _ -> nil
+      end
+    else
+      date = Date.utc_today()
+
+      case TourmanagerV2.Repo.insert(
+             %TourmanagerV2.Touring.Gig{tour_id: tour.id, workspace_id: tour.workspace_id}
+             |> TourmanagerV2.Touring.Gig.changeset(%{name: "Show", date: date})
+           ) do
+        {:ok, gig} -> gig
+        _ -> nil
+      end
+    end
+  end
 end

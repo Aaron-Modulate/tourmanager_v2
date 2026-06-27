@@ -195,17 +195,37 @@ defmodule TourmanagerV2Web.TourComponents do
     do:
       "background: var(--ink-700); color: var(--paper-100); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
 
+  attr :id, :string, required: true
+  slot :inner_block, required: true
+
+  def overflow_menu(assigns) do
+    ~H"""
+    <div class="relative">
+      <input type="checkbox" id={@id} class="hidden peer/menu" />
+      <label for={@id} class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)] block">
+        <.icon name="hero-ellipsis-vertical-mini" class="w-4 h-4 text-[var(--ink-300)]" />
+      </label>
+      <div class="absolute right-0 top-full mt-1 hidden peer-checked/menu:block z-50 rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 1px solid var(--paper-300); box-shadow: var(--shadow-hard); min-width: 130px;">
+        {render_slot(@inner_block)}
+      </div>
+      <label :if={true} for={@id} class="fixed inset-0 z-40 hidden peer-checked/menu:block" />
+    </div>
+    """
+  end
+
   attr :time, :string, required: true
   attr :label, :string, required: true
   attr :tone, :string, required: true
   attr :loc, :string, required: true
   attr :done, :boolean, default: false
   attr :flag, :boolean, default: false
+  attr :event_id, :string, default: nil
+  attr :is_manager, :boolean, default: false
 
   def schedule_row(assigns) do
     ~H"""
     <div
-      class={["grid grid-cols-[64px_14px_1fr_auto] gap-3.5 items-center px-3 py-2.5 rounded-[var(--radius-sm)]", if(@flag, do: "bg-[var(--surface-card)] border border-[var(--paper-300)]", else: "border border-transparent")]}
+      class={["group/row grid grid-cols-[64px_14px_1fr_auto] gap-3.5 items-center px-3 py-2.5 rounded-[var(--radius-sm)] relative", if(@flag, do: "bg-[var(--surface-card)] border border-[var(--paper-300)]", else: "border border-transparent hover:bg-[var(--paper-200)] transition-colors")]}
       style={if @done, do: "opacity: 0.5;", else: ""}
     >
       <div style="font-family: var(--font-mono); font-weight: 700; font-size: 16px; color: var(--ink-900); letter-spacing: -0.01em;">
@@ -215,7 +235,7 @@ defmodule TourmanagerV2Web.TourComponents do
         class="w-2.5 h-2.5 rounded-full justify-self-center"
         style={"background: var(--signal-#{if @tone == "ink", do: "load", else: @tone}); opacity: #{if @tone == "ink", do: "0.25", else: "1"};"}
       />
-      <div>
+      <div class="flex-1 min-w-0">
         <div class={["text-[15px] font-semibold text-[var(--ink-900)]", if(@done, do: "line-through", else: "")]}>
           {@label}
         </div>
@@ -223,14 +243,25 @@ defmodule TourmanagerV2Web.TourComponents do
           <.icon name="hero-map-pin-mini" class="w-3 h-3" /> {@loc}
         </div>
       </div>
-      <.signal_chip :if={@flag} tone={@tone} hard>
-        {cond do
-          @tone == "live" -> "Key"
-          @tone == "stop" -> "Hard"
-          true -> "Flag"
-        end}
-      </.signal_chip>
-      <span :if={!@flag} />
+      <div class="flex items-center gap-2">
+        <.signal_chip :if={@flag} tone={@tone} hard>
+          {cond do
+            @tone == "live" -> "Key"
+            @tone == "stop" -> "Hard"
+            true -> "Flag"
+          end}
+        </.signal_chip>
+        <%= if @is_manager && @event_id do %>
+          <.overflow_menu id={"event-menu-#{@event_id}"}>
+            <button type="button" phx-click="edit_event" phx-value-id={@event_id} class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">
+              <.icon name="hero-pencil-mini" class="w-3.5 h-3.5" /> EDIT
+            </button>
+            <button type="button" phx-click="delete_event" phx-value-id={@event_id} data-confirm="Delete this event?" class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)] border-t border-[var(--paper-300)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);">
+              <.icon name="hero-trash-mini" class="w-3.5 h-3.5" /> DELETE
+            </button>
+          </.overflow_menu>
+        <% end %>
+      </div>
     </div>
     """
   end

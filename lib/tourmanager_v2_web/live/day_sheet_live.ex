@@ -45,6 +45,21 @@ defmodule TourmanagerV2Web.DaySheetLive do
     {:noreply, assign(socket, :active_tab, tab)}
   end
 
+  def handle_event("save_event", params, socket) do
+    {:noreply, socket} = TourSwitching.handle_event("save_event", params, socket)
+    {:noreply, compute_daysheet_assigns(socket)}
+  end
+
+  def handle_event("update_event", params, socket) do
+    {:noreply, socket} = TourSwitching.handle_event("update_event", params, socket)
+    {:noreply, compute_daysheet_assigns(socket)}
+  end
+
+  def handle_event("delete_event", params, socket) do
+    {:noreply, socket} = TourSwitching.handle_event("delete_event", params, socket)
+    {:noreply, compute_daysheet_assigns(socket)}
+  end
+
   defp compute_daysheet_assigns(socket) do
     today_re = socket.assigns[:today_route_entry]
     next_re = socket.assigns[:next_route_entry]
@@ -72,12 +87,14 @@ defmodule TourmanagerV2Web.DaySheetLive do
             end
 
           %{
+            id: e.id,
             time: time,
             label: e.name,
             tone: tone,
             loc: e.location || "",
             done: false,
-            flag: e.category in ~w(doors showtime curfew)
+            flag: e.category in ~w(doors showtime curfew),
+            category: e.category
           }
         end)
       else
@@ -149,8 +166,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
                 <% end %>
               </.display>
             </div>
-            <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
-              <.tm_button variant="secondary" size="sm" icon_name="hero-plus">Add</.tm_button>
+            <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) && @current_tour do %>
+              <.tm_button variant="secondary" size="sm" icon_name="hero-plus" phx-click="add_event">Add</.tm_button>
             <% end %>
           </div>
 
@@ -185,6 +202,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
                 loc={row.loc}
                 done={row.done}
                 flag={row.flag}
+                event_id={row[:id]}
+                is_manager={@current_user && TourmanagerV2.Accounts.User.manager?(@current_user)}
               />
             <% end %>
           </div>
@@ -254,6 +273,48 @@ defmodule TourmanagerV2Web.DaySheetLive do
         </div>
       </div>
       <% end %>
+
+      <%!-- Event modal --%>
+      <.tm_modal :if={@event_form} id="event-modal" show={@event_modal_open} on_close="close_event_modal">
+        <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">{if @editing_event, do: "EDIT", else: "NEW"}</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">{if @editing_event, do: "Edit event", else: "Add event"}</div>
+        </div>
+        <.form for={@event_form} id="event-form" phx-change="validate_event" phx-submit={if @editing_event, do: "update_event", else: "save_event"} class="px-6 py-5">
+          <div class="flex flex-col gap-4">
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">NAME</label>
+              <.input field={@event_form[:name]} type="text" placeholder="e.g. Soundcheck" class="w-full px-3 py-2.5 text-[15px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">CATEGORY</label>
+              <.input field={@event_form[:category]} type="select" options={[{"Load in", "load_in"}, {"Soundcheck", "soundcheck"}, {"Doors", "doors"}, {"Showtime", "showtime"}, {"Curfew", "curfew"}, {"Load out", "load_out"}, {"Catering", "catering"}, {"Travel", "travel"}, {"Other", "other"}]} class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">START</label>
+                <.input field={@event_form[:starts_at]} type="datetime-local" step="60" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+              </div>
+              <div>
+                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">END</label>
+                <.input field={@event_form[:ends_at]} type="datetime-local" step="60" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+              </div>
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">LOCATION</label>
+              <.input field={@event_form[:location]} type="text" placeholder="e.g. Main stage" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">NOTES</label>
+              <.input field={@event_form[:notes]} type="textarea" rows="2" placeholder="Optional" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none resize-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[var(--paper-300)]">
+            <button type="button" phx-click="close_event_modal" class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">CANCEL</button>
+            <button type="submit" class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">{if @editing_event, do: "SAVE", else: "ADD EVENT"}</button>
+          </div>
+        </.form>
+      </.tm_modal>
     </Layouts.app>
     """
   end
