@@ -418,7 +418,7 @@ defmodule TourmanagerV2Web.TourComponents do
         phx-click={@on_close}
       />
       <div
-        class="relative z-10 w-full max-w-[480px] mx-4 rounded-[var(--radius-xl)] overflow-y-auto"
+        class="relative z-10 w-full max-w-[480px] mx-4 rounded-[var(--radius-xl)] overflow-x-hidden overflow-y-auto"
         style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem);"
         role="dialog"
         aria-modal="true"
