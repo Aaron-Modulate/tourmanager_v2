@@ -7,9 +7,13 @@ defmodule TourmanagerV2Web.DaySheetLive do
     tours = socket.assigns[:user_tours] || []
     needs_onboarding = user && tours == [] && !TourmanagerV2.Accounts.User.onboarded?(user)
 
-    tour_form =
+    {tour_form, profile_form, onboarding_step} =
       if needs_onboarding do
-        TourmanagerV2.Accounts.change_tour() |> Phoenix.Component.to_form()
+        tour_f = TourmanagerV2.Accounts.change_tour() |> Phoenix.Component.to_form()
+        profile_f = TourmanagerV2.Accounts.change_profile(user) |> Phoenix.Component.to_form()
+        {tour_f, profile_f, "profile"}
+      else
+        {nil, nil, nil}
       end
 
     initial_date = params["date"]
@@ -19,6 +23,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
       |> assign(TourSwitching.default_assigns())
       |> assign(active_nav: "daysheet", active_tab: "show", page_title: "Day Sheet")
       |> assign(:onboarding_tour_form, tour_form)
+      |> assign(:onboarding_profile_form, profile_form)
+      |> assign(:onboarding_step, onboarding_step)
       |> assign(:selected_date, nil)
       |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
       |> init_selected_date(initial_date)
@@ -102,6 +108,31 @@ defmodule TourmanagerV2Web.DaySheetLive do
     {:noreply, assign(socket, :active_tab, tab)}
   end
 
+  def handle_event("validate_onboarding_profile", %{"user" => params}, socket) do
+    user = socket.assigns.current_user
+    changeset = TourmanagerV2.Accounts.change_profile(user, params) |> Map.put(:action, :validate)
+    {:noreply, assign(socket, :onboarding_profile_form, Phoenix.Component.to_form(changeset))}
+  end
+
+  def handle_event("save_onboarding_profile", %{"user" => params}, socket) do
+    user = socket.assigns.current_user
+
+    case TourmanagerV2.Accounts.update_profile(user, params) do
+      {:ok, updated_user} ->
+        {:noreply,
+         socket
+         |> assign(:current_user, updated_user)
+         |> assign(:onboarding_step, "tour")}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :onboarding_profile_form, Phoenix.Component.to_form(changeset))}
+    end
+  end
+
+  def handle_event("skip_onboarding_profile", _params, socket) do
+    {:noreply, assign(socket, :onboarding_step, "tour")}
+  end
+
   def handle_event("save_event", params, socket) do
     {:noreply, socket} = TourSwitching.handle_event("save_event", params, socket)
     {:noreply, reload_selected_date(socket)}
@@ -115,6 +146,36 @@ defmodule TourmanagerV2Web.DaySheetLive do
   def handle_event("delete_event", params, socket) do
     {:noreply, socket} = TourSwitching.handle_event("delete_event", params, socket)
     {:noreply, reload_selected_date(socket)}
+  end
+
+  def handle_event("add_crew_to_date", %{"user-id" => user_id}, socket) do
+    tour = socket.assigns.current_tour
+    date = socket.assigns[:selected_date]
+
+    if tour && date do
+      TourmanagerV2.Touring.assign_crew_to_date(tour.id, user_id, date)
+      TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+      {:noreply, reload_selected_date(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("remove_crew_from_date", %{"user-id" => user_id}, socket) do
+    tour = socket.assigns.current_tour
+    date = socket.assigns[:selected_date]
+
+    if tour && date do
+      TourmanagerV2.Touring.remove_crew_from_date(tour.id, user_id, date)
+      TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+      {:noreply, reload_selected_date(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("toggle_add_crew", _params, socket) do
+    {:noreply, assign(socket, :add_crew_open, !socket.assigns[:add_crew_open])}
   end
 
   def handle_event("insert_standard_day", params, socket) do
@@ -315,25 +376,65 @@ defmodule TourmanagerV2Web.DaySheetLive do
         []
       end
 
+    tour = socket.assigns[:current_tour]
+
+    date_crew =
+      if tour && selected_date do
+        TourmanagerV2.Touring.list_crew_for_date(tour.id, selected_date)
+      else
+        []
+      end
+
     crew_cards =
-      Enum.map(crew, fn cm ->
+      Enum.map(date_crew, fn %{user: member, membership: membership} ->
         %{
-          name: cm.name,
-          role: cm.role_title,
-          init: initials(cm.name),
-          pass: "CREW",
-          status: "on-site"
+          id: member.id,
+          name: member.name,
+          email: member.email,
+          role: membership.role,
+          role_title: member.role_title,
+          init: initials(member.name),
+          avatar_url: member.avatar_url,
+          phone_number: member.phone_number,
+          social_links: member.social_links || %{},
+          pass: String.upcase(membership.role),
+          status: "on-site",
+          all_dates: membership.all_dates_default
         }
       end)
+
+    all_tour_members =
+      if tour do
+        TourmanagerV2.Touring.list_tour_memberships(tour.id)
+      else
+        []
+      end
+
+    available_to_add =
+      Enum.reject(all_tour_members, fn %{user: u} ->
+        Enum.any?(date_crew, fn %{user: dc} -> dc.id == u.id end)
+      end)
+
+    selected_stop = Enum.find(tour_dates, fn d -> d.selected end)
+
+    display_stop_name =
+      cond do
+        selected_stop && selected_stop.venue -> selected_stop.venue
+        selected_stop && selected_stop.city -> selected_stop.city
+        true -> "Day sheet"
+      end
 
     assign(socket,
       run_of_show_data: run_of_show,
       crew_cards: crew_cards,
-      crew_count: length(crew),
+      crew_count: length(date_crew),
       active_entry: active_entry,
       active_gig: today_gig,
       tour_dates: tour_dates,
-      display_date: selected_date
+      display_date: selected_date,
+      display_stop_name: display_stop_name,
+      available_to_add: available_to_add,
+      add_crew_open: socket.assigns[:add_crew_open] || false
     )
   end
 
@@ -359,14 +460,19 @@ defmodule TourmanagerV2Web.DaySheetLive do
     >
       <%!-- Onboarding: show welcome card for new users with no tours --%>
       <%= if @onboarding_tour_form do %>
-        <.onboarding_welcome current_user={@current_user} tour_form={@onboarding_tour_form} />
+        <.onboarding_welcome
+          current_user={@current_user}
+          tour_form={@onboarding_tour_form}
+          profile_form={@onboarding_profile_form}
+          onboarding_step={@onboarding_step}
+        />
       <% else %>
       <div id="day-sheet" class="p-4 md:p-7 grid grid-cols-1 md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5 items-start">
         <%!-- Left: run of show --%>
         <div>
           <div class="flex items-center justify-between mb-3.5">
             <div>
-              <.overline>Run of show</.overline>
+              <.overline>{@display_stop_name}</.overline>
               <%!-- Date dropdown --%>
               <%= if @current_tour && @tour_dates != [] do %>
                 <details class="group/date-dd mt-1.5 relative">
@@ -460,22 +566,244 @@ defmodule TourmanagerV2Web.DaySheetLive do
           </div>
 
           <%!-- Crew tab --%>
-          <div :if={@active_tab == "crew"} id="crew-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <%= if @crew_cards == [] do %>
-              <div class="col-span-2 py-12 text-center">
+          <div :if={@active_tab == "crew"} id="crew-list">
+            <%= if @crew_cards == [] && !@add_crew_open do %>
+              <div class="py-12 text-center">
                 <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">
-                  No crew assigned yet.
+                  No crew assigned to this date.
                 </div>
+                <%= if @current_tour && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
+                  <button
+                    type="button"
+                    phx-click="toggle_add_crew"
+                    class="mt-4 px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer inline-flex items-center gap-2"
+                    style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+                  >
+                    <.icon name="hero-user-plus" class="w-4 h-4" />
+                    ADD CREW
+                  </button>
+                <% end %>
               </div>
             <% else %>
-              <.crew_card
-                :for={c <- @crew_cards}
-                name={c.name}
-                role={c.role}
-                init={c.init}
-                pass_level={c.pass}
-                status={c.status}
-              />
+              <%!-- Assigned crew list --%>
+              <div class="flex flex-col gap-2">
+                <div
+                  :for={c <- @crew_cards}
+                  class="relative"
+                >
+                  <%!-- Desktop: hover-triggered profile popover --%>
+                  <div class="hidden md:block group/crew">
+                    <div
+                      class="flex items-center gap-3 p-3 rounded-[var(--radius-md)] border border-[var(--paper-300)] transition-colors cursor-pointer group-hover/crew:bg-[var(--paper-200)]"
+                      style="background: var(--surface-card);"
+                    >
+                      <%= if c.avatar_url do %>
+                        <img src={c.avatar_url} class="w-9 h-9 rounded-[var(--radius-sm)] object-cover flex-none transition-all group-hover/crew:ring-2 group-hover/crew:ring-[var(--brand)]" referrerpolicy="no-referrer" />
+                      <% else %>
+                        <span class="w-9 h-9 rounded-[var(--radius-sm)] flex items-center justify-center flex-none transition-all group-hover/crew:ring-2 group-hover/crew:ring-[var(--brand)]" style="background: var(--ink-900); color: var(--paper-100); font-family: var(--font-mono); font-weight: 700; font-size: 13px;">
+                          {c.init}
+                        </span>
+                      <% end %>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-[14px] font-semibold text-[var(--ink-900)] truncate">{c.name}</div>
+                        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 1px;">
+                          {c.role_title || c.email}
+                        </div>
+                      </div>
+                      <.signal_chip tone={if c.role == "manager", do: "brand", else: "live"} size="sm" variant="tint">{String.upcase(c.role)}</.signal_chip>
+                      <%= if c.all_dates do %>
+                        <span style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-300); letter-spacing: 0.06em;">ALL DATES</span>
+                      <% end %>
+                      <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) && c.id != @current_user.id && !c.all_dates do %>
+                        <button type="button" phx-click="remove_crew_from_date" phx-value-user-id={c.id} data-confirm={"Remove #{c.name} from this date?"} class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]" title="Remove from this date">
+                          <.icon name="hero-x-mark-mini" class="w-4 h-4 text-[var(--signal-stop)]" />
+                        </button>
+                      <% end %>
+                    </div>
+
+                    <%!-- Desktop hover popover --%>
+                    <div class="absolute left-0 right-0 top-full z-50 pt-1 opacity-0 pointer-events-none group-hover/crew:opacity-100 group-hover/crew:pointer-events-auto" style="transition: opacity 150ms ease;">
+                      <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
+                        <%!-- Header --%>
+                        <div class="flex items-center gap-3 px-4 py-3" style="background: var(--surface-stage);">
+                          <%= if c.avatar_url do %>
+                            <img src={c.avatar_url} class="w-11 h-11 rounded-[var(--radius-sm)] object-cover flex-none" referrerpolicy="no-referrer" />
+                          <% else %>
+                            <span class="w-11 h-11 rounded-[var(--radius-sm)] flex items-center justify-center flex-none" style="background: var(--ink-700); font-family: var(--font-mono); font-weight: 700; font-size: 16px; color: var(--paper-100);">
+                              {c.init}
+                            </span>
+                          <% end %>
+                          <div class="flex-1 min-w-0">
+                            <div style="font-family: var(--font-display); font-weight: 800; font-size: 16px; color: #fff;">{c.name}</div>
+                            <div :if={c.role_title} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-300); margin-top: 2px;">{c.role_title}</div>
+                          </div>
+                          <.signal_chip tone={if c.role == "manager", do: "brand", else: "live"} size="sm">{String.upcase(c.role)}</.signal_chip>
+                        </div>
+
+                        <%!-- Actions --%>
+                        <div class="px-4 py-3 flex flex-col gap-1">
+                          <a :if={c.phone_number} href={"tel:#{c.phone_number}"} onclick={"return confirm('Call #{c.name}?')"} class="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-sm)] no-underline transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-700);">
+                            <.icon name="hero-phone-mini" class="w-3.5 h-3.5 text-[var(--brand)]" />
+                            {c.phone_number}
+                          </a>
+                          <a href={"mailto:#{c.email}"} onclick={"return confirm('Email #{c.name}?')"} class="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-sm)] no-underline transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-700);">
+                            <.icon name="hero-envelope-mini" class="w-3.5 h-3.5 text-[var(--brand)]" />
+                            {c.email}
+                          </a>
+                          <%= if c.social_links["instagram"] && c.social_links["instagram"] != "" do %>
+                            <a href={"https://instagram.com/#{String.trim_leading(c.social_links["instagram"], "@")}"} target="_blank" onclick={"return confirm('Open #{c.name}\\'s Instagram?')"} class="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-sm)] no-underline transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-700);">
+                              <.icon name="hero-camera-mini" class="w-3.5 h-3.5 text-[var(--brand)]" />
+                              {c.social_links["instagram"]}
+                            </a>
+                          <% end %>
+                          <%= if c.social_links["twitter"] && c.social_links["twitter"] != "" do %>
+                            <a href={"https://x.com/#{String.trim_leading(c.social_links["twitter"], "@")}"} target="_blank" onclick={"return confirm('Open #{c.name}\\'s X profile?')"} class="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-sm)] no-underline transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-700);">
+                              <.icon name="hero-chat-bubble-left-mini" class="w-3.5 h-3.5 text-[var(--brand)]" />
+                              {c.social_links["twitter"]}
+                            </a>
+                          <% end %>
+                          <%= if c.social_links["website"] && c.social_links["website"] != "" do %>
+                            <a href={c.social_links["website"]} target="_blank" onclick={"return confirm('Open #{c.name}\\'s website?')"} class="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-sm)] no-underline transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-700);">
+                              <.icon name="hero-globe-alt-mini" class="w-3.5 h-3.5 text-[var(--brand)]" />
+                              {c.social_links["website"]}
+                            </a>
+                          <% end %>
+                          <div :if={!c.phone_number && map_size(c.social_links) == 0} class="px-2 py-2" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-300);">
+                            No contact details added yet.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <%!-- Mobile: tap-triggered bottom sheet --%>
+                  <div class="md:hidden">
+                    <label for={"crew-modal-#{c.id}"}>
+                      <div
+                        class="flex items-center gap-3 p-3 rounded-[var(--radius-md)] border border-[var(--paper-300)] cursor-pointer active:bg-[var(--paper-200)]"
+                        style="background: var(--surface-card);"
+                      >
+                        <%= if c.avatar_url do %>
+                          <img src={c.avatar_url} class="w-9 h-9 rounded-[var(--radius-sm)] object-cover flex-none" referrerpolicy="no-referrer" />
+                        <% else %>
+                          <span class="w-9 h-9 rounded-[var(--radius-sm)] flex items-center justify-center flex-none" style="background: var(--ink-900); color: var(--paper-100); font-family: var(--font-mono); font-weight: 700; font-size: 13px;">
+                            {c.init}
+                          </span>
+                        <% end %>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-[14px] font-semibold text-[var(--ink-900)] truncate">{c.name}</div>
+                          <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 1px;">{c.role_title || c.email}</div>
+                        </div>
+                        <.signal_chip tone={if c.role == "manager", do: "brand", else: "live"} size="sm" variant="tint">{String.upcase(c.role)}</.signal_chip>
+                      </div>
+                    </label>
+                    <input type="checkbox" id={"crew-modal-#{c.id}"} class="hidden peer/crewmodal" />
+                    <div class="fixed inset-0 z-50 hidden peer-checked/crewmodal:flex items-end justify-center">
+                      <label for={"crew-modal-#{c.id}"} class="absolute inset-0" style="background: rgba(20, 17, 15, 0.55); backdrop-filter: blur(4px);" />
+                      <div class="relative z-10 w-full max-w-md rounded-t-[var(--radius-xl)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); border-bottom: none; box-shadow: var(--shadow-hard);">
+                        <%!-- Header --%>
+                        <div class="flex items-center gap-3 px-5 py-4" style="background: var(--surface-stage);">
+                          <%= if c.avatar_url do %>
+                            <img src={c.avatar_url} class="w-14 h-14 rounded-[var(--radius-md)] object-cover flex-none" referrerpolicy="no-referrer" />
+                          <% else %>
+                            <span class="w-14 h-14 rounded-[var(--radius-md)] flex items-center justify-center flex-none" style="background: var(--ink-700); font-family: var(--font-mono); font-weight: 700; font-size: 20px; color: var(--paper-100);">
+                              {c.init}
+                            </span>
+                          <% end %>
+                          <div class="flex-1">
+                            <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff;">{c.name}</div>
+                            <div :if={c.role_title} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-300); margin-top: 2px;">{c.role_title}</div>
+                          </div>
+                          <.signal_chip tone={if c.role == "manager", do: "brand", else: "live"} size="sm">{String.upcase(c.role)}</.signal_chip>
+                        </div>
+
+                        <%!-- Actions --%>
+                        <div class="px-5 py-4 flex flex-col gap-1">
+                          <a :if={c.phone_number} href={"tel:#{c.phone_number}"} onclick={"return confirm('Call #{c.name}?')"} class="flex items-center gap-3 px-3 py-3 rounded-[var(--radius-md)] no-underline transition-colors active:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-700); border: 1px solid var(--paper-300);">
+                            <.icon name="hero-phone" class="w-5 h-5 text-[var(--brand)]" />
+                            {c.phone_number}
+                          </a>
+                          <a href={"mailto:#{c.email}"} onclick={"return confirm('Email #{c.name}?')"} class="flex items-center gap-3 px-3 py-3 rounded-[var(--radius-md)] no-underline transition-colors active:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-700); border: 1px solid var(--paper-300);">
+                            <.icon name="hero-envelope" class="w-5 h-5 text-[var(--brand)]" />
+                            {c.email}
+                          </a>
+                          <%= if c.social_links["instagram"] && c.social_links["instagram"] != "" do %>
+                            <a href={"https://instagram.com/#{String.trim_leading(c.social_links["instagram"], "@")}"} target="_blank" onclick={"return confirm('Open #{c.name}\\'s Instagram?')"} class="flex items-center gap-3 px-3 py-3 rounded-[var(--radius-md)] no-underline transition-colors active:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-700); border: 1px solid var(--paper-300);">
+                              <.icon name="hero-camera" class="w-5 h-5 text-[var(--brand)]" />
+                              {c.social_links["instagram"]}
+                            </a>
+                          <% end %>
+                          <%= if c.social_links["twitter"] && c.social_links["twitter"] != "" do %>
+                            <a href={"https://x.com/#{String.trim_leading(c.social_links["twitter"], "@")}"} target="_blank" onclick={"return confirm('Open #{c.name}\\'s X profile?')"} class="flex items-center gap-3 px-3 py-3 rounded-[var(--radius-md)] no-underline transition-colors active:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-700); border: 1px solid var(--paper-300);">
+                              <.icon name="hero-chat-bubble-left" class="w-5 h-5 text-[var(--brand)]" />
+                              {c.social_links["twitter"]}
+                            </a>
+                          <% end %>
+                          <%= if c.social_links["website"] && c.social_links["website"] != "" do %>
+                            <a href={c.social_links["website"]} target="_blank" onclick={"return confirm('Open #{c.name}\\'s website?')"} class="flex items-center gap-3 px-3 py-3 rounded-[var(--radius-md)] no-underline transition-colors active:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-700); border: 1px solid var(--paper-300);">
+                              <.icon name="hero-globe-alt" class="w-5 h-5 text-[var(--brand)]" />
+                              {c.social_links["website"]}
+                            </a>
+                          <% end %>
+                          <div :if={!c.phone_number && map_size(c.social_links) == 0} class="px-3 py-3 text-center" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-300);">
+                            No contact details added yet.
+                          </div>
+                        </div>
+
+                        <label for={"crew-modal-#{c.id}"} class="flex items-center justify-center mx-5 mb-5 py-2.5 cursor-pointer rounded-[var(--radius-md)]" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">
+                          CLOSE
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <%!-- Add crew button --%>
+              <%= if @current_tour && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
+                <button
+                  type="button"
+                  phx-click="toggle_add_crew"
+                  class="mt-3 w-full py-2.5 rounded-[var(--radius-md)] cursor-pointer flex items-center justify-center gap-2 transition-colors hover:bg-[var(--paper-200)]"
+                  style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px dashed var(--paper-300);"
+                >
+                  <.icon name="hero-user-plus-mini" class="w-3.5 h-3.5" />
+                  {if @add_crew_open, do: "CLOSE", else: "ADD CREW TO THIS DATE"}
+                </button>
+              <% end %>
+            <% end %>
+
+            <%!-- Add crew dropdown --%>
+            <%= if @add_crew_open do %>
+              <div class="mt-3 rounded-[var(--radius-md)] border border-[var(--paper-300)] overflow-hidden" style="background: var(--surface-card);">
+                <div class="px-4 py-2.5 border-b border-[var(--paper-300)]" style="background: var(--paper-200);">
+                  <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">TOUR MEMBERS</div>
+                </div>
+                <%= if @available_to_add == [] do %>
+                  <div class="px-4 py-6 text-center" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                    All tour members are already assigned to this date.
+                  </div>
+                <% else %>
+                  <div
+                    :for={%{user: member, membership: _m} <- @available_to_add}
+                    class="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-[var(--paper-200)] border-b border-[var(--paper-300)] last:border-b-0"
+                    phx-click="add_crew_to_date"
+                    phx-value-user-id={member.id}
+                  >
+                    <%= if member.avatar_url do %>
+                      <img src={member.avatar_url} class="w-7 h-7 rounded-[var(--radius-sm)] object-cover flex-none" referrerpolicy="no-referrer" />
+                    <% else %>
+                      <span class="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center flex-none" style="background: var(--ink-900); color: var(--paper-100); font-family: var(--font-mono); font-weight: 700; font-size: 11px;">
+                        {initials(member.name)}
+                      </span>
+                    <% end %>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[13px] font-semibold text-[var(--ink-900)] truncate">{member.name}</div>
+                    </div>
+                    <.icon name="hero-plus-mini" class="w-4 h-4 text-[var(--brand)]" />
+                  </div>
+                <% end %>
+              </div>
             <% end %>
           </div>
 

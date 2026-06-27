@@ -102,6 +102,21 @@ defmodule TourmanagerV2Web.CrewLive do
     end
   end
 
+  def handle_event("toggle_all_dates", %{"user-id" => user_id}, socket) do
+    tour = socket.assigns.current_tour
+
+    if tour do
+      case Touring.toggle_all_dates_default(tour.id, user_id) do
+        {:ok, _} ->
+          TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+          {:noreply, load_crew_data(socket)}
+        _ -> {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("demote_member", %{"user-id" => user_id}, socket) do
     tour = socket.assigns.current_tour
 
@@ -238,6 +253,30 @@ defmodule TourmanagerV2Web.CrewLive do
                   size="sm"
                   variant="tint"
                 >{String.upcase(membership.role)}</.signal_chip>
+
+                <%!-- All dates toggle --%>
+                <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) && member.id != @current_user.id do %>
+                  <button
+                    type="button"
+                    phx-click="toggle_all_dates"
+                    phx-value-user-id={member.id}
+                    class="flex items-center gap-1.5 px-2 py-1 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]"
+                    title={if membership.all_dates_default, do: "On all dates — click to remove", else: "Per-date only — click to add to all"}
+                  >
+                    <div
+                      class="w-7 h-4 rounded-full relative transition-colors"
+                      style={"background: #{if membership.all_dates_default, do: "var(--brand)", else: "var(--paper-300)"}; border: 1px solid #{if membership.all_dates_default, do: "var(--brand)", else: "var(--ink-300)"};"}
+                    >
+                      <div
+                        class="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all"
+                        style={"background: #fff; #{if membership.all_dates_default, do: "left: 14px;", else: "left: 2px;"}"}
+                      />
+                    </div>
+                    <span style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: var(--ink-400);">
+                      {if membership.all_dates_default, do: "ALL", else: "PER DATE"}
+                    </span>
+                  </button>
+                <% end %>
 
                 <%!-- Manager actions (only for tour managers, not on themselves) --%>
                 <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) && member.id != @current_user.id do %>

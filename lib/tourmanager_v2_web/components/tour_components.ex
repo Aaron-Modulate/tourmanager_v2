@@ -857,7 +857,7 @@ defmodule TourmanagerV2Web.TourComponents do
                 style="border: 1px solid var(--paper-300);"
                 loading="lazy"
               />
-              <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/venue:opacity-100 group-hover/venue:pointer-events-auto transition-opacity" style="width: 340px;">
+              <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/venue:opacity-100 group-hover/venue:pointer-events-auto" style="width: 340px; transition: opacity 150ms ease;">
                 <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
                   <img src={@venue_image_url} class="w-full h-40 object-cover" loading="lazy" />
                   <div class="p-3">
@@ -907,7 +907,7 @@ defmodule TourmanagerV2Web.TourComponents do
               <span class="w-12 h-12 rounded-[var(--radius-sm)] flex items-center justify-center cursor-pointer transition-all group-hover/travel:ring-2 group-hover/travel:ring-[var(--signal-load)]" style="background: var(--signal-load-tint); border: 1px solid var(--paper-300);">
                 <.icon name="hero-truck" class="w-5 h-5 text-[var(--signal-load)]" />
               </span>
-              <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/travel:opacity-100 group-hover/travel:pointer-events-auto transition-opacity" style="width: 300px;">
+              <div class="absolute left-0 top-1/2 -translate-y-1/2 z-50 pl-14 opacity-0 pointer-events-none group-hover/travel:opacity-100 group-hover/travel:pointer-events-auto" style="width: 300px; transition: opacity 150ms ease;">
                 <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
                   <div class="px-3 py-2.5 flex items-center gap-2" style="background: var(--signal-load-tint); border-bottom: 1px solid var(--paper-300);">
                     <.icon name="hero-truck" class="w-4 h-4 text-[var(--signal-load)]" />
@@ -1313,6 +1313,8 @@ defmodule TourmanagerV2Web.TourComponents do
 
   attr :current_user, :map, required: true
   attr :tour_form, :map, default: nil
+  attr :onboarding_step, :string, default: "profile"
+  attr :profile_form, :map, default: nil
 
   def onboarding_welcome(assigns) do
     ~H"""
@@ -1325,12 +1327,18 @@ defmodule TourmanagerV2Web.TourComponents do
           <%!-- Stage header --%>
           <div class="px-8 py-6" style="background: var(--surface-stage);">
             <div class="relative z-[2]">
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.24em; color: var(--brand);">WELCOME</div>
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.24em; color: var(--brand);">
+                {if @onboarding_step == "profile", do: "STEP 1 OF 2", else: "STEP 2 OF 2"}
+              </div>
               <div style="font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: -0.02em; line-height: 1.1; color: #fff; margin-top: 6px;">
-                Your first tour
+                {if @onboarding_step == "profile", do: "About you", else: "Your first tour"}
               </div>
               <div class="mt-3" style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5;">
-                You're in with a 7-day manager trial. Create tours, add stops, and build your routing. After the trial, subscribe or continue as crew with read-only access.
+                <%= if @onboarding_step == "profile" do %>
+                  Tell your crew who you are. This info shows on day sheets so people can reach you.
+                <% else %>
+                  Name your tour and set the dates. You can always change these later.
+                <% end %>
               </div>
             </div>
           </div>
@@ -1345,6 +1353,55 @@ defmodule TourmanagerV2Web.TourComponents do
 
           <%!-- Form --%>
           <div class="px-8 py-6" style="background: var(--surface-card);">
+            <%= if @onboarding_step == "profile" && @profile_form do %>
+              <.form for={@profile_form} id="onboarding-profile-form" phx-submit="save_onboarding_profile" phx-change="validate_onboarding_profile">
+                <div class="flex flex-col gap-4">
+                  <div>
+                    <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">YOUR NAME</label>
+                    <.input
+                      field={@profile_form[:name]}
+                      type="text"
+                      placeholder="Full name"
+                      class="w-full px-3 py-2.5 text-[15px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors"
+                      style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);"
+                    />
+                  </div>
+                  <div>
+                    <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">ROLE</label>
+                    <.input
+                      field={@profile_form[:role_title]}
+                      type="text"
+                      placeholder="e.g. Tour Manager, FOH Engineer, Guitar Tech"
+                      class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors"
+                      style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);"
+                    />
+                  </div>
+                  <div>
+                    <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">PHONE</label>
+                    <.input
+                      field={@profile_form[:phone_number]}
+                      type="tel"
+                      placeholder="+61 400 000 000"
+                      class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors"
+                      style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    class="w-full mt-2 px-5 py-3 rounded-[var(--radius-md)] cursor-pointer transition-all flex items-center justify-center gap-2"
+                    style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+                  >
+                    CONTINUE
+                    <.icon name="hero-arrow-right-mini" class="w-4 h-4" />
+                  </button>
+                </div>
+              </.form>
+              <div class="mt-4 text-center">
+                <button type="button" phx-click="skip_onboarding_profile" class="cursor-pointer" style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-300);">
+                  SKIP FOR NOW
+                </button>
+              </div>
+            <% else %>
             <.form for={@tour_form} id="onboarding-tour-form" phx-submit="create_first_tour" phx-change="validate_tour">
               <div class="flex flex-col gap-4">
                 <div>
@@ -1404,6 +1461,7 @@ defmodule TourmanagerV2Web.TourComponents do
                 </div>
               </div>
             </div>
+            <% end %>
           </div>
         </div>
       </div>

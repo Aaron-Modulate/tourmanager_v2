@@ -52,6 +52,7 @@ defmodule TourmanagerV2Web.Router do
       live "/routing", RoutingLive
       live "/crew", CrewLive
       live "/dashboard", DashboardLive
+      live "/profile", ProfileLive
       live "/admin/jobs", Admin.JobsLive
       live "/admin/users", Admin.UsersLive
     end

@@ -77,13 +77,25 @@ defmodule TourmanagerV2Web.Layouts do
               <.icon name="hero-information-circle" class="w-5 h-5 text-[var(--ink-300)]" />
             </label>
             <%= if @current_user do %>
-              <button type="button" phx-click="open_settings" class="cursor-pointer p-0.5">
-                <%= if @current_user.avatar_url do %>
-                  <img src={@current_user.avatar_url} class="w-7 h-7 rounded-[var(--radius-sm)] object-cover" referrerpolicy="no-referrer" />
-                <% else %>
-                  <span class="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center" style="background: var(--ink-700); font-family: var(--font-mono); font-weight: 700; font-size: 10px;">{initials(@current_user.name)}</span>
-                <% end %>
-              </button>
+              <div class="relative">
+                <input type="checkbox" id="mobile-avatar-menu" class="hidden peer/avatar" />
+                <label for="mobile-avatar-menu" class="cursor-pointer p-0.5 block">
+                  <%= if @current_user.avatar_url do %>
+                    <img src={@current_user.avatar_url} class="w-7 h-7 rounded-[var(--radius-sm)] object-cover" referrerpolicy="no-referrer" />
+                  <% else %>
+                    <span class="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center" style="background: var(--ink-700); font-family: var(--font-mono); font-weight: 700; font-size: 10px;">{initials(@current_user.name)}</span>
+                  <% end %>
+                </label>
+                <div class="absolute right-0 top-full mt-2 hidden peer-checked/avatar:block z-50 rounded-[var(--radius-md)] overflow-hidden" style="background: var(--ink-700); border: 1px solid var(--ink-500); box-shadow: var(--shadow-hard); min-width: 160px;">
+                  <.link navigate="/profile" class="w-full text-left px-4 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-[var(--ink-500)] no-underline" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100);">
+                    <.icon name="hero-user-mini" class="w-3.5 h-3.5" /> EDIT PROFILE
+                  </.link>
+                  <button type="button" phx-click="open_settings" class="w-full text-left px-4 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-[var(--ink-500)] border-t border-[var(--ink-500)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100);">
+                    <.icon name="hero-cog-6-tooth-mini" class="w-3.5 h-3.5" /> SETTINGS
+                  </button>
+                </div>
+                <label for="mobile-avatar-menu" class="fixed inset-0 z-40 hidden peer-checked/avatar:block" />
+              </div>
             <% end %>
           </div>
         </div>
@@ -341,8 +353,8 @@ defmodule TourmanagerV2Web.Layouts do
 
         <div class="px-[18px] py-[14px] border-t border-[var(--ink-700)]">
           <%= if @current_user do %>
-            <div class="flex items-center gap-2.5">
-              <button type="button" phx-click="open_settings" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer rounded-[var(--radius-sm)] -mx-1 px-1 py-1 transition-colors hover:bg-[var(--ink-700)]">
+            <div class="relative group/avatar">
+              <button type="button" class="flex items-center gap-2.5 w-full cursor-pointer rounded-[var(--radius-sm)] -mx-1 px-1 py-1 transition-colors hover:bg-[var(--ink-700)]">
                 <%= if @current_user.avatar_url do %>
                   <img src={@current_user.avatar_url} class="w-[30px] h-[30px] rounded-[var(--radius-sm)] object-cover flex-none" alt={@current_user.name} referrerpolicy="no-referrer" />
                 <% else %>
@@ -353,9 +365,16 @@ defmodule TourmanagerV2Web.Layouts do
                   <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink-300);">{String.upcase(@current_user.role)} · {String.upcase(@current_user.plan)}</div>
                 </div>
               </button>
-              <button type="button" phx-click="open_settings" class="text-[var(--ink-300)] hover:text-white transition-colors cursor-pointer" title="Settings">
-                <.icon name="hero-cog-6-tooth" class="w-4 h-4" />
-              </button>
+              <div class="absolute left-0 right-0 bottom-full z-50 pb-2 opacity-0 pointer-events-none group-hover/avatar:opacity-100 group-hover/avatar:pointer-events-auto" style="transition: opacity 150ms ease;">
+                <div class="rounded-[var(--radius-md)] overflow-hidden" style="background: var(--ink-700); border: 1px solid var(--ink-500); box-shadow: var(--shadow-hard);">
+                  <.link navigate="/profile" class="w-full text-left px-4 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-[var(--ink-500)] no-underline" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100);">
+                    <.icon name="hero-user-mini" class="w-3.5 h-3.5" /> EDIT PROFILE
+                  </.link>
+                  <button type="button" phx-click="open_settings" class="w-full text-left px-4 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors hover:bg-[var(--ink-500)] border-t border-[var(--ink-500)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--paper-100);">
+                    <.icon name="hero-cog-6-tooth-mini" class="w-3.5 h-3.5" /> SETTINGS
+                  </button>
+                </div>
+              </div>
             </div>
           <% else %>
             <div class="flex flex-col gap-2">

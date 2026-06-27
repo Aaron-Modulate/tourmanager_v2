@@ -32,6 +32,12 @@ defmodule TourmanagerV2.Accounts.User do
     field :trial_started_at, :utc_datetime
     field :trial_ends_at, :utc_datetime
     field :onboarding_completed_at, :utc_datetime
+    field :legal_name, :string
+    field :passport_number, :string
+    field :phone_number, :string
+    field :frequent_flyer, :string
+    field :social_links, :map, default: %{}
+    field :role_title, :string
 
     has_many :memberships, TourmanagerV2.Accounts.WorkspaceMembership
     has_many :workspaces, through: [:memberships, :workspace]
@@ -72,6 +78,13 @@ defmodule TourmanagerV2.Accounts.User do
     |> cast(attrs, [:hashed_password])
     |> validate_required([:hashed_password])
     |> validate_length(:hashed_password, min: 12, max: 72)
+  end
+
+  def profile_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:name, :legal_name, :passport_number, :phone_number,
+                    :frequent_flyer, :social_links, :role_title])
+    |> validate_required([:name])
   end
 
   def manager?(%__MODULE__{role: "manager"}), do: true

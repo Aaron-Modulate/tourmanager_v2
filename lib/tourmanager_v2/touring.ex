@@ -1,7 +1,7 @@
 defmodule TourmanagerV2.Touring do
   import Ecto.Query
   alias TourmanagerV2.Repo
-  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite}
+  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite, DateCrewAssignment}
   alias TourmanagerV2.Scheduling.Event
 
   def get_tour!(id), do: Repo.get!(Tour, id)
@@ -87,6 +87,54 @@ defmodule TourmanagerV2.Touring do
         else
           {:error, :no_seats}
         end
+    end
+  end
+
+  # --- Date crew assignments ---
+
+  def list_crew_for_date(tour_id, date) do
+    all_dates_members =
+      TourMembership
+      |> where(tour_id: ^tour_id, all_dates_default: true)
+      |> join(:inner, [tm], u in assoc(tm, :user))
+      |> select([tm, u], %{user: u, membership: tm})
+      |> Repo.all()
+
+    date_assigned =
+      DateCrewAssignment
+      |> where(tour_id: ^tour_id, date: ^date)
+      |> join(:inner, [dca], u in assoc(dca, :user))
+      |> join(:inner, [dca, _u], tm in TourMembership,
+        on: tm.tour_id == dca.tour_id and tm.user_id == dca.user_id
+      )
+      |> select([dca, u, tm], %{user: u, membership: tm})
+      |> Repo.all()
+
+    (all_dates_members ++ date_assigned)
+    |> Enum.uniq_by(fn %{user: u} -> u.id end)
+    |> Enum.sort_by(fn %{user: u} -> u.name end)
+  end
+
+  def assign_crew_to_date(tour_id, user_id, date) do
+    %DateCrewAssignment{tour_id: tour_id, user_id: user_id}
+    |> DateCrewAssignment.changeset(%{date: date})
+    |> Repo.insert(on_conflict: :nothing)
+  end
+
+  def remove_crew_from_date(tour_id, user_id, date) do
+    case Repo.get_by(DateCrewAssignment, tour_id: tour_id, user_id: user_id, date: date) do
+      nil -> {:error, :not_found}
+      assignment -> Repo.delete(assignment)
+    end
+  end
+
+  def toggle_all_dates_default(tour_id, user_id) do
+    case Repo.get_by(TourMembership, tour_id: tour_id, user_id: user_id) do
+      nil -> {:error, :not_found}
+      membership ->
+        membership
+        |> TourMembership.changeset(%{all_dates_default: !membership.all_dates_default})
+        |> Repo.update()
     end
   end
 

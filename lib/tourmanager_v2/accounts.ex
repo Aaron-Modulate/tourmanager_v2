@@ -63,6 +63,16 @@ defmodule TourmanagerV2.Accounts do
     Repo.get_by(TourMembership, tour_id: tour_id, user_id: user_id)
   end
 
+  def change_profile(%User{} = user, attrs \\ %{}) do
+    User.profile_changeset(user, attrs)
+  end
+
+  def update_profile(%User{} = user, attrs) do
+    user
+    |> User.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
   def update_user_plan(%User{} = user, plan) when plan in ~w(free paid) do
     role = if plan == "paid", do: "manager", else: "crew"
 
