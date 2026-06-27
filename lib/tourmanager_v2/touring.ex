@@ -6,7 +6,16 @@ defmodule TourmanagerV2.Touring do
 
   def get_tour!(id), do: Repo.get!(Tour, id)
 
-  # --- Crew management ---
+  # --- Tour memberships & crew ---
+
+  def list_tour_memberships(tour_id) do
+    TourMembership
+    |> where(tour_id: ^tour_id)
+    |> join(:inner, [tm], u in assoc(tm, :user))
+    |> select([tm, u], %{membership: tm, user: u})
+    |> order_by([tm, u], [asc: tm.role, asc: u.name])
+    |> Repo.all()
+  end
 
   def list_crew_memberships(tour_id) do
     TourMembership
@@ -23,15 +32,61 @@ defmodule TourmanagerV2.Touring do
     |> Repo.aggregate(:count)
   end
 
-  def crew_seats_remaining(tour_id, manager_seats) do
+  @doc """
+  Total seats = sum of crew_seats from all managers on the tour.
+  Each manager's subscription contributes their crew_seats allocation.
+  """
+  def total_seats_on_tour(tour_id) do
+    TourMembership
+    |> where(tour_id: ^tour_id, role: "manager")
+    |> join(:inner, [tm], u in assoc(tm, :user))
+    |> select([_tm, u], u.crew_seats)
+    |> Repo.all()
+    |> Enum.sum()
+  end
+
+  def crew_seats_remaining(tour_id) do
+    total = total_seats_on_tour(tour_id)
     used = count_crew_on_tour(tour_id)
-    max(manager_seats - used, 0)
+    max(total - used, 0)
   end
 
   def remove_crew_from_tour(tour_id, user_id) do
     case Repo.get_by(TourMembership, tour_id: tour_id, user_id: user_id, role: "crew") do
       nil -> {:error, :not_found}
       membership -> Repo.delete(membership)
+    end
+  end
+
+  def promote_to_manager(tour_id, user_id) do
+    case Repo.get_by(TourMembership, tour_id: tour_id, user_id: user_id) do
+      nil ->
+        {:error, :not_found}
+
+      membership ->
+        user = Repo.get!(TourmanagerV2.Accounts.User, user_id)
+
+        if TourmanagerV2.Accounts.User.subscribed?(user) do
+          membership
+          |> TourMembership.changeset(%{role: "manager"})
+          |> Repo.update()
+        else
+          {:error, :not_subscribed}
+        end
+    end
+  end
+
+  def demote_to_crew(tour_id, user_id) do
+    case Repo.get_by(TourMembership, tour_id: tour_id, user_id: user_id, role: "manager") do
+      nil -> {:error, :not_found}
+      membership ->
+        if crew_seats_remaining(tour_id) > 0 do
+          membership
+          |> TourMembership.changeset(%{role: "crew"})
+          |> Repo.update()
+        else
+          {:error, :no_seats}
+        end
     end
   end
 
@@ -66,9 +121,15 @@ defmodule TourmanagerV2.Touring do
     Repo.transaction(fn ->
       case Repo.get_by(TourMembership, tour_id: invite.tour_id, user_id: user.id) do
         nil ->
-          %TourMembership{tour_id: invite.tour_id, user_id: user.id}
-          |> TourMembership.changeset(%{role: invite.role})
-          |> Repo.insert!()
+          remaining = crew_seats_remaining(invite.tour_id)
+
+          if remaining > 0 do
+            %TourMembership{tour_id: invite.tour_id, user_id: user.id}
+            |> TourMembership.changeset(%{role: "crew"})
+            |> Repo.insert!()
+          else
+            Repo.rollback(:no_seats)
+          end
 
         existing ->
           existing

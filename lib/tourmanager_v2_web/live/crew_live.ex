@@ -26,8 +26,8 @@ defmodule TourmanagerV2Web.CrewLive do
     tour = socket.assigns.current_tour
     user = socket.assigns.current_user
 
-    if tour && user && User.can_create_tours?(user) do
-      remaining = socket.assigns[:crew_seats_remaining] || 0
+    if tour && user && User.manager?(user) do
+      remaining = Touring.crew_seats_remaining(tour.id)
 
       if remaining > 0 do
         case Touring.get_or_create_active_invite(tour, user) do
@@ -84,27 +84,57 @@ defmodule TourmanagerV2Web.CrewLive do
     end
   end
 
-  defp load_crew_data(socket) do
-    tour = socket.assigns[:current_tour]
-    user = socket.assigns[:current_user]
+  def handle_event("promote_member", %{"user-id" => user_id}, socket) do
+    tour = socket.assigns.current_tour
 
     if tour do
-      crew = Touring.list_crew_memberships(tour.id)
-      seats = if user, do: user.crew_seats || 10, else: 10
-      remaining = Touring.crew_seats_remaining(tour.id, seats)
+      case Touring.promote_to_manager(tour.id, user_id) do
+        {:ok, _} -> {:noreply, load_crew_data(socket)}
+        {:error, :not_subscribed} ->
+          {:noreply, Phoenix.LiveView.put_flash(socket, :error, "This member needs a manager subscription before they can be promoted.")}
+        _ -> {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("demote_member", %{"user-id" => user_id}, socket) do
+    tour = socket.assigns.current_tour
+
+    if tour do
+      case Touring.demote_to_crew(tour.id, user_id) do
+        {:ok, _} -> {:noreply, load_crew_data(socket)}
+        {:error, :no_seats} ->
+          {:noreply, Phoenix.LiveView.put_flash(socket, :error, "No crew seats available. Cannot demote to crew.")}
+        _ -> {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp load_crew_data(socket) do
+    tour = socket.assigns[:current_tour]
+
+    if tour do
+      all_members = Touring.list_tour_memberships(tour.id)
+      crew_count = Enum.count(all_members, fn %{membership: m} -> m.role == "crew" end)
+      total_seats = Touring.total_seats_on_tour(tour.id)
+      remaining = Touring.crew_seats_remaining(tour.id)
 
       assign(socket,
-        crew_members: crew,
-        crew_count: length(crew),
-        crew_seats_total: seats,
+        tour_members: all_members,
+        crew_count: crew_count,
+        crew_seats_total: total_seats,
         crew_seats_remaining: remaining
       )
     else
       assign(socket,
-        crew_members: [],
+        tour_members: [],
         crew_count: 0,
-        crew_seats_total: 10,
-        crew_seats_remaining: 10
+        crew_seats_total: 0,
+        crew_seats_remaining: 0
       )
     end
   end
@@ -161,7 +191,7 @@ defmodule TourmanagerV2Web.CrewLive do
           </div>
         <% end %>
 
-        <%!-- Crew list --%>
+        <%!-- Member list --%>
         <%= if !@current_tour do %>
           <div class="py-16 text-center">
             <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">
@@ -169,42 +199,86 @@ defmodule TourmanagerV2Web.CrewLive do
             </div>
           </div>
         <% else %>
-          <%= if @crew_members == [] do %>
+          <%= if @tour_members == [] do %>
             <div class="py-16 text-center">
               <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">
-                No crew on this tour yet. Invite your first crew member.
+                No members on this tour yet. Invite your first crew member.
               </div>
             </div>
           <% else %>
             <div class="flex flex-col gap-2">
               <div
-                :for={%{membership: _membership, user: crew_user} <- @crew_members}
+                :for={%{membership: membership, user: member} <- @tour_members}
                 class="flex items-center gap-3 p-3 rounded-[var(--radius-md)] border border-[var(--paper-300)] transition-colors hover:bg-[var(--paper-200)]"
                 style="background: var(--surface-card);"
               >
-                <%= if crew_user.avatar_url do %>
-                  <img src={crew_user.avatar_url} class="w-10 h-10 rounded-[var(--radius-sm)] object-cover flex-none" referrerpolicy="no-referrer" />
+                <%= if member.avatar_url do %>
+                  <img src={member.avatar_url} class="w-10 h-10 rounded-[var(--radius-sm)] object-cover flex-none" referrerpolicy="no-referrer" />
                 <% else %>
                   <span class="w-10 h-10 rounded-[var(--radius-sm)] flex items-center justify-center flex-none" style="background: var(--ink-900); color: var(--paper-100); font-family: var(--font-mono); font-weight: 700; font-size: 14px;">
-                    {initials(crew_user.name)}
+                    {initials(member.name)}
                   </span>
                 <% end %>
                 <div class="flex-1 min-w-0">
-                  <div class="text-[14px] font-semibold text-[var(--ink-900)] truncate">{crew_user.name}</div>
-                  <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 1px;">{crew_user.email}</div>
+                  <div class="text-[14px] font-semibold text-[var(--ink-900)] truncate">{member.name}</div>
+                  <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 1px;">
+                    {member.email}
+                    <%= if membership.role == "manager" && TourmanagerV2.Accounts.User.subscribed?(member) do %>
+                      <span style="color: var(--ink-300);"> · +{member.crew_seats} seats</span>
+                    <% end %>
+                  </div>
                 </div>
-                <.signal_chip tone="live" size="sm" variant="tint">CREW</.signal_chip>
-                <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
-                  <button
-                    type="button"
-                    phx-click="remove_crew"
-                    phx-value-user-id={crew_user.id}
-                    data-confirm={"Remove #{crew_user.name} from this tour?"}
-                    class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]"
-                    title="Remove from tour"
-                  >
-                    <.icon name="hero-x-mark-mini" class="w-4 h-4 text-[var(--ink-300)]" />
-                  </button>
+                <.signal_chip
+                  tone={if membership.role == "manager", do: "brand", else: "live"}
+                  size="sm"
+                  variant="tint"
+                >{String.upcase(membership.role)}</.signal_chip>
+
+                <%!-- Manager actions (only for tour managers, not on themselves) --%>
+                <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) && member.id != @current_user.id do %>
+                  <div class="relative group/actions">
+                    <button type="button" class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]">
+                      <.icon name="hero-ellipsis-vertical-mini" class="w-4 h-4 text-[var(--ink-300)]" />
+                    </button>
+                    <div class="absolute right-0 top-full mt-1 hidden group-hover/actions:block z-50 rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 1px solid var(--paper-300); box-shadow: var(--shadow-hard); min-width: 150px;">
+                      <%= if membership.role == "crew" && TourmanagerV2.Accounts.User.subscribed?(member) do %>
+                        <button
+                          type="button"
+                          phx-click="promote_member"
+                          phx-value-user-id={member.id}
+                          class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)]"
+                          style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);"
+                        >
+                          <.icon name="hero-arrow-up-mini" class="w-3.5 h-3.5" />
+                          PROMOTE
+                        </button>
+                      <% end %>
+                      <%= if membership.role == "manager" do %>
+                        <button
+                          type="button"
+                          phx-click="demote_member"
+                          phx-value-user-id={member.id}
+                          data-confirm={"Demote #{member.name} to crew? This will use a crew seat."}
+                          class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)]"
+                          style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);"
+                        >
+                          <.icon name="hero-arrow-down-mini" class="w-3.5 h-3.5" />
+                          DEMOTE
+                        </button>
+                      <% end %>
+                      <button
+                        type="button"
+                        phx-click="remove_crew"
+                        phx-value-user-id={member.id}
+                        data-confirm={"Remove #{member.name} from this tour?"}
+                        class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)] border-t border-[var(--paper-300)]"
+                        style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-stop);"
+                      >
+                        <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
+                        REMOVE
+                      </button>
+                    </div>
+                  </div>
                 <% end %>
               </div>
             </div>

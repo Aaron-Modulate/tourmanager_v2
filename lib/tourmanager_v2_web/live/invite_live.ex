@@ -32,6 +32,9 @@ defmodule TourmanagerV2Web.InviteLive do
             {:ok, _} ->
               {:ok, assign(socket, :accepted, true)}
 
+            {:error, :no_seats} ->
+              {:ok, assign(socket, :error, "This tour has no crew seats available. Ask the tour manager to upgrade their plan.")}
+
             {:error, _} ->
               {:ok, assign(socket, :error, "Could not accept invite.")}
           end
