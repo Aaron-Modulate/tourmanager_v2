@@ -47,9 +47,9 @@ defmodule TourmanagerV2Web.Layouts do
             <.icon name="hero-bars-3" class="w-5 h-5 text-[var(--paper-100)]" />
           </label>
 
-          <%!-- Center: today's/next stop info --%>
-          <div class="flex-1 min-w-0">
-            <%= if @headerbar_entry do %>
+          <%!-- Center: today's/next stop info — tap to open day sheet for that date --%>
+          <%= if @headerbar_entry && @headerbar_entry.date do %>
+            <.link navigate={"/app?date=#{Date.to_iso8601(@headerbar_entry.date)}"} class="flex-1 min-w-0 no-underline">
               <div class="flex items-center gap-1.5">
                 <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--brand);">
                   {headerbar_date(@headerbar_entry)}
@@ -61,13 +61,15 @@ defmodule TourmanagerV2Web.Layouts do
               <div class="truncate" style="font-family: var(--font-display); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; color: #fff; margin-top: 1px;">
                 {@headerbar_entry.venue || @headerbar_entry.origin || "Upcoming"}
               </div>
-            <% else %>
+            </.link>
+          <% else %>
+            <div class="flex-1 min-w-0">
               <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--brand);">{@today_str}</div>
               <div class="truncate" style="font-family: var(--font-display); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; color: #fff; margin-top: 1px;">
                 {if @current_tour, do: @current_tour.name, else: "Tour Manager"}
               </div>
-            <% end %>
-          </div>
+            </div>
+          <% end %>
 
           <%!-- Right: info pane toggle + settings --%>
           <div class="flex items-center gap-1">
@@ -375,21 +377,23 @@ defmodule TourmanagerV2Web.Layouts do
         <%!-- Desktop stage topbar (hidden on mobile) --%>
         <header class="hidden md:flex tm-halftone tm-halftone--light items-center justify-between px-7 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage); color: var(--paper-100);">
           <div class="relative z-[2]">
-            <%= if @headerbar_entry do %>
-              <div class="flex items-center gap-2">
-                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">
-                  {headerbar_date(@headerbar_entry)} · {headerbar_code(@headerbar_entry)}
+            <%= if @headerbar_entry && @headerbar_entry.date do %>
+              <.link navigate={"/app?date=#{Date.to_iso8601(@headerbar_entry.date)}"} class="no-underline block">
+                <div class="flex items-center gap-2">
+                  <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">
+                    {headerbar_date(@headerbar_entry)} · {headerbar_code(@headerbar_entry)}
+                  </div>
+                  <%= unless @headerbar_is_today do %>
+                    <.signal_chip tone="doors" size="sm">NEXT</.signal_chip>
+                  <% end %>
                 </div>
-                <%= unless @headerbar_is_today do %>
-                  <.signal_chip tone="doors" size="sm">NEXT</.signal_chip>
-                <% end %>
-              </div>
-              <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">
-                {@headerbar_entry.venue || @headerbar_entry.origin || "Upcoming"}
-              </div>
-              <div :if={@headerbar_entry.city} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-300); margin-top: 4px;">
-                {@headerbar_entry.city}
-              </div>
+                <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">
+                  {@headerbar_entry.venue || @headerbar_entry.origin || "Upcoming"}
+                </div>
+                <div :if={@headerbar_entry.city} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-300); margin-top: 4px;">
+                  {@headerbar_entry.city}
+                </div>
+              </.link>
             <% else %>
               <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">{@today_str}</div>
               <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">
