@@ -28,19 +28,24 @@ defmodule TourmanagerV2Web.InviteLive do
           |> assign(:error, nil)
           |> assign(:page_title, "Join #{invite.tour.name}")
 
-        if user do
-          case Touring.accept_invite(invite, user) do
-            {:ok, _} ->
-              {:ok, assign(socket, :accepted, true)}
+        cond do
+          invite.status == "accepted" && user ->
+            {:ok, assign(socket, :accepted, true)}
 
-            {:error, :no_seats} ->
-              {:ok, assign(socket, :error, "This tour has no crew seats available. Ask the tour manager to upgrade their plan.")}
+          user ->
+            case Touring.accept_invite(invite, user) do
+              {:ok, _} ->
+                {:ok, assign(socket, :accepted, true)}
 
-            {:error, _} ->
-              {:ok, assign(socket, :error, "Could not accept invite.")}
-          end
-        else
-          {:ok, socket}
+              {:error, :no_seats} ->
+                {:ok, assign(socket, :error, "This tour has no crew seats available. Ask the tour manager to upgrade their plan.")}
+
+              {:error, _} ->
+                {:ok, assign(socket, :error, "Could not accept invite.")}
+            end
+
+          true ->
+            {:ok, socket}
         end
 
       {:error, _} ->

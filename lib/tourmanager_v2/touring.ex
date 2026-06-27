@@ -111,7 +111,11 @@ defmodule TourmanagerV2.Touring do
   end
 
   def get_invite_by_token(token) do
-    case Repo.get_by(TourInvite, token: token, status: "pending") do
+    case Repo.one(
+           from i in TourInvite,
+             where: i.token == ^token and i.status in ["pending", "accepted"],
+             limit: 1
+         ) do
       nil -> {:error, :not_found}
       invite -> {:ok, Repo.preload(invite, :tour)}
     end
