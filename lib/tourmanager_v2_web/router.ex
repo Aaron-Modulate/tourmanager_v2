@@ -42,6 +42,7 @@ defmodule TourmanagerV2Web.Router do
     pipe_through :browser
 
     get "/sitemap.xml", SitemapController, :index
+    get "/setlist/:id/print", SetlistPrintController, :show
 
     live_session :public do
       live "/", LandingLive
@@ -55,6 +56,7 @@ defmodule TourmanagerV2Web.Router do
       live "/crew", CrewLive
       live "/dashboard", DashboardLive
       live "/profile", ProfileLive
+      live "/setlists", SetlistLive
       live "/admin/jobs", Admin.JobsLive
       live "/admin/users", Admin.UsersLive
     end

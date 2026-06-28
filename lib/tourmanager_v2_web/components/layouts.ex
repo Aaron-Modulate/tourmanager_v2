@@ -30,9 +30,38 @@ defmodule TourmanagerV2Web.Layouts do
     today = Date.utc_today()
     today_str = Calendar.strftime(today, "%a %d %b %Y") |> String.upcase()
 
+    headerbar_entry = assigns[:headerbar_entry]
+    headerbar_is_today = assigns[:headerbar_is_today] || false
+
+    {days_away_label, days_away_tone} =
+      cond do
+        headerbar_entry && headerbar_entry.date ->
+          days = Date.diff(headerbar_entry.date, today)
+
+          cond do
+            days == 0 -> {"TODAY", "live"}
+            days == 1 -> {"TOMORROW", "doors"}
+            days > 1 -> {"IN #{days} DAYS", "doors"}
+            true -> {"#{abs(days)}D AGO", "ink"}
+          end
+
+        true ->
+          {nil, nil}
+      end
+
+    headerbar_nav_url =
+      if headerbar_entry && headerbar_entry.date do
+        "/app?date=#{Date.to_iso8601(headerbar_entry.date)}"
+      else
+        "/app"
+      end
+
     assigns =
       assigns
       |> Map.put(:today_str, today_str)
+      |> Map.put(:days_away_label, days_away_label)
+      |> Map.put(:days_away_tone, days_away_tone)
+      |> Map.put(:headerbar_nav_url, headerbar_nav_url)
 
     ~H"""
     <div id="app-shell" class="flex flex-col md:flex-row h-screen" style="background: var(--paper-100); color: var(--ink-700); font-family: var(--font-sans);">
@@ -47,29 +76,28 @@ defmodule TourmanagerV2Web.Layouts do
             <.icon name="hero-bars-3" class="w-5 h-5 text-[var(--paper-100)]" />
           </label>
 
-          <%!-- Center: today's/next stop info — tap to open day sheet for that date --%>
-          <%= if @headerbar_entry && @headerbar_entry.date do %>
-            <.link navigate={"/app?date=#{Date.to_iso8601(@headerbar_entry.date)}"} class="flex-1 min-w-0 no-underline">
+          <%!-- Center: venue + date + days away — tap to open day sheet --%>
+          <.link navigate={@headerbar_nav_url} class="flex-1 min-w-0 no-underline">
+            <%= if @headerbar_entry && @headerbar_entry.date do %>
               <div class="flex items-center gap-1.5">
                 <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--brand);">
                   {headerbar_date(@headerbar_entry)}
                 </div>
-                <%= unless @headerbar_is_today do %>
-                  <.signal_chip tone="doors" size="sm">NEXT</.signal_chip>
-                <% end %>
+                <.signal_chip tone={@days_away_tone} size="sm">{@days_away_label}</.signal_chip>
               </div>
               <div class="truncate" style="font-family: var(--font-display); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; color: #fff; margin-top: 1px;">
                 {@headerbar_entry.venue || @headerbar_entry.origin || "Upcoming"}
+                <span :if={@headerbar_entry.city} style="font-weight: 400; font-size: 13px; color: var(--ink-300); margin-left: 4px;">
+                  {@headerbar_entry.city}
+                </span>
               </div>
-            </.link>
-          <% else %>
-            <div class="flex-1 min-w-0">
+            <% else %>
               <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--brand);">{@today_str}</div>
               <div class="truncate" style="font-family: var(--font-display); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; color: #fff; margin-top: 1px;">
                 {if @current_tour, do: @current_tour.name, else: "Tour Manager"}
               </div>
-            </div>
-          <% end %>
+            <% end %>
+          </.link>
 
           <%!-- Right: info pane toggle + settings --%>
           <div class="flex items-center gap-1">
@@ -294,7 +322,7 @@ defmodule TourmanagerV2Web.Layouts do
       <%!-- DESKTOP: Left rail (unchanged, hidden on mobile) --%>
       <%!-- ============================================ --%>
       <aside class="hidden md:flex w-[232px] flex-none flex-col border-r-2 border-[var(--ink-900)]" style="background: var(--surface-stage); color: var(--paper-100);">
-        <div class="px-[18px] pt-[18px] pb-[14px] border-b border-[var(--ink-700)]">
+        <.link navigate={@headerbar_nav_url} class="block px-[18px] pt-[18px] pb-[14px] border-b border-[var(--ink-700)] no-underline transition-colors hover:bg-[var(--ink-700)]">
           <div class="flex items-center gap-2.5">
             <span class="w-[34px] h-[34px] rounded-[var(--radius-sm)] flex items-center justify-center" style="background: var(--brand); box-shadow: var(--shadow-hard-sm); font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff;">T</span>
             <div class="leading-none">
@@ -302,7 +330,7 @@ defmodule TourmanagerV2Web.Layouts do
               <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; color: var(--brand); margin-top: 3px;">DAY SHEET OS</div>
             </div>
           </div>
-        </div>
+        </.link>
 
         <div class="px-[18px] py-[14px] border-b border-[var(--ink-700)]">
           <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300); margin-bottom: 6px;">CURRENT TOUR</div>
@@ -394,52 +422,34 @@ defmodule TourmanagerV2Web.Layouts do
       <%!-- ============================================ --%>
       <div class="flex-1 flex flex-col min-w-0">
         <%!-- Desktop stage topbar (hidden on mobile) --%>
-        <header class="hidden md:flex tm-halftone tm-halftone--light items-center justify-between px-7 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage); color: var(--paper-100);">
-          <div class="relative z-[2]">
+        <header class="hidden md:flex tm-halftone tm-halftone--light items-center px-7 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage); color: var(--paper-100);">
+          <.link navigate={@headerbar_nav_url} class="relative z-[2] no-underline flex items-center gap-5 flex-1 min-w-0">
             <%= if @headerbar_entry && @headerbar_entry.date do %>
-              <.link navigate={"/app?date=#{Date.to_iso8601(@headerbar_entry.date)}"} class="no-underline block">
+              <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                   <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">
                     {headerbar_date(@headerbar_entry)} · {headerbar_code(@headerbar_entry)}
                   </div>
-                  <%= unless @headerbar_is_today do %>
-                    <.signal_chip tone="doors" size="sm">NEXT</.signal_chip>
-                  <% end %>
                 </div>
+                <div class="flex items-center gap-3 mt-1">
+                  <div class="truncate" style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff;">
+                    {@headerbar_entry.venue || @headerbar_entry.origin || "Upcoming"}
+                  </div>
+                  <span :if={@headerbar_entry.city} style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-300); white-space: nowrap;">
+                    {@headerbar_entry.city}
+                  </span>
+                </div>
+              </div>
+              <.signal_chip tone={@days_away_tone} hard size="lg">{@days_away_label}</.signal_chip>
+            <% else %>
+              <div class="flex-1 min-w-0">
+                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">{@today_str}</div>
                 <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">
-                  {@headerbar_entry.venue || @headerbar_entry.origin || "Upcoming"}
-                </div>
-                <div :if={@headerbar_entry.city} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-300); margin-top: 4px;">
-                  {@headerbar_entry.city}
-                </div>
-              </.link>
-            <% else %>
-              <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">{@today_str}</div>
-              <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">
-                {if @current_tour, do: @current_tour.name, else: "Tour Manager"}
-              </div>
-            <% end %>
-          </div>
-          <div class="relative z-[2] flex items-center gap-5" style="font-family: var(--font-mono);">
-            <%= if @headerbar_entry do %>
-              <%= if @headerbar_entry.city do %>
-                <div class="text-right">
-                  <div style="font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">CITY</div>
-                  <div style="font-size: 15px; font-weight: 700; color: #fff; margin-top: 2px;">{@headerbar_entry.city}</div>
-                </div>
-              <% end %>
-              <.signal_chip tone={if @headerbar_is_today, do: "live", else: "doors"} hard size="lg">
-                {if @headerbar_is_today, do: "TODAY", else: headerbar_countdown(@headerbar_entry)}
-              </.signal_chip>
-            <% else %>
-              <div class="text-right">
-                <div style="font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">STATUS</div>
-                <div style="font-size: 15px; font-weight: 700; color: #fff; margin-top: 2px;">
-                  {if @current_tour, do: "No upcoming gigs", else: "No tour selected"}
+                  {if @current_tour, do: @current_tour.name, else: "Tour Manager"}
                 </div>
               </div>
             <% end %>
-          </div>
+          </.link>
         </header>
 
         <main class="flex-1 overflow-y-auto overflow-x-hidden">
@@ -493,6 +503,8 @@ defmodule TourmanagerV2Web.Layouts do
         active: fn assigns -> Map.get(assigns, :active_nav) == "dashboard" end},
       %{id: "crew", label: "Crew", icon: "hero-users", path: "/crew", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "crew" end},
+      %{id: "setlists", label: "Setlists", icon: "hero-musical-note", path: "/setlists", soft: false,
+        active: fn assigns -> Map.get(assigns, :active_nav) == "setlists" end},
       %{id: "advance", label: "Advancing", icon: "hero-inbox", path: "#", soft: true,
         active: fn _assigns -> false end},
       %{id: "guestlist", label: "Guest list", icon: "hero-ticket", path: "#", soft: true,

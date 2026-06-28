@@ -174,6 +174,62 @@ defmodule TourmanagerV2Web.DaySheetLive do
     end
   end
 
+  def handle_event("toggle_add_setlist", _params, socket) do
+    {:noreply, assign(socket, :add_setlist_open, !socket.assigns[:add_setlist_open])}
+  end
+
+  def handle_event("assign_setlist_to_date", %{"id" => setlist_id}, socket) do
+    tour = socket.assigns.current_tour
+    date = socket.assigns[:selected_date]
+
+    if tour && date do
+      setlist = TourmanagerV2.Touring.get_setlist!(setlist_id)
+
+      TourmanagerV2.Touring.create_setlist(tour.id, socket.assigns.current_user.id, %{
+        "name" => setlist.name,
+        "date" => date,
+        "source" => "manual"
+      })
+      |> case do
+        {:ok, new_setlist} ->
+          Enum.each(setlist.items, fn item ->
+            TourmanagerV2.Touring.add_setlist_item(new_setlist.id, %{
+              "title" => item.title,
+              "artist" => item.artist,
+              "position" => item.position,
+              "duration_seconds" => item.duration_seconds,
+              "notes" => item.notes
+            })
+          end)
+
+          TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+
+          {:noreply,
+           socket
+           |> assign(:add_setlist_open, false)
+           |> reload_selected_date()}
+
+        _ ->
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("remove_date_setlist", %{"id" => id}, socket) do
+    tour = socket.assigns.current_tour
+    setlist = TourmanagerV2.Touring.get_setlist!(id)
+
+    if tour && setlist.date do
+      TourmanagerV2.Touring.delete_setlist(setlist)
+      TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+      {:noreply, reload_selected_date(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("toggle_add_crew", _params, socket) do
     {:noreply, assign(socket, :add_crew_open, !socket.assigns[:add_crew_open])}
   end
@@ -424,6 +480,25 @@ defmodule TourmanagerV2Web.DaySheetLive do
         true -> "Day sheet"
       end
 
+    {date_setlists, date_setlist_source} =
+      if tour && selected_date do
+        TourmanagerV2.Touring.resolve_setlists_for_date(tour.id, selected_date)
+      else
+        {[], :none}
+      end
+
+    all_tour_setlists =
+      if tour do
+        TourmanagerV2.Touring.list_setlists_for_tour(tour.id)
+      else
+        []
+      end
+
+    assignable_setlists =
+      Enum.reject(all_tour_setlists, fn sl ->
+        Enum.any?(date_setlists, fn ds -> ds.id == sl.id end)
+      end)
+
     assign(socket,
       run_of_show_data: run_of_show,
       crew_cards: crew_cards,
@@ -433,8 +508,14 @@ defmodule TourmanagerV2Web.DaySheetLive do
       tour_dates: tour_dates,
       display_date: selected_date,
       display_stop_name: display_stop_name,
+      display_stop_venue: (selected_stop && selected_stop.venue) || "",
+      display_stop_city: (selected_stop && selected_stop.city) || "",
       available_to_add: available_to_add,
-      add_crew_open: socket.assigns[:add_crew_open] || false
+      add_crew_open: socket.assigns[:add_crew_open] || false,
+      date_setlists: date_setlists,
+      date_setlist_source: date_setlist_source,
+      assignable_setlists: assignable_setlists,
+      add_setlist_open: socket.assigns[:add_setlist_open] || false
     )
   end
 
@@ -521,6 +602,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
             tabs={[
               %{value: "show", label: "Schedule", count: length(@run_of_show_data)},
               %{value: "crew", label: "Crew", count: length(@crew_cards)},
+              %{value: "setlist", label: "Setlist", count: length(@date_setlists)},
               %{value: "notes", label: "Notes"}
             ]}
             active={@active_tab}
@@ -799,6 +881,121 @@ defmodule TourmanagerV2Web.DaySheetLive do
                     <% end %>
                     <div class="flex-1 min-w-0">
                       <div class="text-[13px] font-semibold text-[var(--ink-900)] truncate">{member.name}</div>
+                    </div>
+                    <.icon name="hero-plus-mini" class="w-4 h-4 text-[var(--brand)]" />
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+
+          <%!-- Setlist tab --%>
+          <div :if={@active_tab == "setlist"} id="setlist-panel">
+            <%= if @date_setlists == [] do %>
+              <div class="py-12 text-center">
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">
+                  No setlist for this date.
+                </div>
+                <%= if @current_tour && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
+                  <button type="button" phx-click="toggle_add_setlist" class="mt-4 px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer inline-flex items-center gap-2" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">
+                    <.icon name="hero-musical-note" class="w-4 h-4" /> ADD SET LIST
+                  </button>
+                <% end %>
+              </div>
+            <% else %>
+              <div :if={@date_setlist_source == :tour_default} class="flex items-center gap-2 mb-3 px-3 py-2 rounded-[var(--radius-sm)]" style="background: var(--paper-200);">
+                <.icon name="hero-information-circle-mini" class="w-3.5 h-3.5 text-[var(--ink-300)]" />
+                <span style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">Using tour default setlist</span>
+              </div>
+              <div :for={sl <- @date_setlists} class="mb-5 last:mb-0">
+                <div class="flex items-center justify-between mb-2">
+                  <div style="font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink-900);">{sl.name}</div>
+                  <div class="flex items-center gap-2">
+                    <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">{length(sl.items)} songs</div>
+                    <%= if sl.date && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
+                      <button type="button" phx-click="remove_date_setlist" phx-value-id={sl.id} data-confirm="Remove this setlist from this date?" class="p-1 rounded-[var(--radius-sm)] cursor-pointer hover:bg-[var(--signal-stop-tint)]">
+                        <.icon name="hero-x-mark-mini" class="w-3.5 h-3.5 text-[var(--signal-stop)]" />
+                      </button>
+                    <% end %>
+                  </div>
+                </div>
+                <%= if sl.file_url && sl.file_type in ~w(jpg jpeg png heic) do %>
+                  <img src={sl.file_url} class="w-full rounded-[var(--radius-md)] border border-[var(--paper-300)] mb-3 max-h-[300px] object-contain" style="background: var(--paper-200);" />
+                <% end %>
+                <%= if sl.items != [] do %>
+                  <div class="rounded-[var(--radius-md)] border border-[var(--paper-300)] overflow-hidden" style="background: var(--surface-card);">
+                    <div :for={item <- sl.items} class="flex items-center gap-3 px-4 py-2.5 border-b border-[var(--paper-300)]">
+                      <div class="w-6 text-right flex-none" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink-300);">
+                        {item.position + 1}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-[13px] font-semibold text-[var(--ink-900)] truncate">{item.title}</div>
+                        <div :if={item.notes} style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-400); margin-top: 1px;">{item.notes}</div>
+                      </div>
+                      <div :if={item.duration_seconds} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                        {div(item.duration_seconds, 60)}:{rem(item.duration_seconds, 60) |> Integer.to_string() |> String.pad_leading(2, "0")}
+                      </div>
+                    </div>
+                    <%!-- Runtime total --%>
+                    <% total_seconds = Enum.reduce(sl.items, 0, fn item, acc -> acc + (item.duration_seconds || 0) end) %>
+                    <div class="flex items-center gap-3 px-4 py-2.5" style="background: var(--paper-200); border-top: 2px solid var(--paper-300);">
+                      <div class="w-6 flex-none" />
+                      <div class="flex-1" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">
+                        RUNTIME
+                      </div>
+                      <div style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink-700);">
+                        {div(total_seconds, 3600)}:{div(rem(total_seconds, 3600), 60) |> Integer.to_string() |> String.pad_leading(2, "0")}:{rem(total_seconds, 60) |> Integer.to_string() |> String.pad_leading(2, "0")}
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+
+                <%!-- Generate PDF --%>
+                <div class="mt-3">
+                  <a
+                    href={"/setlist/#{sl.id}/print?mode=stage&tour=#{@current_tour && @current_tour.id}&date=#{@display_date && Date.to_iso8601(@display_date)}"}
+                    target="_blank"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] no-underline transition-colors hover:bg-[var(--paper-200)]"
+                    style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);"
+                  >
+                    <.icon name="hero-printer-mini" class="w-3.5 h-3.5" /> GENERATE PDF
+                  </a>
+                </div>
+              </div>
+
+              <%!-- Add another setlist button --%>
+              <%= if @current_tour && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
+                <button type="button" phx-click="toggle_add_setlist" class="mt-2 w-full py-2.5 rounded-[var(--radius-md)] cursor-pointer flex items-center justify-center gap-2 transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px dashed var(--paper-300);">
+                  <.icon name="hero-plus-mini" class="w-3.5 h-3.5" />
+                  {if @add_setlist_open, do: "CLOSE", else: "ADD SET LIST"}
+                </button>
+              <% end %>
+            <% end %>
+
+            <%!-- Add setlist picker --%>
+            <%= if @add_setlist_open do %>
+              <div class="mt-3 rounded-[var(--radius-md)] border border-[var(--paper-300)] overflow-hidden" style="background: var(--surface-card);">
+                <div class="px-4 py-2.5 border-b border-[var(--paper-300)]" style="background: var(--paper-200);">
+                  <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">TOUR SETLISTS</div>
+                </div>
+                <%= if @assignable_setlists == [] do %>
+                  <div class="px-4 py-6 text-center" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                    No setlists available.
+                    <.link navigate="/setlists" class="no-underline" style="color: var(--brand);"> Create one</.link>
+                  </div>
+                <% else %>
+                  <div
+                    :for={sl <- @assignable_setlists}
+                    class="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-[var(--paper-200)] border-b border-[var(--paper-300)] last:border-b-0"
+                    phx-click="assign_setlist_to_date"
+                    phx-value-id={sl.id}
+                  >
+                    <div class="w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center flex-none" style={"background: #{if sl.is_tour_default, do: "var(--brand)", else: "var(--paper-200)"};"}>
+                      <.icon name="hero-musical-note-mini" class={["w-4 h-4", if(sl.is_tour_default, do: "text-white", else: "text-[var(--ink-400)]")]} />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[13px] font-semibold text-[var(--ink-900)] truncate">{sl.name}</div>
+                      <div style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-400);">{length(sl.items)} songs</div>
                     </div>
                     <.icon name="hero-plus-mini" class="w-4 h-4 text-[var(--brand)]" />
                   </div>

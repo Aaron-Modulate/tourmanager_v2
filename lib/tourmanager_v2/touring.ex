@@ -1,7 +1,7 @@
 defmodule TourmanagerV2.Touring do
   import Ecto.Query
   alias TourmanagerV2.Repo
-  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite, DateCrewAssignment}
+  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite, DateCrewAssignment, Setlist, SetlistItem}
   alias TourmanagerV2.Scheduling.Event
 
   def get_tour!(id), do: Repo.get!(Tour, id)
@@ -480,6 +480,96 @@ defmodule TourmanagerV2.Touring do
       else
         acc
       end
+    end)
+  end
+
+  # --- Setlists ---
+
+  def get_setlist!(id) do
+    Setlist
+    |> Repo.get!(id)
+    |> Repo.preload(:items)
+  end
+
+  def list_setlists_for_tour(tour_id) do
+    Setlist
+    |> where(tour_id: ^tour_id)
+    |> order_by([s], [desc: s.is_tour_default, asc: s.date, asc: s.name])
+    |> Repo.all()
+    |> Repo.preload(:items)
+  end
+
+  def resolve_setlists_for_date(tour_id, date) do
+    date_setlists =
+      Setlist
+      |> where(tour_id: ^tour_id, date: ^date)
+      |> order_by(asc: :name)
+      |> Repo.all()
+      |> Repo.preload(:items)
+
+    if date_setlists != [] do
+      {date_setlists, :date}
+    else
+      defaults =
+        Setlist
+        |> where(tour_id: ^tour_id, is_tour_default: true)
+        |> order_by(asc: :name)
+        |> Repo.all()
+        |> Repo.preload(:items)
+
+      {defaults, :tour_default}
+    end
+  end
+
+  def create_setlist(tour_id, user_id, attrs) do
+    %Setlist{tour_id: tour_id, uploaded_by_id: user_id}
+    |> Setlist.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_setlist(%Setlist{} = setlist, attrs) do
+    setlist
+    |> Setlist.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_setlist(%Setlist{} = setlist) do
+    if setlist.file_url do
+      path = URI.parse(setlist.file_url).path |> String.trim_leading("/")
+      TourmanagerV2.Storage.delete(path)
+    end
+
+    Repo.delete(setlist)
+  end
+
+  def change_setlist(setlist \\ %Setlist{}, attrs \\ %{}) do
+    Setlist.changeset(setlist, attrs)
+  end
+
+  def add_setlist_item(setlist_id, attrs) do
+    %SetlistItem{setlist_id: setlist_id}
+    |> SetlistItem.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_setlist_item(%SetlistItem{} = item, attrs) do
+    item
+    |> SetlistItem.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_setlist_item(%SetlistItem{} = item) do
+    Repo.delete(item)
+  end
+
+  def reorder_setlist_items(setlist_id, item_ids) do
+    Repo.transaction(fn ->
+      item_ids
+      |> Enum.with_index()
+      |> Enum.each(fn {id, index} ->
+        from(i in SetlistItem, where: i.id == ^id and i.setlist_id == ^setlist_id)
+        |> Repo.update_all(set: [position: index])
+      end)
     end)
   end
 end
