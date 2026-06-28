@@ -56,7 +56,7 @@ defmodule TourmanagerV2Web.LandingLive do
           </h1>
 
           <p class="mt-5 max-w-md" style="font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--ink-300); margin-bottom: 0;">
-            Tour routing, day sheets, and crew logistics for touring artists and production teams. Plan routes with Google Maps, manage gig schedules, and keep your crew informed — a modern alternative to spreadsheets and MasterTour.
+            Tour routing, day sheets, and crew logistics for touring artists and production teams. Plan routes with Google Maps, manage gig schedules, and keep your crew informed — a modern alternative to legacy touring tools.
           </p>
 
           <div class="mt-8 flex flex-wrap gap-3">
