@@ -559,6 +559,37 @@ defmodule TourmanagerV2Web.TourComponents do
             SUBSCRIBE · {@billing.total}/MO
           <% end %>
         </button>
+
+        <%!-- Admin test plan controls --%>
+        <%= if TourmanagerV2.Accounts.User.admin?(@current_user) do %>
+          <div class="mt-3 p-3 rounded-[var(--radius-md)] border border-dashed border-[var(--signal-stop)]" style="background: var(--signal-stop-tint);">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="px-1.5 py-0.5 rounded-[var(--radius-stamp)]" style="background: var(--signal-stop); color: #fff; font-family: var(--font-mono); font-weight: 700; font-size: 7px; letter-spacing: 0.1em;">ADMIN</span>
+              <div style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-500); letter-spacing: 0.06em;">TEST PLAN CONTROLS</div>
+            </div>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                phx-click="admin_test_subscribe"
+                class="flex-1 py-2 rounded-[var(--radius-sm)] cursor-pointer flex items-center justify-center gap-1.5 transition-colors hover:bg-[var(--paper-200)]"
+                style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--signal-live); border: 1px solid var(--signal-live);"
+              >
+                <.icon name="hero-bolt-mini" class="w-3.5 h-3.5" />
+                ACTIVATE
+              </button>
+              <button
+                type="button"
+                phx-click="admin_deactivate_plan"
+                data-confirm="Deactivate test plan?"
+                class="flex-1 py-2 rounded-[var(--radius-sm)] cursor-pointer flex items-center justify-center gap-1.5 transition-colors hover:bg-[var(--paper-200)]"
+                style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);"
+              >
+                <.icon name="hero-x-mark-mini" class="w-3.5 h-3.5" />
+                DEACTIVATE
+              </button>
+            </div>
+          </div>
+        <% end %>
       </div>
 
       <%!-- Current plan status + cancellation --%>

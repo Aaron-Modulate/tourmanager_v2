@@ -212,6 +212,40 @@ defmodule TourmanagerV2.Billing do
     end
   end
 
+  # --- Admin test plan (bypasses Stripe) ---
+
+  def activate_admin_test_plan(%User{} = user, seats) do
+    user
+    |> User.changeset(%{
+      plan: "paid",
+      role: "manager",
+      crew_seats: seats,
+      stripe_customer_id: user.stripe_customer_id || "admin_test_#{user.id}",
+      stripe_subscription_id: "admin_test_sub_#{user.id}",
+      stripe_price_id: "admin_test_price",
+      subscription_quantity: seats,
+      subscription_status: "active",
+      subscription_period_end: DateTime.add(DateTime.utc_now(), 365, :day),
+      cancelled_at: nil
+    })
+    |> Repo.update()
+  end
+
+  def deactivate_admin_test_plan(%User{} = user) do
+    user
+    |> User.changeset(%{
+      plan: "free",
+      role: "manager",
+      stripe_subscription_id: nil,
+      stripe_price_id: nil,
+      subscription_quantity: nil,
+      subscription_status: nil,
+      subscription_period_end: nil,
+      cancelled_at: nil
+    })
+    |> Repo.update()
+  end
+
   def cancel_subscription(%User{stripe_subscription_id: sub_id}) when is_binary(sub_id) and sub_id != "" do
     case stripe_post("/v1/subscriptions/#{sub_id}", %{"cancel_at_period_end" => "true"}) do
       {:ok, %{"id" => _id, "cancel_at_period_end" => true}} ->

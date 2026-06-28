@@ -372,6 +372,48 @@ defmodule TourmanagerV2Web.TourSwitching do
     end
   end
 
+  def handle_event("admin_test_subscribe", _params, socket) do
+    user = socket.assigns.current_user
+
+    if user && TourmanagerV2.Accounts.User.admin?(user) do
+      seats = socket.assigns[:billing_seats] || 10
+
+      case TourmanagerV2.Billing.activate_admin_test_plan(user, seats) do
+        {:ok, updated_user} ->
+          {:noreply,
+           socket
+           |> assign(:current_user, updated_user)
+           |> assign(:settings_open, false)
+           |> Phoenix.LiveView.put_flash(:info, "Test plan activated — #{seats} seats")}
+
+        {:error, _} ->
+          {:noreply, assign(socket, :billing_error, "Failed to activate test plan")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("admin_deactivate_plan", _params, socket) do
+    user = socket.assigns.current_user
+
+    if user && TourmanagerV2.Accounts.User.admin?(user) do
+      case TourmanagerV2.Billing.deactivate_admin_test_plan(user) do
+        {:ok, updated_user} ->
+          {:noreply,
+           socket
+           |> assign(:current_user, updated_user)
+           |> assign(:settings_open, false)
+           |> Phoenix.LiveView.put_flash(:info, "Plan deactivated")}
+
+        {:error, _} ->
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("cancel_subscription", _params, socket) do
     user = socket.assigns.current_user
 
