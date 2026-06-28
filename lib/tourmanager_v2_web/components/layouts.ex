@@ -236,6 +236,7 @@ defmodule TourmanagerV2Web.Layouts do
               >
                 <.icon name={item.icon} class="w-5 h-5" />
                 {item.label}
+                <span :if={Map.get(item, :admin)} class="px-1 py-0.5 rounded-[var(--radius-stamp)] ml-auto" style="background: var(--signal-stop); color: #fff; font-size: 7px; letter-spacing: 0.1em; line-height: 1;">ADMIN</span>
               </.link>
             </label>
           </nav>
@@ -376,6 +377,7 @@ defmodule TourmanagerV2Web.Layouts do
           <.link :for={item <- nav_items(@current_user)} navigate={item.path} class={["flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-sm)] no-underline transition-colors", if(item.active.(assigns), do: "text-white", else: if(item.soft, do: "text-[var(--ink-300)]", else: "text-[var(--paper-100)]"))]} style={"font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; #{if item.active.(assigns), do: "background: var(--brand); box-shadow: var(--shadow-hard-sm);", else: "background: transparent;"}"}>
             <.icon name={item.icon} class="w-4 h-4" />
             {item.label}
+            <span :if={Map.get(item, :admin)} class="px-1 py-0.5 rounded-[var(--radius-stamp)] ml-auto" style="background: var(--signal-stop); color: #fff; font-size: 7px; letter-spacing: 0.1em; line-height: 1;">ADMIN</span>
           </.link>
         </nav>
 
@@ -514,10 +516,12 @@ defmodule TourmanagerV2Web.Layouts do
     admin_items =
       if user && TourmanagerV2.Accounts.User.admin?(user) do
         [
-          %{id: "admin_jobs", label: "Jobs", icon: "hero-bolt", path: "/admin/jobs", soft: false,
-            active: fn assigns -> Map.get(assigns, :active_nav) == "admin_jobs" end},
-          %{id: "admin_users", label: "Users", icon: "hero-user-group", path: "/admin/users", soft: false,
+          %{id: "admin_tours", label: "Tours", icon: "hero-map", path: "/admin/tours", soft: false, admin: true,
+            active: fn assigns -> Map.get(assigns, :active_nav) == "admin_tours" end},
+          %{id: "admin_users", label: "Users", icon: "hero-user-group", path: "/admin/users", soft: false, admin: true,
             active: fn assigns -> Map.get(assigns, :active_nav) == "admin_users" end},
+          %{id: "admin_jobs", label: "Jobs", icon: "hero-bolt", path: "/admin/jobs", soft: false, admin: true,
+            active: fn assigns -> Map.get(assigns, :active_nav) == "admin_jobs" end},
         ]
       else
         []

@@ -149,64 +149,6 @@ defmodule TourmanagerV2Web.DashboardLive do
             />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-5 items-start">
-            <%!-- Crew roster --%>
-            <.stamp_card overline_text="Tour crew">
-              <%= if @crew_cards == [] do %>
-                <div class="py-6 text-center" style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400);">
-                  No crew assigned to this tour yet.
-                </div>
-              <% else %>
-                <div class="flex flex-col gap-3">
-                  <div :for={c <- @crew_cards} class="flex items-center gap-3">
-                    <.pass init={c.init} tone="ink" size={30} />
-                    <div class="flex-1">
-                      <div class="text-[13.5px] font-semibold text-[var(--ink-900)]">{c.name}</div>
-                      <div style="font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--ink-400); text-transform: uppercase;">{c.role}</div>
-                    </div>
-                  </div>
-                </div>
-              <% end %>
-            </.stamp_card>
-
-            <%!-- Tour info --%>
-            <div class="flex flex-col gap-[18px]">
-              <.stamp_card overline_text="Tour details">
-                <div class="flex flex-col gap-2.5">
-                  <%= if @current_tour.start_date do %>
-                    <div class="flex items-center justify-between">
-                      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">START</div>
-                      <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--ink-900);">
-                        {Calendar.strftime(@current_tour.start_date, "%d %b %Y")}
-                      </div>
-                    </div>
-                  <% end %>
-                  <%= if @current_tour.end_date do %>
-                    <div class="flex items-center justify-between">
-                      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">END</div>
-                      <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--ink-900);">
-                        {Calendar.strftime(@current_tour.end_date, "%d %b %Y")}
-                      </div>
-                    </div>
-                  <% end %>
-                  <div class="flex items-center justify-between">
-                    <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">STATUS</div>
-                    <.signal_chip
-                      tone={cond do
-                        @current_tour.status == "active" -> "live"
-                        @current_tour.status == "draft" -> "sound"
-                        @current_tour.status == "completed" -> "ink"
-                        true -> "stop"
-                      end}
-                      size="sm"
-                    >
-                      {@current_tour.status}
-                    </.signal_chip>
-                  </div>
-                </div>
-              </.stamp_card>
-            </div>
-          </div>
         <% else %>
           <div class="py-16 text-center">
             <div style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-400); letter-spacing: 0.06em;">

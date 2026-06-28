@@ -243,6 +243,31 @@ defmodule TourmanagerV2.Accounts do
     |> Repo.all()
   end
 
+  def list_users_with_tour_counts do
+    users = list_users()
+
+    tour_counts =
+      TourMembership
+      |> where([tm], tm.role == "manager")
+      |> group_by([tm], tm.user_id)
+      |> select([tm], {tm.user_id, count(tm.id)})
+      |> Repo.all()
+      |> Map.new()
+
+    Enum.map(users, fn user ->
+      %{user: user, tour_count: Map.get(tour_counts, user.id, 0)}
+    end)
+  end
+
+  def list_all_tours do
+    Tour
+    |> join(:left, [t], tm in TourMembership, on: tm.tour_id == t.id and tm.role == "manager")
+    |> join(:left, [_t, tm], u in User, on: u.id == tm.user_id)
+    |> select([t, tm, u], %{tour: t, owner: u})
+    |> order_by([t], desc: t.inserted_at)
+    |> Repo.all()
+  end
+
   def update_last_login(%User{} = user) do
     user
     |> User.changeset(%{last_login_at: DateTime.utc_now()})

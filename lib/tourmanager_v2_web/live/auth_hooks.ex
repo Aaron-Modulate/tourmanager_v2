@@ -48,14 +48,18 @@ defmodule TourmanagerV2Web.AuthHooks do
       |> assign(:current_tour, current_tour_entry && current_tour_entry.tour)
       |> assign(:current_tour_role, current_tour_entry && current_tour_entry.role)
 
-    socket =
-      if detect_unit and Phoenix.LiveView.connected?(socket) do
-        Phoenix.LiveView.push_event(socket, "detect_distance_unit", %{})
-      else
-        socket
-      end
+    if user do
+      socket =
+        if detect_unit and Phoenix.LiveView.connected?(socket) do
+          Phoenix.LiveView.push_event(socket, "detect_distance_unit", %{})
+        else
+          socket
+        end
 
-    {:cont, socket}
+      {:cont, socket}
+    else
+      {:halt, Phoenix.LiveView.redirect(socket, to: "/")}
+    end
   end
 
   defp maybe_expire_trial(nil), do: nil
