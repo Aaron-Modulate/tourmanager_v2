@@ -17,6 +17,9 @@ defmodule TourmanagerV2Web.CalendarController do
         conn
         |> put_resp_content_type("text/calendar")
         |> put_resp_header("content-disposition", "inline; filename=\"#{slugify(tour.name)}.ics\"")
+        |> delete_resp_header("content-security-policy")
+        |> put_resp_header("access-control-allow-origin", "*")
+        |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
         |> send_resp(200, ical)
     end
   end
@@ -70,25 +73,28 @@ defmodule TourmanagerV2Web.CalendarController do
       end)
       |> Enum.join("\r\n")
 
-    tour_dates =
+    cal_name =
       if tour.start_date && tour.end_date do
-        " (#{Calendar.strftime(tour.start_date, "%d %b")} – #{Calendar.strftime(tour.end_date, "%d %b %Y")})"
+        "#{tour.name} (#{Calendar.strftime(tour.start_date, "%d %b")} - #{Calendar.strftime(tour.end_date, "%d %b %Y")})"
       else
-        ""
+        tour.name
       end
 
-    """
-    BEGIN:VCALENDAR\r
-    VERSION:2.0\r
-    PRODID:-//Tour Manager//tourmanager.live//EN\r
-    CALSCALE:GREGORIAN\r
-    METHOD:PUBLISH\r
-    X-WR-CALNAME:#{escape_ical(tour.name)}#{tour_dates}\r
-    X-WR-TIMEZONE:UTC\r
-    #{events}\r
-    END:VCALENDAR\r
-    """
-    |> String.trim()
+    lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Tour Manager//tourmanager.live//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "X-WR-CALNAME:#{escape_ical(cal_name)}",
+      "X-WR-TIMEZONE:UTC",
+      events,
+      "END:VCALENDAR"
+    ]
+
+    lines
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.join("\r\n")
   end
 
   defp escape_ical(text) when is_binary(text) do

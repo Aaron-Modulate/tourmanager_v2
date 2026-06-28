@@ -9,7 +9,7 @@
     <.live_title default="Tour Manager — Day Sheet OS for Touring Artists & Production Crew" suffix="" phx-no-format>{assigns[:page_title]}</.live_title>
 
     <meta name="description" content={assigns[:meta_description] || "Tour routing, day sheets, and crew logistics for music artists, tour managers, and production crew. Plan routes, manage gig schedules, and keep your crew informed — all in one place."} />
-    <meta name="keywords" content="tour management software, tour routing, day sheet, tour manager app, music tour planning, gig scheduling, production crew management, touring logistics, MasterTour alternative" />
+    <meta name="keywords" content="tour management software, tour routing, day sheet app, tour manager app, music tour planning, gig scheduling, production crew management, touring logistics, tour itinerary, run of show" />
 
     <%!-- Open Graph --%>
     <meta property="og:type" content="website" />
@@ -57,6 +57,9 @@
         ]
       }
     </script>
+
+    <script async src="https://plausible.io/js/pa-sJ8cxuIcjzwyAPXlklnwC.js"></script>
+    <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
 
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>

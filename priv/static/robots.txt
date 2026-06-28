@@ -3,10 +3,15 @@ Allow: /
 Disallow: /app
 Disallow: /routing
 Disallow: /dashboard
+Disallow: /crew
+Disallow: /profile
+Disallow: /setlists
 Disallow: /admin/
 Disallow: /api/
 Disallow: /auth/
+Disallow: /cal/
 Disallow: /dev/
 Disallow: /webhooks/
+Disallow: /setlist/
 
 Sitemap: https://tourmanager.live/sitemap.xml

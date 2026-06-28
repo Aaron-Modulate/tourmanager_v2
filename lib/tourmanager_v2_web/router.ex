@@ -15,6 +15,10 @@ defmodule TourmanagerV2Web.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :calendar do
+    plug :accepts, ["html", "json", "ics"]
+  end
+
   scope "/auth", TourmanagerV2Web do
     pipe_through :browser
 
@@ -39,11 +43,16 @@ defmodule TourmanagerV2Web.Router do
   end
 
   scope "/", TourmanagerV2Web do
+    pipe_through :calendar
+
+    get "/cal/:token", CalendarController, :feed
+  end
+
+  scope "/", TourmanagerV2Web do
     pipe_through :browser
 
     get "/sitemap.xml", SitemapController, :index
     get "/setlist/:id/print", SetlistPrintController, :show
-    get "/cal/:token", CalendarController, :feed
 
     live_session :public do
       live "/", LandingLive
