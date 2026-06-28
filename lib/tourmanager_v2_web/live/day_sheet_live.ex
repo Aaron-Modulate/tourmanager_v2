@@ -174,6 +174,21 @@ defmodule TourmanagerV2Web.DaySheetLive do
     end
   end
 
+  def handle_event("reorder_items", %{"ids" => ids}, socket) do
+    date_setlists = socket.assigns[:date_setlists] || []
+
+    setlist = Enum.find(date_setlists, fn sl ->
+      Enum.any?(sl.items, fn item -> item.id in ids end)
+    end)
+
+    if setlist do
+      TourmanagerV2.Touring.reorder_setlist_items(setlist.id, ids)
+      {:noreply, reload_selected_date(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("toggle_add_setlist", _params, socket) do
     {:noreply, assign(socket, :add_setlist_open, !socket.assigns[:add_setlist_open])}
   end
@@ -538,6 +553,9 @@ defmodule TourmanagerV2Web.DaySheetLive do
       billing_error={@billing_error}
       manage_tour_open={@manage_tour_open}
       manage_tour_form={@manage_tour_form}
+      calendar_modal_open={@calendar_modal_open}
+      calendar_token={@calendar_token}
+      calendar_mode={@calendar_mode}
     >
       <%!-- Onboarding: show welcome card for new users with no tours --%>
       <%= if @onboarding_tour_form do %>
@@ -923,17 +941,24 @@ defmodule TourmanagerV2Web.DaySheetLive do
                   <img src={sl.file_url} class="w-full rounded-[var(--radius-md)] border border-[var(--paper-300)] mb-3 max-h-[300px] object-contain" style="background: var(--paper-200);" />
                 <% end %>
                 <%= if sl.items != [] do %>
-                  <div class="rounded-[var(--radius-md)] border border-[var(--paper-300)] overflow-hidden" style="background: var(--surface-card);">
-                    <div :for={item <- sl.items} class="flex items-center gap-3 px-4 py-2.5 border-b border-[var(--paper-300)]">
-                      <div class="w-6 text-right flex-none" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink-300);">
-                        {item.position + 1}
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="text-[13px] font-semibold text-[var(--ink-900)] truncate">{item.title}</div>
-                        <div :if={item.notes} style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-400); margin-top: 1px;">{item.notes}</div>
-                      </div>
-                      <div :if={item.duration_seconds} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
-                        {div(item.duration_seconds, 60)}:{rem(item.duration_seconds, 60) |> Integer.to_string() |> String.pad_leading(2, "0")}
+                  <div class="rounded-[var(--radius-md)] border border-[var(--paper-300)]" style="background: var(--surface-card);">
+                    <div id={"daysheet-setlist-#{sl.id}"} phx-hook=".SortableList" phx-update="ignore">
+                      <div :for={item <- sl.items} id={"ds-item-#{item.id}"} data-id={item.id} class="flex items-center gap-3 px-4 py-2.5 border-b border-[var(--paper-300)]" style="background: var(--surface-card);">
+                        <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
+                          <div class="flex-none cursor-grab active:cursor-grabbing drag-handle touch-none" style="color: var(--ink-300);">
+                            <.icon name="hero-bars-2-mini" class="w-4 h-4" />
+                          </div>
+                        <% end %>
+                        <div class="w-5 text-right flex-none setlist-position" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink-300);">
+                          {item.position + 1}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-[13px] font-semibold text-[var(--ink-900)] truncate">{item.title}</div>
+                          <div :if={item.notes} style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-400); margin-top: 1px;">{item.notes}</div>
+                        </div>
+                        <div :if={item.duration_seconds} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                          {div(item.duration_seconds, 60)}:{rem(item.duration_seconds, 60) |> Integer.to_string() |> String.pad_leading(2, "0")}
+                        </div>
                       </div>
                     </div>
                     <%!-- Runtime total --%>

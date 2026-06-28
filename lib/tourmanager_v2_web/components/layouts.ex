@@ -23,6 +23,9 @@ defmodule TourmanagerV2Web.Layouts do
   attr :billing_error, :string, default: nil
   attr :manage_tour_open, :boolean, default: false
   attr :manage_tour_form, :map, default: nil
+  attr :calendar_modal_open, :boolean, default: false
+  attr :calendar_token, :string, default: nil
+  attr :calendar_mode, :string, default: "subscribe"
 
   slot :inner_block, required: true
 
@@ -361,6 +364,10 @@ defmodule TourmanagerV2Web.Layouts do
                     <.icon name="hero-cog-6-tooth-mini" class="w-3.5 h-3.5" />
                     MANAGE TOUR
                   </button>
+                  <button :if={@current_tour} type="button" phx-click="open_calendar" class="w-full text-left px-4 py-2.5 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--ink-500)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-300);">
+                    <.icon name="hero-calendar-days-mini" class="w-3.5 h-3.5" />
+                    SUBSCRIBE TO CALENDAR
+                  </button>
                 </div>
               </div>
             </div>
@@ -465,6 +472,7 @@ defmodule TourmanagerV2Web.Layouts do
       <.settings_modal :if={@current_user} current_user={@current_user} show={@settings_open} billing_seats={@billing_seats} billing_error={@billing_error} />
       <.new_tour_modal :if={@new_tour_form} form={@new_tour_form} show={@new_tour_open} />
       <.manage_tour_modal :if={@manage_tour_form} form={@manage_tour_form} show={@manage_tour_open} />
+      <.calendar_modal :if={@current_tour} show={@calendar_modal_open} calendar_token={@calendar_token} calendar_mode={@calendar_mode} current_tour={@current_tour} />
     </div>
     """
   end

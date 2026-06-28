@@ -6,6 +6,32 @@ defmodule TourmanagerV2.Touring do
 
   def get_tour!(id), do: Repo.get!(Tour, id)
 
+  # --- Calendar feed ---
+
+  def get_or_create_calendar_token(tour) do
+    if tour.calendar_token do
+      {:ok, tour}
+    else
+      token = Base.url_encode64(:crypto.strong_rand_bytes(24), padding: false)
+
+      tour
+      |> Ecto.Changeset.change(%{calendar_token: token})
+      |> Repo.update()
+    end
+  end
+
+  def get_tour_by_calendar_token(token) do
+    Repo.get_by(Tour, calendar_token: token)
+  end
+
+  def regenerate_calendar_token(tour) do
+    token = Base.url_encode64(:crypto.strong_rand_bytes(24), padding: false)
+
+    tour
+    |> Ecto.Changeset.change(%{calendar_token: token})
+    |> Repo.update()
+  end
+
   # --- Tour memberships & crew ---
 
   def list_tour_memberships(tour_id) do

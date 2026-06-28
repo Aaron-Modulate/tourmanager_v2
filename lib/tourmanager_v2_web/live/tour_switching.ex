@@ -29,7 +29,10 @@ defmodule TourmanagerV2Web.TourSwitching do
       manage_tour_form: nil,
       event_modal_open: false,
       event_form: nil,
-      editing_event: nil
+      editing_event: nil,
+      calendar_modal_open: false,
+      calendar_token: nil,
+      calendar_mode: "subscribe"
     }
   end
 
@@ -608,6 +611,37 @@ defmodule TourmanagerV2Web.TourSwitching do
     else
       {:noreply, socket}
     end
+  end
+
+  # --- Calendar subscription ---
+
+  def handle_event("open_calendar", _params, socket) do
+    tour = socket.assigns.current_tour
+
+    if tour do
+      case TourmanagerV2.Touring.get_or_create_calendar_token(tour) do
+        {:ok, updated_tour} ->
+          {:noreply,
+           socket
+           |> assign(:current_tour, updated_tour)
+           |> assign(:calendar_modal_open, true)
+           |> assign(:calendar_token, updated_tour.calendar_token)
+           |> assign(:calendar_mode, "subscribe")}
+
+        _ ->
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("close_calendar", _params, socket) do
+    {:noreply, assign(socket, :calendar_modal_open, false)}
+  end
+
+  def handle_event("set_calendar_mode", %{"mode" => mode}, socket) do
+    {:noreply, assign(socket, :calendar_mode, mode)}
   end
 
   def handle_event("delete_tour", _params, socket) do

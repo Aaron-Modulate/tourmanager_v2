@@ -43,6 +43,7 @@ defmodule TourmanagerV2Web.Router do
 
     get "/sitemap.xml", SitemapController, :index
     get "/setlist/:id/print", SetlistPrintController, :show
+    get "/cal/:token", CalendarController, :feed
 
     live_session :public do
       live "/", LandingLive

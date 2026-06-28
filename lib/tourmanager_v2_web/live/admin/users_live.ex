@@ -46,6 +46,9 @@ defmodule TourmanagerV2Web.Admin.UsersLive do
       billing_error={@billing_error}
       manage_tour_open={@manage_tour_open}
       manage_tour_form={@manage_tour_form}
+      calendar_modal_open={@calendar_modal_open}
+      calendar_token={@calendar_token}
+      calendar_mode={@calendar_mode}
     >
       <div id="admin-users" class="p-7">
         <div class="mb-5">
@@ -53,9 +56,9 @@ defmodule TourmanagerV2Web.Admin.UsersLive do
           <.display size={26} class="mt-1.5">Users</.display>
         </div>
 
-        <div class="rounded-[var(--radius-md)] border-2 border-[var(--ink-900)] overflow-hidden" style="box-shadow: var(--shadow-hard);">
+        <div class="rounded-[var(--radius-md)] border-2 border-[var(--ink-900)]" style="box-shadow: var(--shadow-hard);">
           <%!-- Table header --%>
-          <div class="grid grid-cols-[48px_1fr_1fr_160px] gap-4 px-5 py-3 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+          <div class="grid grid-cols-[48px_1fr_1fr_160px] gap-4 px-5 py-3 border-b-2 border-[var(--ink-900)] rounded-t-[var(--radius-md)]" style="background: var(--surface-stage);">
             <div></div>
             <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">NAME</div>
             <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-300);">EMAIL</div>

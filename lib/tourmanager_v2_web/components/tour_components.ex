@@ -803,6 +803,145 @@ defmodule TourmanagerV2Web.TourComponents do
     """
   end
 
+  attr :show, :boolean, default: false
+  attr :calendar_token, :string, default: nil
+  attr :calendar_mode, :string, default: "subscribe"
+  attr :current_tour, :map, default: nil
+
+  def calendar_modal(assigns) do
+    cal_url =
+      if assigns.calendar_token do
+        TourmanagerV2Web.Endpoint.url() <> "/cal/#{assigns.calendar_token}"
+      end
+
+    webcal_url =
+      if cal_url do
+        String.replace(cal_url, ~r/^https?/, "webcal")
+      end
+
+    assigns =
+      assigns
+      |> assign(:cal_url, cal_url)
+      |> assign(:webcal_url, webcal_url)
+
+    ~H"""
+    <.tm_modal id="calendar-modal" show={@show} on_close="close_calendar">
+      <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">CALENDAR</div>
+        <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Subscribe to tour</div>
+        <div :if={@current_tour} class="mt-1" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-300);">
+          {@current_tour.name}
+        </div>
+      </div>
+
+      <%!-- Mode switcher --%>
+      <div class="px-6 pt-5 pb-3">
+        <div class="flex gap-2">
+          <button
+            :for={{mode, icon, label} <- [{"subscribe", "hero-calendar-days", "Subscribe"}, {"link", "hero-link", "Link"}, {"qr", "hero-qr-code", "QR Code"}]}
+            type="button"
+            phx-click="set_calendar_mode"
+            phx-value-mode={mode}
+            class={[
+              "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-all",
+              if(@calendar_mode == mode, do: "border-2 border-[var(--brand)]", else: "border border-[var(--paper-300)] hover:border-[var(--ink-400)]")
+            ]}
+            style={"font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; background: #{if @calendar_mode == mode, do: "var(--marker-050)", else: "var(--surface-card)"}; color: #{if @calendar_mode == mode, do: "var(--brand)", else: "var(--ink-500)"};"}
+          >
+            <.icon name={icon} class="w-4 h-4" />
+            {label}
+          </button>
+        </div>
+      </div>
+
+      <div class="px-6 pb-6">
+        <%!-- Subscribe mode --%>
+        <div :if={@calendar_mode == "subscribe" && @webcal_url} class="mt-2">
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 12px;">ADD TO YOUR CALENDAR</div>
+          <a
+            href={@webcal_url}
+            class="w-full flex items-center justify-center gap-2.5 py-3 rounded-[var(--radius-md)] no-underline transition-all"
+            style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+          >
+            <.icon name="hero-calendar-days" class="w-5 h-5" />
+            SUBSCRIBE NOW
+          </a>
+          <div class="mt-4" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); line-height: 1.5;">
+            Opens your default calendar app and creates a live subscription. Tour dates update automatically.
+          </div>
+          <div class="mt-4 pt-4 border-t border-[var(--paper-300)]">
+            <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 8px;">FOR GOOGLE CALENDAR</div>
+            <div class="flex gap-2">
+              <input
+                type="text"
+                readonly
+                value={@cal_url}
+                id="gcal-url-input"
+                class="flex-1 px-3 py-2.5 text-[11px] rounded-[var(--radius-md)] border border-[var(--paper-300)] outline-none"
+                style="background: var(--paper-200); color: var(--ink-700); font-family: var(--font-mono);"
+              />
+              <button
+                type="button"
+                phx-click={Phoenix.LiveView.JS.dispatch("phx:copy", to: "#gcal-url-input")}
+                class="px-3 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-all flex items-center gap-1.5"
+                style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+              >
+                <.icon name="hero-clipboard-document" class="w-3.5 h-3.5" />
+                COPY
+              </button>
+            </div>
+            <div class="mt-2" style="font-family: var(--font-mono); font-size: 9px; color: var(--ink-300); line-height: 1.4;">
+              Google Calendar: Settings → Add calendar → From URL → paste this link
+            </div>
+          </div>
+        </div>
+
+        <%!-- Link mode --%>
+        <div :if={@calendar_mode == "link" && @cal_url} class="mt-2">
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 8px;">CALENDAR FEED URL</div>
+          <div class="flex gap-2">
+            <input
+              type="text"
+              readonly
+              value={@cal_url}
+              id="cal-share-input"
+              class="flex-1 px-3 py-2.5 text-[12px] rounded-[var(--radius-md)] border border-[var(--paper-300)] outline-none"
+              style="background: var(--paper-200); color: var(--ink-700); font-family: var(--font-mono);"
+            />
+            <button
+              type="button"
+              phx-click={Phoenix.LiveView.JS.dispatch("phx:copy", to: "#cal-share-input")}
+              class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer transition-all flex items-center gap-1.5"
+              style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+            >
+              <.icon name="hero-clipboard-document" class="w-4 h-4" />
+              COPY
+            </button>
+          </div>
+          <div class="mt-3" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">
+            Share this URL with anyone. They can subscribe in any calendar app.
+          </div>
+        </div>
+
+        <%!-- QR Code mode --%>
+        <div :if={@calendar_mode == "qr" && @cal_url} class="mt-2">
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); margin-bottom: 8px;">SCAN TO SUBSCRIBE</div>
+          <div class="flex justify-center p-6 rounded-[var(--radius-md)] border border-[var(--paper-300)]" style="background: #fff;">
+            <img
+              src={"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=#{URI.encode(@cal_url)}"}
+              class="w-[200px] h-[200px]"
+              alt="Calendar QR code"
+            />
+          </div>
+          <div class="mt-3 text-center" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">
+            Scan with a phone camera to subscribe to the calendar feed.
+          </div>
+        </div>
+      </div>
+    </.tm_modal>
+    """
+  end
+
   attr :day, :integer, required: true
   attr :date, :string, required: true
   attr :city, :string, required: true

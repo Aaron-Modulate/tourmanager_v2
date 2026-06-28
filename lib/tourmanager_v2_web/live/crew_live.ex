@@ -182,6 +182,9 @@ defmodule TourmanagerV2Web.CrewLive do
       billing_error={@billing_error}
       manage_tour_open={@manage_tour_open}
       manage_tour_form={@manage_tour_form}
+      calendar_modal_open={@calendar_modal_open}
+      calendar_token={@calendar_token}
+      calendar_mode={@calendar_mode}
     >
       <div id="crew-page" class="p-4 md:p-7 max-w-3xl">
         <div class="flex items-end justify-between mb-5">

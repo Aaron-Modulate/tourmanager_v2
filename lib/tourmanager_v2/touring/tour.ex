@@ -13,6 +13,7 @@ defmodule TourmanagerV2.Touring.Tour do
     field :start_date, :date
     field :end_date, :date
     field :status, :string, default: "draft"
+    field :calendar_token, :string
 
     belongs_to :workspace, TourmanagerV2.Accounts.Workspace
     has_many :gigs, TourmanagerV2.Touring.Gig

@@ -134,6 +134,9 @@ defmodule TourmanagerV2Web.RoutingLive do
       billing_error={@billing_error}
       manage_tour_open={@manage_tour_open}
       manage_tour_form={@manage_tour_form}
+      calendar_modal_open={@calendar_modal_open}
+      calendar_token={@calendar_token}
+      calendar_mode={@calendar_mode}
     >
       <%!-- Mobile: next stop at top of page --%>
       <div :if={@next_stop} class="md:hidden p-4 pb-0">
