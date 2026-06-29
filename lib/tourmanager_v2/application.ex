@@ -12,9 +12,7 @@ defmodule TourmanagerV2.Application do
       TourmanagerV2.Repo,
       {DNSCluster, query: Application.get_env(:tourmanager_v2, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: TourmanagerV2.PubSub},
-      # Start a worker by calling: TourmanagerV2.Worker.start_link(arg)
-      # {TourmanagerV2.Worker, arg},
-      # Start to serve requests, typically the last entry
+      TourmanagerV2.Admin.Scheduler,
       TourmanagerV2Web.Endpoint
     ]
 

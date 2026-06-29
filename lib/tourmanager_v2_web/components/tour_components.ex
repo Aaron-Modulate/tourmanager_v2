@@ -526,7 +526,7 @@ defmodule TourmanagerV2Web.TourComponents do
           </div>
           <%= if @billing.extra_seats > 0 do %>
             <div class="flex items-center justify-between mb-1.5">
-              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500);">{@billing.extra_seats} extra seat{if @billing.extra_seats != 1, do: "s", else: ""} × $2</div>
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500);">{@billing.extra_seats} extra seat{if @billing.extra_seats != 1, do: "s", else: ""} × {@billing.extra_per_seat}</div>
               <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--ink-700);">{@billing.extra_cost}</div>
             </div>
           <% end %>

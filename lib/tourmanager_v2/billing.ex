@@ -2,17 +2,19 @@ defmodule TourmanagerV2.Billing do
   alias TourmanagerV2.Repo
   alias TourmanagerV2.Accounts.User
 
-  @base_seats 10
-  @base_price_cents 4900
-  @extra_seat_cents 200
+  @default_base_seats 10
+  @default_base_price_cents 4900
+  @default_extra_seat_cents 200
 
-  def base_seats, do: @base_seats
+  def base_seats, do: cached_pricing().base_seats
 
-  def calculate_price(seats) when is_integer(seats) and seats >= @base_seats do
-    @base_price_cents + (seats - @base_seats) * @extra_seat_cents
+  def calculate_price(seats) when is_integer(seats) do
+    p = cached_pricing()
+    seats = max(seats, p.base_seats)
+    p.base_price_cents + (seats - p.base_seats) * p.extra_seat_cents
   end
 
-  def calculate_price(_), do: @base_price_cents
+  def calculate_price(_), do: cached_pricing().base_price_cents
 
   def format_price(cents) do
     dollars = div(cents, 100)
@@ -21,29 +23,63 @@ defmodule TourmanagerV2.Billing do
   end
 
   def price_breakdown(seats) when is_integer(seats) do
-    seats = max(seats, @base_seats)
-    extra = seats - @base_seats
-    total = @base_price_cents + extra * @extra_seat_cents
+    p = cached_pricing()
+    seats = max(seats, p.base_seats)
+    extra = seats - p.base_seats
+    total = p.base_price_cents + extra * p.extra_seat_cents
 
     %{
-      base: format_price(@base_price_cents),
+      base: format_price(p.base_price_cents),
       extra_seats: extra,
-      extra_cost: if(extra > 0, do: format_price(extra * @extra_seat_cents)),
+      extra_cost: if(extra > 0, do: format_price(extra * p.extra_seat_cents)),
+      extra_per_seat: format_price(p.extra_seat_cents),
       total: format_price(total),
       total_cents: total
+    }
+  end
+
+  def cached_pricing do
+    case TourmanagerV2.Repo.get_by(TourmanagerV2.Admin.Job, name: "stripe_sync_pricing") do
+      %{last_result: result} when is_binary(result) ->
+        case Jason.decode(result) do
+          {:ok, data} ->
+            %{
+              base_price_cents: data["base_price_cents"] || @default_base_price_cents,
+              extra_seat_cents: data["extra_seat_cents"] || @default_extra_seat_cents,
+              base_seats: data["base_seats"] || @default_base_seats
+            }
+
+          _ ->
+            default_pricing()
+        end
+
+      _ ->
+        default_pricing()
+    end
+  end
+
+  defp default_pricing do
+    %{
+      base_price_cents: @default_base_price_cents,
+      extra_seat_cents: @default_extra_seat_cents,
+      base_seats: @default_base_seats
     }
   end
 
   def fetch_stripe_pricing do
     price_id = current_price_id()
 
-    case stripe_get("/v1/prices/#{price_id}") do
+    case stripe_get("/v1/prices/#{price_id}?expand[]=tiers") do
       {:ok, price} ->
         product_id = price["product"]
         product_data = case stripe_get("/v1/products/#{product_id}") do
           {:ok, prod} -> %{name: prod["name"], description: prod["description"]}
           _ -> %{name: nil, description: nil}
         end
+
+        tiers = price["tiers"] || []
+
+        {base_price, extra_seat_price, base_up_to} = extract_tier_pricing(tiers)
 
         {:ok, %{
           price_id: price["id"],
@@ -52,8 +88,11 @@ defmodule TourmanagerV2.Billing do
           type: price["type"],
           recurring: price["recurring"],
           product: product_data,
-          tiers: price["tiers"],
+          tiers: tiers,
           billing_scheme: price["billing_scheme"],
+          base_price_cents: base_price,
+          extra_seat_cents: extra_seat_price,
+          base_seats: base_up_to,
           fetched_at: DateTime.utc_now() |> DateTime.to_iso8601()
         }}
 
@@ -61,6 +100,19 @@ defmodule TourmanagerV2.Billing do
         {:error, reason}
     end
   end
+
+  defp extract_tier_pricing(tiers) when is_list(tiers) and length(tiers) >= 2 do
+    [first | rest] = tiers
+    second = List.first(rest)
+
+    base_up_to = first["up_to"] || @base_seats
+    base_flat = first["flat_amount"] || @base_price_cents
+    extra_unit = second["unit_amount"] || @extra_seat_cents
+
+    {base_flat, extra_unit, base_up_to}
+  end
+
+  defp extract_tier_pricing(_), do: {@base_price_cents, @extra_seat_cents, @base_seats}
 
   defp secret_key, do: System.get_env("STRIPE_SECRET_KEY")
   defp current_price_id, do: System.get_env("STRIPE_PRICE_ID")
