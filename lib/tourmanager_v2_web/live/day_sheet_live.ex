@@ -438,6 +438,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
             label: e.name,
             tone: tone,
             loc: e.location || "",
+            notes: e.notes,
             done: false,
             flag: e.category in ~w(doors showtime curfew),
             category: e.category
@@ -514,6 +515,13 @@ defmodule TourmanagerV2Web.DaySheetLive do
         Enum.any?(date_setlists, fn ds -> ds.id == sl.id end)
       end)
 
+    date_accommodation =
+      if tour && selected_date do
+        TourmanagerV2.Touring.get_accommodation_for_date(tour.id, selected_date)
+      else
+        nil
+      end
+
     assign(socket,
       run_of_show_data: run_of_show,
       crew_cards: crew_cards,
@@ -530,7 +538,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
       date_setlists: date_setlists,
       date_setlist_source: date_setlist_source,
       assignable_setlists: assignable_setlists,
-      add_setlist_open: socket.assigns[:add_setlist_open] || false
+      add_setlist_open: socket.assigns[:add_setlist_open] || false,
+      date_accommodation: date_accommodation
     )
   end
 
@@ -668,6 +677,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
                 label={row.label}
                 tone={row.tone}
                 loc={row.loc}
+                notes={row[:notes]}
                 done={row.done}
                 flag={row.flag}
                 event_id={row[:id]}
@@ -1082,6 +1092,28 @@ defmodule TourmanagerV2Web.DaySheetLive do
                 <% else %>
                   Select a tour to see what's next.
                 <% end %>
+              </div>
+            </.stamp_card>
+          <% end %>
+
+          <%!-- Accommodation card --%>
+          <%= if @date_accommodation do %>
+            <.stamp_card overline_text="Accommodation" padding="18px">
+              <div>
+                <div style="font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink-900);">{@date_accommodation.location}</div>
+                <div class="mt-1.5 flex flex-col gap-1">
+                  <div class="flex items-center gap-2" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">
+                    <.icon name="hero-arrow-right-start-on-rectangle-mini" class="w-3 h-3" />
+                    Check-in: {Calendar.strftime(@date_accommodation.check_in, "%d %b %Y")}
+                  </div>
+                  <div :if={@date_accommodation.check_out} class="flex items-center gap-2" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">
+                    <.icon name="hero-arrow-left-start-on-rectangle-mini" class="w-3 h-3" />
+                    Check-out: {Calendar.strftime(@date_accommodation.check_out, "%d %b %Y")}
+                  </div>
+                  <div :if={@date_accommodation.booking_reference} class="flex items-center gap-2" style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: var(--ink-300);">
+                    REF: {@date_accommodation.booking_reference}
+                  </div>
+                </div>
               </div>
             </.stamp_card>
           <% end %>

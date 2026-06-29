@@ -228,14 +228,15 @@ defmodule TourmanagerV2Web.TourSwitching do
     {:noreply, assign(socket, :add_route_form, Phoenix.Component.to_form(changeset))}
   end
 
-  def handle_event("save_route_entry", %{"route_entry" => params}, socket) do
+  def handle_event("save_route_entry", %{"route_entry" => params} = full_params, socket) do
     tour = socket.assigns.current_tour
 
     if tour do
       params = maybe_fetch_travel_time(params)
 
       case TourmanagerV2.Touring.create_route_entry(tour, tour.workspace_id, params) do
-        {:ok, _entry} ->
+        {:ok, entry} ->
+          maybe_create_accommodation(tour.id, entry.id, full_params)
           TourBroadcast.broadcast_change(tour.id)
 
           {:noreply,
@@ -252,7 +253,7 @@ defmodule TourmanagerV2Web.TourSwitching do
     end
   end
 
-  def handle_event("update_route_entry", %{"route_entry" => params}, socket) do
+  def handle_event("update_route_entry", %{"route_entry" => params} = full_params, socket) do
     entry = socket.assigns[:editing_route_entry]
     tour = socket.assigns.current_tour
 
@@ -260,7 +261,8 @@ defmodule TourmanagerV2Web.TourSwitching do
       params = maybe_fetch_travel_time(params)
 
       case TourmanagerV2.Touring.update_route_entry(entry, params) do
-        {:ok, _updated} ->
+        {:ok, updated} ->
+          maybe_create_accommodation(tour.id, updated.id, full_params)
           TourBroadcast.broadcast_change(tour.id)
 
           {:noreply,
@@ -907,6 +909,23 @@ defmodule TourmanagerV2Web.TourSwitching do
   end
 
   defp extract_city(_), do: nil
+
+  defp maybe_create_accommodation(tour_id, entry_id, %{"accommodation" => acc_params}) do
+    location = acc_params["location"] || ""
+    check_in = acc_params["check_in"] || ""
+
+    if location != "" && check_in != "" do
+      existing = TourmanagerV2.Touring.get_accommodation_for_entry(entry_id)
+
+      if existing do
+        TourmanagerV2.Touring.update_accommodation(existing, acc_params)
+      else
+        TourmanagerV2.Touring.create_accommodation(tour_id, entry_id, acc_params)
+      end
+    end
+  end
+
+  defp maybe_create_accommodation(_, _, _), do: :ok
 
   defp ensure_gig_for_tour(tour, socket) do
     date = socket.assigns[:selected_date]

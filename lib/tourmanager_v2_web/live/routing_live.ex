@@ -81,12 +81,26 @@ defmodule TourmanagerV2Web.RoutingLive do
 
   defp compute_route_assigns(socket) do
     route_entries = socket.assigns[:route_entries] || []
+    tour = socket.assigns[:current_tour]
     unit = if socket.assigns[:current_user], do: socket.assigns.current_user.distance_unit, else: "km"
 
+    accommodations =
+      if tour do
+        TourmanagerV2.Touring.list_accommodations_for_tour(tour.id)
+      else
+        []
+      end
+
+    route_data =
+      Enum.map(route_entries, fn r ->
+        acc = Enum.find(accommodations, fn a -> a.route_entry_id == r.id end)
+        Map.put(r, :accommodation, acc)
+      end)
+
     assign(socket,
-      route_data: route_entries,
-      today_stop: Enum.find(route_entries, fn r -> r.status == "today" end),
-      next_stop: Enum.find(route_entries, fn r -> r.status == "next" end),
+      route_data: route_data,
+      today_stop: Enum.find(route_data, fn r -> r.status == "today" end),
+      next_stop: Enum.find(route_data, fn r -> r.status == "next" end),
       distance_unit: unit
     )
   end
@@ -212,8 +226,9 @@ defmodule TourmanagerV2Web.RoutingLive do
                     dest_address={r.entry.dest_address}
                     directions_url={TourmanagerV2.GoogleMaps.directions_url(r.entry)}
                     distance_label={if(r.type == "vehicle_travel" && r.km > 0, do: TourmanagerV2.GoogleMaps.format_distance(r.km, @distance_unit))}
+                    accommodation_name={r.accommodation && r.accommodation.location}
                   />
-                  <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div class="absolute top-2 right-2">
                     <.overflow_menu id={"route-menu-#{r.id}"}>
                       <%= if r.type == "gig" && r.raw_date do %>
                         <.link navigate={"/app?date=#{Date.to_iso8601(r.raw_date)}"} class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)] no-underline" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">

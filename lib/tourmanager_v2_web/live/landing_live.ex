@@ -253,36 +253,78 @@ defmodule TourmanagerV2Web.LandingLive do
       <%!-- Features section --%>
       <section style="background: var(--surface-stage); border-top: 2px solid var(--ink-900); border-bottom: 2px solid var(--ink-900);" aria-label="Tour management features">
         <div class="max-w-5xl mx-auto px-6 md:px-10 py-12 md:py-16">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <div>
+          <div class="mb-10">
+            <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand); margin-bottom: 8px;">FEATURES</div>
+            <h2 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 4vw, 32px); letter-spacing: -0.02em; color: #fff; margin: 0;">
+              Everything you need to manage a tour
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div id="concert-advancing">
+              <div class="flex items-center gap-2 mb-3">
+                <.icon name="hero-clipboard-document-check" class="w-5 h-5 text-[var(--brand)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">ADVANCING</div>
+              </div>
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Concert advancing and day sheets</h3>
+              <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
+                Advance every show with structured day sheets that track load-in, soundcheck, doors, and curfew. Share the run of show with your entire production team so everyone arrives prepared.
+              </p>
+            </div>
+
+            <div id="tour-routing">
               <div class="flex items-center gap-2 mb-3">
                 <.icon name="hero-map" class="w-5 h-5 text-[var(--brand)]" />
                 <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">ROUTING</div>
               </div>
-              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Plan tour routes with Google Maps</h3>
-              <div style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5;">
-                Add gigs, travel days, and off days. Google Maps integration shows distances and drive times between every stop.
-              </div>
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Tour route planning with Google Maps</h3>
+              <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
+                Build your tour route with gigs, travel days, and off days. Google Maps integration calculates distances and drive times between every stop automatically.
+              </p>
             </div>
-            <div>
-              <div class="flex items-center gap-2 mb-3">
-                <.icon name="hero-clipboard-document-list" class="w-5 h-5 text-[var(--brand)]" />
-                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">DAY SHEET</div>
-              </div>
-              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Day sheets and run of show scheduling</h3>
-              <div style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5;">
-                Times, locations, and statuses for every moment of gig day. Call sheet format your crew already knows.
-              </div>
-            </div>
-            <div>
+
+            <div id="crew-scheduling">
               <div class="flex items-center gap-2 mb-3">
                 <.icon name="hero-users" class="w-5 h-5 text-[var(--brand)]" />
                 <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">CREW</div>
               </div>
-              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Crew management and logistics</h3>
-              <div style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5;">
-                Invite crew members who see exactly what they need. Managers run the show, crew stays informed.
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Crew scheduling and management</h3>
+              <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
+                Assign crew to all dates or specific shows. Per-date crew management lets you schedule the right people for each gig with day sheet access for everyone.
+              </p>
+            </div>
+
+            <div id="production-calendar">
+              <div class="flex items-center gap-2 mb-3">
+                <.icon name="hero-calendar-days" class="w-5 h-5 text-[var(--brand)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">CALENDAR</div>
               </div>
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Production calendar and scheduling</h3>
+              <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
+                Your tour as a live calendar feed. Subscribe from Google Calendar, Apple Calendar, or Outlook — every date, venue, and schedule change syncs automatically.
+              </p>
+            </div>
+
+            <div id="tour-budgeting">
+              <div class="flex items-center gap-2 mb-3">
+                <.icon name="hero-banknotes" class="w-5 h-5 text-[var(--brand)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">BUDGETING</div>
+              </div>
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Tour budgeting and settlements</h3>
+              <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
+                Track accommodation, booking references, and per-date costs across your entire route. Maintain the records you need for accurate tour settlements and financial reporting.
+              </p>
+            </div>
+
+            <div id="vehicle-scheduling">
+              <div class="flex items-center gap-2 mb-3">
+                <.icon name="hero-truck" class="w-5 h-5 text-[var(--brand)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">TRANSPORT</div>
+              </div>
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Vehicle scheduling and equipment logistics</h3>
+              <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
+                Track travel days with real-time drive times and distances. Coordinate vehicle movements, booking references, and load-in schedules for every leg of the tour.
+              </p>
             </div>
           </div>
         </div>
@@ -316,7 +358,7 @@ defmodule TourmanagerV2Web.LandingLive do
               <div style="font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--ink-900);">Manager</div>
               <span class="px-2 py-0.5 rounded-[var(--radius-stamp)]" style="background: var(--brand); color: #fff; font-family: var(--font-mono); font-weight: 700; font-size: 9px; letter-spacing: 0.1em;">7-DAY TRIAL</span>
             </div>
-            <div class="mt-1" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">From $49 NZD/mo · 10 crew seats</div>
+            <div class="mt-1" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">From $39 NZD/mo · 10 crew seats</div>
             <div class="mt-4 flex flex-col gap-2">
               <div :for={f <- ["Everything in Crew", "Create and manage tours", "Invite crew members", "Google Maps integration", "Full admin controls"]} class="flex items-center gap-2" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-500);">
                 <.icon name="hero-check-mini" class="w-3.5 h-3.5 text-[var(--brand)]" />

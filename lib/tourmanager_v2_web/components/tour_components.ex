@@ -221,6 +221,7 @@ defmodule TourmanagerV2Web.TourComponents do
   attr :flag, :boolean, default: false
   attr :event_id, :string, default: nil
   attr :is_manager, :boolean, default: false
+  attr :notes, :string, default: nil
 
   def schedule_row(assigns) do
     ~H"""
@@ -239,9 +240,15 @@ defmodule TourmanagerV2Web.TourComponents do
         <div class={["text-[15px] font-semibold text-[var(--ink-900)]", if(@done, do: "line-through", else: "")]}>
           {@label}
         </div>
-        <div class="flex items-center gap-1.5 mt-0.5" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
-          <.icon name="hero-map-pin-mini" class="w-3 h-3" /> {@loc}
-        </div>
+        <%= if @notes && @notes != "" do %>
+          <div class="mt-0.5" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); font-style: italic;">
+            {@notes}
+          </div>
+        <% else %>
+          <div class="flex items-center gap-1.5 mt-0.5" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+            <.icon name="hero-map-pin-mini" class="w-3 h-3" /> {@loc}
+          </div>
+        <% end %>
       </div>
       <div class="flex items-center gap-2">
         <.signal_chip :if={@flag} tone={@tone} hard>
@@ -993,6 +1000,7 @@ defmodule TourmanagerV2Web.TourComponents do
   attr :origin_address, :string, default: nil
   attr :dest_address, :string, default: nil
   attr :directions_url, :string, default: nil
+  attr :accommodation_name, :string, default: nil
 
   def route_stop_enhanced(assigns) do
     is_today = assigns.status == "today"
@@ -1201,6 +1209,13 @@ defmodule TourmanagerV2Web.TourComponents do
             >
               REF: {@booking_ref}
             </div>
+            <div
+              :if={@accommodation_name}
+              class="flex items-center gap-1 mt-0.5"
+              style={"font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: #{if @is_today, do: "var(--ink-300)", else: "var(--ink-400)"}"}
+            >
+              <.icon name="hero-building-office-2-mini" class="w-3 h-3" /> {@accommodation_name}
+            </div>
           </div>
           <.signal_chip :if={@status not in ~w(done upcoming)} tone={route_tone(@status)} size="sm">
             {@status}
@@ -1382,6 +1397,35 @@ defmodule TourmanagerV2Web.TourComponents do
               <.input field={@form[:date]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
             </div>
           <% end %>
+
+          <%!-- Accommodation (collapsible, all types) --%>
+          <details class="group/accom rounded-[var(--radius-md)] border border-[var(--paper-300)]" style="background: var(--paper-200);">
+            <summary class="flex items-center gap-2 px-3 py-2.5 cursor-pointer list-none" style="list-style: none;">
+              <.icon name="hero-building-office-2-mini" class="w-4 h-4 text-[var(--ink-400)]" />
+              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">ACCOMMODATION</span>
+              <.icon name="hero-chevron-down" class="w-3.5 h-3.5 text-[var(--ink-300)] ml-auto transition-transform group-open/accom:rotate-180" />
+            </summary>
+            <div class="px-3 pb-3 pt-1 flex flex-col gap-3">
+              <div>
+                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">HOTEL / LOCATION</label>
+                <input type="text" name="accommodation[location]" value={@form.params["accommodation"]["location"] || ""} placeholder="e.g. Hilton Downtown" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">CHECK-IN</label>
+                  <input type="date" name="accommodation[check_in]" value={@form.params["accommodation"]["check_in"] || ""} class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+                </div>
+                <div>
+                  <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">CHECK-OUT</label>
+                  <input type="date" name="accommodation[check_out]" value={@form.params["accommodation"]["check_out"] || ""} class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+                </div>
+              </div>
+              <div>
+                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">BOOKING REF</label>
+                <input type="text" name="accommodation[booking_reference]" value={@form.params["accommodation"]["booking_reference"] || ""} placeholder="Confirmation #" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+              </div>
+            </div>
+          </details>
 
           <%!-- Notes (all types) --%>
           <div>

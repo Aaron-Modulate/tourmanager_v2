@@ -9,7 +9,7 @@
     <.live_title default="Tour Manager — Day Sheet OS for Touring Artists & Production Crew" suffix="" phx-no-format>{assigns[:page_title]}</.live_title>
 
     <meta name="description" content={assigns[:meta_description] || "Tour routing, day sheets, and crew logistics for music artists, tour managers, and production crew. Plan routes, manage gig schedules, and keep your crew informed — all in one place."} />
-    <meta name="keywords" content="tour management software, tour routing, day sheet app, tour manager app, music tour planning, gig scheduling, production crew management, touring logistics, tour itinerary, run of show" />
+    <meta name="keywords" content="tour management software, tour routing, day sheet app, tour manager app, music tour planning, gig scheduling, production crew management, touring logistics, tour itinerary, run of show, concert advancing, tour budgeting, crew scheduling, tour settlements, production calendar, equipment logistics, vehicle scheduling" />
 
     <%!-- Open Graph --%>
     <meta property="og:type" content="website" />
@@ -45,15 +45,87 @@
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "NZD",
-          "description": "Free crew access. Manager plans from $49 NZD/month with 7-day free trial."
+          "description": "Free crew access. Manager plans from $39 NZD/month with 7-day free trial."
         },
         "featureList": [
           "Tour route planning with Google Maps",
           "Day sheet and run-of-show management",
           "Crew logistics and scheduling",
+          "Concert advancing and artist advancing",
+          "Tour budgeting and expense tracking",
+          "Production calendar management",
+          "Equipment logistics and tracking",
+          "Vehicle scheduling and transport coordination",
+          "Tour settlement reports",
           "Venue management with Google Places",
           "Travel day and off-day tracking",
           "Real-time distance and drive time calculations"
+        ]
+      }
+    </script>
+
+    <%!-- FAQ structured data for search terms --%>
+    <script :if={assigns[:canonical_path] in [nil, "/"]} type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How do you advance a concert?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Advancing a concert means coordinating all logistics before show day — confirming venue details, load-in times, stage plot, backline, catering, accommodation, and crew call times. Tour Manager streamlines concert advancing by centralising day sheets, crew schedules, and venue information in one platform that your entire production team can access in real time."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do you budget a music tour?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Tour budgeting involves forecasting costs for travel, accommodation, crew, equipment, venues, and per diems across every date on the route. Tour Manager helps by tracking your route with real-time distance calculations, linking accommodation to each stop, and managing crew assignments — giving you the data you need to build accurate tour budgets."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do you schedule crew for a tour?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Crew scheduling for tours requires assigning the right people to each date, managing per-date and all-dates assignments, and ensuring everyone has access to the day sheet. Tour Manager provides per-date crew management, automatic day sheet distribution, and real-time schedule updates so every crew member knows where to be and when."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is a production calendar for touring?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "A production calendar maps every date on a tour — gig days, travel days, off days, load-in times, and key deadlines. Tour Manager functions as a production calendar with route planning, date-by-date day sheets, and calendar subscription feeds that sync with Google Calendar, Apple Calendar, and Outlook."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do you manage equipment logistics on tour?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Equipment logistics on tour involves tracking what gear travels where, coordinating load-in and load-out schedules, and ensuring backline and production equipment arrives at each venue on time. Tour Manager helps coordinate equipment logistics through day sheet scheduling, venue-specific notes, and crew communication tools."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do you handle tour settlements?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Tour settlements are the financial reconciliation after each show — comparing guaranteed fees against box office revenue, deducting expenses, and calculating the final payout. Tour Manager supports the settlement process by maintaining per-date records of venues, booking references, and production details needed for accurate show settlements."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do you schedule vehicles for a tour?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Vehicle scheduling on tour means coordinating tour buses, vans, and rental vehicles across every travel day — tracking routes, distances, and drive times between stops. Tour Manager automates vehicle scheduling with Google Maps integration that calculates distances and travel times for every leg of the tour."
+            }
+          }
         ]
       }
     </script>

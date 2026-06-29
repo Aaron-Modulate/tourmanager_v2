@@ -1,7 +1,7 @@
 defmodule TourmanagerV2.Touring do
   import Ecto.Query
   alias TourmanagerV2.Repo
-  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite, DateCrewAssignment, Setlist, SetlistItem}
+  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite, DateCrewAssignment, Setlist, SetlistItem, Accommodation}
   alias TourmanagerV2.Scheduling.Event
 
   def get_tour!(id), do: Repo.get!(Tour, id)
@@ -507,6 +507,47 @@ defmodule TourmanagerV2.Touring do
         acc
       end
     end)
+  end
+
+  # --- Accommodations ---
+
+  def create_accommodation(tour_id, route_entry_id, attrs) do
+    %Accommodation{tour_id: tour_id, route_entry_id: route_entry_id}
+    |> Accommodation.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_accommodation(%Accommodation{} = acc, attrs) do
+    acc
+    |> Accommodation.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_accommodation(%Accommodation{} = acc) do
+    Repo.delete(acc)
+  end
+
+  def get_accommodation_for_entry(route_entry_id) do
+    Accommodation
+    |> where(route_entry_id: ^route_entry_id)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  def get_accommodation_for_date(tour_id, date) do
+    Accommodation
+    |> where(tour_id: ^tour_id)
+    |> where([a], a.check_in <= ^date and (is_nil(a.check_out) or a.check_out > ^date))
+    |> order_by(desc: :check_in)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  def list_accommodations_for_tour(tour_id) do
+    Accommodation
+    |> where(tour_id: ^tour_id)
+    |> order_by(asc: :check_in)
+    |> Repo.all()
   end
 
   # --- Setlists ---
