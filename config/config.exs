@@ -69,6 +69,18 @@ config :sentry,
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()]
 
+config :logger,
+  handlers: [
+    %{
+      id: :sentry_handler,
+      handler: Sentry.LoggerHandler,
+      config: %{
+        level: :error,
+        capture_log_messages: true
+      }
+    }
+  ]
+
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 

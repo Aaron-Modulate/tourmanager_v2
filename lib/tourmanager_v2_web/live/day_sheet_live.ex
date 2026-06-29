@@ -612,7 +612,18 @@ defmodule TourmanagerV2Web.DaySheetLive do
               <% end %>
             </div>
             <%= if @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) && @current_tour do %>
-              <.tm_button variant="secondary" size="sm" icon_name="hero-plus" phx-click="add_event">Add</.tm_button>
+              <%= if @tour_dates != [] do %>
+                <.tm_button variant="secondary" size="sm" icon_name="hero-plus" phx-click="add_event">Add</.tm_button>
+              <% else %>
+                <div class="relative group/nodates">
+                  <button type="button" disabled class="px-3 py-1.5 rounded-[var(--radius-md)] flex items-center gap-1.5 opacity-40 cursor-not-allowed" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">
+                    <.icon name="hero-plus" class="w-3.5 h-3.5" /> Add
+                  </button>
+                  <div class="absolute right-0 top-full mt-2 z-50 px-3 py-2 rounded-[var(--radius-md)] opacity-0 pointer-events-none group-hover/nodates:opacity-100 transition-opacity whitespace-nowrap" style="background: var(--ink-900); color: var(--paper-100); font-family: var(--font-mono); font-size: 10px; box-shadow: var(--shadow-hard-sm);">
+                    Add a date on the <.link navigate="/routing" class="no-underline" style="color: var(--brand); font-weight: 700;">route page</.link> to get started
+                  </div>
+                </div>
+              <% end %>
             <% end %>
           </div>
 

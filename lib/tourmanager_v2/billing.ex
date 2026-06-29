@@ -120,7 +120,7 @@ defmodule TourmanagerV2.Billing do
 
   def webhook_secret!, do: webhook_secret()
 
-  def create_checkout_session(%User{} = user, seats) when is_integer(seats) and seats >= @base_seats do
+  def create_checkout_session(%User{} = user, seats) when is_integer(seats) and seats >= @default_base_seats do
     customer_id = ensure_stripe_customer(user)
     price_id = current_price_id()
 
@@ -272,7 +272,7 @@ defmodule TourmanagerV2.Billing do
       plan: "paid",
       role: "manager",
       crew_seats: seats,
-      stripe_customer_id: user.stripe_customer_id || "admin_test_#{user.id}",
+      stripe_customer_id: user.stripe_customer_id,
       stripe_subscription_id: "admin_test_sub_#{user.id}",
       stripe_price_id: "admin_test_price",
       subscription_quantity: seats,
