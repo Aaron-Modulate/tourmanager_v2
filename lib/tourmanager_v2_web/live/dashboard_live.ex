@@ -6,7 +6,7 @@ defmodule TourmanagerV2Web.DashboardLive do
     socket =
       socket
       |> assign(TourSwitching.default_assigns())
-      |> assign(active_nav: "dashboard", page_title: "Dashboard")
+      |> assign(active_nav: "dashboard", page_title: "Overview")
       |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
       |> compute_dashboard_assigns()
 
@@ -73,7 +73,7 @@ defmodule TourmanagerV2Web.DashboardLive do
       <div id="dashboard" class="p-4 md:p-7">
         <div class="flex items-end justify-between mb-5">
           <div>
-            <.overline>Management</.overline>
+            <.overline>Overview</.overline>
             <.display size={26} class="mt-1.5">
               <%= if @current_tour do %>
                 {@current_tour.name}

@@ -629,7 +629,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
                     <.icon name="hero-plus" class="w-3.5 h-3.5" /> Add
                   </button>
                   <div class="absolute right-0 top-full mt-2 z-50 px-3 py-2 rounded-[var(--radius-md)] opacity-0 pointer-events-none group-hover/nodates:opacity-100 transition-opacity whitespace-nowrap" style="background: var(--ink-900); color: var(--paper-100); font-family: var(--font-mono); font-size: 10px; box-shadow: var(--shadow-hard-sm);">
-                    Add a date on the <.link navigate="/routing" class="no-underline" style="color: var(--brand); font-weight: 700;">route page</.link> to get started
+                    Add a date on the <.link navigate="/routing" class="no-underline" style="color: var(--brand); font-weight: 700;">tour schedule</.link> to get started
                   </div>
                 </div>
               <% end %>
@@ -1153,6 +1153,50 @@ defmodule TourmanagerV2Web.DaySheetLive do
               <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">NOTES</label>
               <.input field={@event_form[:notes]} type="textarea" rows="2" placeholder="Optional" tabindex="6" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none resize-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
             </div>
+
+            <%!-- Accommodation --%>
+            <details class="rounded-[var(--radius-md)] border border-[var(--paper-300)]" style="background: var(--paper-200);">
+              <summary class="flex items-center gap-2 px-3 py-2.5 cursor-pointer list-none" style="list-style: none;">
+                <.icon name="hero-building-office-2-mini" class="w-4 h-4 text-[var(--ink-400)]" />
+                <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">ACCOMMODATION</span>
+                <.icon name="hero-chevron-down" class="w-3.5 h-3.5 text-[var(--ink-300)] ml-auto" />
+              </summary>
+              <div class="px-3 pb-3 pt-1">
+                <div class="relative">
+                  <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">HOTEL / LOCATION</label>
+                  <input
+                    type="text"
+                    name="event_accommodation_location"
+                    value={@event_accommodation_location || ""}
+                    placeholder="Search hotel or address"
+                    phx-debounce="400"
+                    phx-keyup="place_autocomplete"
+                    phx-value-field="event_accommodation"
+                    autocomplete="off"
+                    tabindex="7"
+                    class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors"
+                    style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);"
+                  />
+                  <div
+                    :if={@autocomplete_field == "event_accommodation" && @place_suggestions != []}
+                    class="absolute left-0 right-0 top-full mt-1 rounded-[var(--radius-md)] overflow-hidden z-50"
+                    style="background: var(--surface-card); border: 1px solid var(--paper-300); box-shadow: var(--shadow-hard);"
+                  >
+                    <button
+                      :for={s <- @place_suggestions}
+                      type="button"
+                      phx-click="select_place"
+                      phx-value-place-id={s.place_id}
+                      phx-value-field="event_accommodation"
+                      class="w-full text-left px-4 py-3 cursor-pointer transition-colors hover:bg-[var(--paper-200)] border-b border-[var(--paper-300)] last:border-b-0"
+                    >
+                      <div class="text-[14px] font-semibold text-[var(--ink-900)]">{s.main_text}</div>
+                      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">{s.secondary_text}</div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </details>
           </div>
           <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[var(--paper-300)]">
             <button type="button" phx-click="close_event_modal" class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">CANCEL</button>

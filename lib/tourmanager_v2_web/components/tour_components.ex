@@ -1406,9 +1406,37 @@ defmodule TourmanagerV2Web.TourComponents do
               <.icon name="hero-chevron-down" class="w-3.5 h-3.5 text-[var(--ink-300)] ml-auto transition-transform group-open/accom:rotate-180" />
             </summary>
             <div class="px-3 pb-3 pt-1 flex flex-col gap-3">
-              <div>
+              <div class="relative">
                 <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">HOTEL / LOCATION</label>
-                <input type="text" name="accommodation[location]" value={@form.params["accommodation"]["location"] || ""} placeholder="e.g. Hilton Downtown" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+                <input
+                  type="text"
+                  name="accommodation[location]"
+                  value={@form.params["accommodation"]["location"] || ""}
+                  placeholder="Search hotel or address"
+                  phx-debounce="400"
+                  phx-keyup="place_autocomplete"
+                  phx-value-field="accommodation"
+                  autocomplete="off"
+                  class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none transition-colors"
+                  style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);"
+                />
+                <div
+                  :if={@autocomplete_field == "accommodation" && @place_suggestions != []}
+                  class="absolute left-0 right-0 top-full mt-1 rounded-[var(--radius-md)] overflow-hidden z-50"
+                  style="background: var(--surface-card); border: 1px solid var(--paper-300); box-shadow: var(--shadow-hard);"
+                >
+                  <button
+                    :for={s <- @place_suggestions}
+                    type="button"
+                    phx-click="select_place"
+                    phx-value-place-id={s.place_id}
+                    phx-value-field="accommodation"
+                    class="w-full text-left px-4 py-3 cursor-pointer transition-colors hover:bg-[var(--paper-200)] border-b border-[var(--paper-300)] last:border-b-0"
+                  >
+                    <div class="text-[14px] font-semibold text-[var(--ink-900)]">{s.main_text}</div>
+                    <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400);">{s.secondary_text}</div>
+                  </button>
+                </div>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>

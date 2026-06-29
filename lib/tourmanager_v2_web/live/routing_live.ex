@@ -6,7 +6,7 @@ defmodule TourmanagerV2Web.RoutingLive do
     socket =
       socket
       |> assign(TourSwitching.default_assigns())
-      |> assign(active_nav: "routing", page_title: "Routing")
+      |> assign(active_nav: "routing", page_title: "Tour Schedule")
       |> load_and_compute(socket.assigns[:current_tour])
 
     {:ok, socket}
@@ -183,7 +183,7 @@ defmodule TourmanagerV2Web.RoutingLive do
         <div>
           <div class="flex items-end justify-between mb-[18px]">
             <div>
-              <.overline>Routing</.overline>
+              <.overline>Tour schedule</.overline>
               <.display size={26} class="mt-1.5">The road</.display>
             </div>
             <%= if @current_tour && @current_user do %>
@@ -228,7 +228,7 @@ defmodule TourmanagerV2Web.RoutingLive do
                     distance_label={if(r.type == "vehicle_travel" && r.km > 0, do: TourmanagerV2.GoogleMaps.format_distance(r.km, @distance_unit))}
                     accommodation_name={r.accommodation && r.accommodation.location}
                   />
-                  <div class="absolute top-2 right-2">
+                  <div class="absolute top-2 right-2 z-10">
                     <.overflow_menu id={"route-menu-#{r.id}"}>
                       <%= if r.type == "gig" && r.raw_date do %>
                         <.link navigate={"/app?date=#{Date.to_iso8601(r.raw_date)}"} class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)] no-underline" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">

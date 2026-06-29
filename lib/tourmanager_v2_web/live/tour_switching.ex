@@ -32,7 +32,8 @@ defmodule TourmanagerV2Web.TourSwitching do
       editing_event: nil,
       calendar_modal_open: false,
       calendar_token: nil,
-      calendar_mode: "subscribe"
+      calendar_mode: "subscribe",
+      event_accommodation_location: nil
     }
   end
 
@@ -829,46 +830,69 @@ defmodule TourmanagerV2Web.TourSwitching do
             %{}
           end
 
-        field_updates =
-          case field do
-            "origin" ->
-              %{
-                "origin" => place.name,
-                "origin_place_id" => place.place_id,
-                "origin_lat" => place.lat && to_string(place.lat),
-                "origin_lng" => place.lng && to_string(place.lng),
-                "origin_address" => place.address
-              }
+        case field do
+          "accommodation" ->
+            acc_params = (current_params["accommodation"] || %{})
+            merged_acc = Map.put(acc_params, "location", place.address || place.name)
+            merged = Map.merge(current_params, %{"accommodation" => merged_acc, "type" => socket.assigns.add_route_type})
+            source = editing_source(socket)
+            changeset = TourmanagerV2.Touring.change_route_entry(source, merged)
 
-            "destination" ->
-              %{
-                "destination" => place.name,
-                "dest_place_id" => place.place_id,
-                "dest_lat" => place.lat && to_string(place.lat),
-                "dest_lng" => place.lng && to_string(place.lng),
-                "dest_address" => place.address
-              }
+            {:noreply,
+             socket
+             |> assign(:add_route_form, Phoenix.Component.to_form(changeset))
+             |> assign(:place_suggestions, [])
+             |> assign(:autocomplete_field, nil)}
 
-            _ ->
-              %{
-                "venue" => place.name,
-                "city" => city,
-                "place_id" => place.place_id,
-                "lat" => place.lat && to_string(place.lat),
-                "lng" => place.lng && to_string(place.lng),
-                "venue_image_url" => image_url
-              }
-          end
+          "event_accommodation" ->
+            {:noreply,
+             socket
+             |> assign(:place_suggestions, [])
+             |> assign(:autocomplete_field, nil)
+             |> assign(:event_accommodation_location, place.address || place.name)}
 
-        merged = Map.merge(current_params, Map.put(field_updates, "type", socket.assigns.add_route_type))
-        source = editing_source(socket)
-        changeset = TourmanagerV2.Touring.change_route_entry(source, merged)
+          _ ->
+            field_updates =
+              case field do
+                "origin" ->
+                  %{
+                    "origin" => place.name,
+                    "origin_place_id" => place.place_id,
+                    "origin_lat" => place.lat && to_string(place.lat),
+                    "origin_lng" => place.lng && to_string(place.lng),
+                    "origin_address" => place.address
+                  }
 
-        {:noreply,
-         socket
-         |> assign(:add_route_form, Phoenix.Component.to_form(changeset))
-         |> assign(:place_suggestions, [])
-         |> assign(:autocomplete_field, nil)}
+                "destination" ->
+                  %{
+                    "destination" => place.name,
+                    "dest_place_id" => place.place_id,
+                    "dest_lat" => place.lat && to_string(place.lat),
+                    "dest_lng" => place.lng && to_string(place.lng),
+                    "dest_address" => place.address
+                  }
+
+                _ ->
+                  %{
+                    "venue" => place.name,
+                    "city" => city,
+                    "place_id" => place.place_id,
+                    "lat" => place.lat && to_string(place.lat),
+                    "lng" => place.lng && to_string(place.lng),
+                    "venue_image_url" => image_url
+                  }
+              end
+
+            merged = Map.merge(current_params, Map.put(field_updates, "type", socket.assigns.add_route_type))
+            source = editing_source(socket)
+            changeset = TourmanagerV2.Touring.change_route_entry(source, merged)
+
+            {:noreply,
+             socket
+             |> assign(:add_route_form, Phoenix.Component.to_form(changeset))
+             |> assign(:place_suggestions, [])
+             |> assign(:autocomplete_field, nil)}
+        end
 
       _ ->
         {:noreply, assign(socket, :place_suggestions, [])}
