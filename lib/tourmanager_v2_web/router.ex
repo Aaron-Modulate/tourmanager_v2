@@ -70,6 +70,12 @@ defmodule TourmanagerV2Web.Router do
       live "/admin/tours", Admin.ToursLive
       live "/admin/jobs", Admin.JobsLive
       live "/admin/users", Admin.UsersLive
+
+      # Production — Venue Production Knowledge Map
+      live "/production/venues", VenueProductionProfileLive.Index
+      live "/production/venues/:id", VenueProductionProfileLive.Show
+      live "/production/venues/:venue_id/suggestions", SuggestionReviewLive.Index
+      live "/production/compatibility", CompatibilityLive.Show
     end
   end
 

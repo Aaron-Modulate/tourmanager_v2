@@ -280,4 +280,16 @@ defmodule TourmanagerV2.Accounts do
     |> select([tm], tm.role)
     |> Repo.one()
   end
+
+  def list_workspaces_for_user(user_id) do
+    alias TourmanagerV2.Accounts.{Workspace, WorkspaceMembership}
+
+    Repo.all(
+      from w in Workspace,
+        join: wm in WorkspaceMembership,
+        on: wm.workspace_id == w.id,
+        where: wm.user_id == ^user_id,
+        order_by: w.name
+    )
+  end
 end
