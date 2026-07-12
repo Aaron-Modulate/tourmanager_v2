@@ -340,6 +340,7 @@ defmodule TourmanagerV2Web.RoutingLive do
         editing={@editing_route}
         place_suggestions={@place_suggestions}
         autocomplete_field={@autocomplete_field}
+        production_venue={@production_venue}
       />
     </Layouts.app>
     """

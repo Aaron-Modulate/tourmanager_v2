@@ -27,7 +27,7 @@ defmodule TourmanagerV2.Accounts do
 
   def verify_magic_link(token) do
     token_hash = :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
-    now = DateTime.utc_now()
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     case Repo.one(from m in MagicLink, where: m.token_hash == ^token_hash) do
       nil ->

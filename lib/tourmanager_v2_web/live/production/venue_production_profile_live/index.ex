@@ -1,23 +1,13 @@
 defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
-  @moduledoc "Lists venues belonging to the current user's workspaces."
+  @moduledoc "Lists every venue in the shared production database."
   use TourmanagerV2Web, :live_view
   use TourmanagerV2Web.TourSwitching
 
   alias TourmanagerV2.Production.Profiles
   alias TourmanagerV2.Production.Venue
-  alias TourmanagerV2.Accounts
 
   def mount(_params, _session, socket) do
-    user = socket.assigns.current_user
-
-    venues =
-      if user do
-        user
-        |> Accounts.list_workspaces_for_user()
-        |> Enum.flat_map(fn ws -> Profiles.list_venues_for_workspace(ws.id) end)
-      else
-        []
-      end
+    venues = Profiles.list_all_venues()
 
     socket =
       socket
@@ -53,25 +43,16 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
   end
 
   def handle_event("save_venue", %{"venue" => params}, socket) do
-    user = socket.assigns.current_user
+    case Profiles.create_venue(params) do
+      {:ok, venue} ->
+        {:noreply,
+         socket
+         |> assign(:new_venue_open, false)
+         |> assign(:venues, Enum.sort_by([venue | socket.assigns.venues], & &1.name))
+         |> put_flash(:info, "Venue created.")}
 
-    workspaces = Accounts.list_workspaces_for_user(user.id)
-    workspace = List.first(workspaces)
-
-    if workspace do
-      case Profiles.create_venue(workspace.id, params) do
-        {:ok, venue} ->
-          {:noreply,
-           socket
-           |> assign(:new_venue_open, false)
-           |> assign(:venues, [venue | socket.assigns.venues])
-           |> put_flash(:info, "Venue created.")}
-
-        {:error, cs} ->
-          {:noreply, assign(socket, :new_venue_form, Phoenix.Component.to_form(cs))}
-      end
-    else
-      {:noreply, put_flash(socket, :error, "No workspace found.")}
+      {:error, cs} ->
+        {:noreply, assign(socket, :new_venue_form, Phoenix.Component.to_form(cs))}
     end
   end
 
@@ -128,7 +109,17 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
                 <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink-900);">{venue.name}</div>
                 <div :if={venue.city} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 3px;">{venue.city}{if venue.country, do: ", #{venue.country}", else: ""}</div>
               </div>
-              <.icon name="hero-chevron-right" class="w-4 h-4 text-[var(--ink-400)] flex-none" />
+              <div class="flex items-center gap-3 flex-none">
+                <%= cond do %>
+                  <% !venue.production_profile || venue.production_profile.profile_status == "draft" -> %>
+                    <.signal_chip tone="ink" size="sm">DRAFT</.signal_chip>
+                  <% venue.production_profile.profile_status == "published" -> %>
+                    <.signal_chip tone="live" size="sm" variant="tint">PUBLISHED</.signal_chip>
+                  <% venue.production_profile.profile_status == "needs_review" -> %>
+                    <.signal_chip tone="doors" size="sm" variant="tint">NEEDS REVIEW</.signal_chip>
+                <% end %>
+                <.icon name="hero-chevron-right" class="w-4 h-4 text-[var(--ink-400)]" />
+              </div>
             </.link>
           </div>
         <% end %>

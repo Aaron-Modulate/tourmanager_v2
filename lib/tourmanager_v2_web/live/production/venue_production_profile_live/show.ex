@@ -386,11 +386,7 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
         <%!-- Header --%>
         <div class="flex items-start justify-between mb-6 gap-4">
           <div>
-            <div class="flex items-center gap-2 mb-1">
-              <.link navigate="/production/venues" style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand); text-decoration: none;">PRODUCTION</.link>
-              <.icon name="hero-chevron-right-mini" class="w-3 h-3 text-[var(--ink-300)]" />
-              <span style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">VENUE</span>
-            </div>
+            <.drilldown_breadcrumb back_label="PRODUCTION" navigate="/production/venues" current_label="VENUE" />
             <div style="font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -0.01em; color: var(--ink-900);">{@venue.name}</div>
             <div :if={@venue.city} style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400); margin-top: 4px;">
               {@venue.city}{if @venue.country, do: ", #{@venue.country}", else: ""}

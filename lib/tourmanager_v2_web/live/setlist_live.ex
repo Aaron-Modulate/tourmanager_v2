@@ -242,6 +242,14 @@ defmodule TourmanagerV2Web.SetlistLive do
      |> load_setlists()}
   end
 
+  defp setlist_kind_label(setlist) do
+    cond do
+      setlist.is_tour_default -> "TOUR DEFAULT"
+      setlist.date -> Calendar.strftime(setlist.date, "%d %b %Y") |> String.upcase()
+      true -> "SETLIST"
+    end
+  end
+
   defp load_setlists(socket) do
     tour = socket.assigns[:current_tour]
 
@@ -320,22 +328,18 @@ defmodule TourmanagerV2Web.SetlistLive do
         <% else %>
           <%= if @viewing_setlist do %>
             <%!-- Setlist detail view --%>
-            <div class="mb-4">
-              <button type="button" phx-click="close_setlist_view" class="flex items-center gap-1.5 cursor-pointer" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);">
-                <.icon name="hero-arrow-left-mini" class="w-3.5 h-3.5" /> ALL SETLISTS
-              </button>
-            </div>
+            <.drilldown_breadcrumb
+              back_label="SETLISTS"
+              on_click="close_setlist_view"
+              current_label={setlist_kind_label(@viewing_setlist)}
+            />
 
-            <div class="rounded-[var(--radius-md)] border-2 border-[var(--ink-900)] overflow-hidden" style="box-shadow: var(--shadow-hard);">
+            <div class="rounded-[var(--radius-md)] border-2 border-[var(--ink-900)] overflow-hidden mt-3" style="box-shadow: var(--shadow-hard);">
               <%!-- Header --%>
               <div class="px-5 py-4 flex items-center justify-between" style="background: var(--surface-stage);">
                 <div>
                   <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">
-                    {cond do
-                      @viewing_setlist.is_tour_default -> "TOUR DEFAULT"
-                      @viewing_setlist.date -> Calendar.strftime(@viewing_setlist.date, "%d %b %Y") |> String.upcase()
-                      true -> "SETLIST"
-                    end}
+                    {setlist_kind_label(@viewing_setlist)}
                   </div>
                   <div style="font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff; margin-top: 2px;">
                     {@viewing_setlist.name}

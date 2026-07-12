@@ -13,6 +13,7 @@ defmodule TourmanagerV2Web.Layouts do
   attr :current_tour, :map, default: nil
   attr :current_tour_role, :string, default: nil
   attr :active_nav, :string, default: "daysheet", doc: "active navigation item"
+  attr :active_tab, :string, default: nil, doc: "active sub-tab, for nav items that highlight based on a page's tab (e.g. Guest list)"
   attr :tour_menu_open, :boolean, default: false
   attr :settings_open, :boolean, default: false
   attr :new_tour_open, :boolean, default: false
@@ -227,21 +228,26 @@ defmodule TourmanagerV2Web.Layouts do
           </div>
 
           <%!-- Navigation --%>
-          <nav class="px-2.5 py-3 flex flex-col gap-0.5 flex-1">
-            <label :for={item <- nav_items(@current_user)} for="mobile-left-drawer">
-              <.link
-                navigate={item.path}
-                class={[
-                  "flex items-center gap-3 px-3 py-3 rounded-[var(--radius-sm)] no-underline transition-colors",
-                  if(item.active.(assigns), do: "text-white", else: if(item.soft, do: "text-[var(--ink-300)]", else: "text-[var(--paper-100)]"))
-                ]}
-                style={"font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; #{if item.active.(assigns), do: "background: var(--brand); box-shadow: var(--shadow-hard-sm);", else: "background: transparent;"}"}
-              >
-                <.icon name={item.icon} class="w-5 h-5" />
-                {item.label}
-                <span :if={Map.get(item, :admin)} class="px-1 py-0.5 rounded-[var(--radius-stamp)] ml-auto" style="background: var(--signal-stop); color: #fff; font-size: 7px; letter-spacing: 0.1em; line-height: 1;">ADMIN</span>
-              </.link>
-            </label>
+          <nav class="px-2.5 py-3 flex flex-col gap-1 flex-1">
+            <div :for={section <- nav_sections(@current_user)} class="flex flex-col gap-0.5">
+              <div class="px-3 pt-3 pb-1 first:pt-0" style="font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.24em; color: var(--ink-300);">
+                {String.upcase(section.title)}
+              </div>
+              <label :for={item <- section.items} for="mobile-left-drawer">
+                <.link
+                  navigate={item.path}
+                  class={[
+                    "flex items-center gap-3 px-3 py-3 rounded-[var(--radius-sm)] no-underline transition-colors",
+                    if(item.active.(assigns), do: "text-white", else: if(item.soft, do: "text-[var(--ink-300)]", else: "text-[var(--paper-100)]"))
+                  ]}
+                  style={"font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; #{if item.active.(assigns), do: "background: var(--brand); box-shadow: var(--shadow-hard-sm);", else: "background: transparent;"}"}
+                >
+                  <.icon name={item.icon} class="w-5 h-5" />
+                  {item.label}
+                  <span :if={Map.get(item, :admin)} class="px-1 py-0.5 rounded-[var(--radius-stamp)] ml-auto" style="background: var(--signal-stop); color: #fff; font-size: 7px; letter-spacing: 0.1em; line-height: 1;">ADMIN</span>
+                </.link>
+              </label>
+            </div>
           </nav>
 
           <%!-- User --%>
@@ -380,12 +386,17 @@ defmodule TourmanagerV2Web.Layouts do
           <% end %>
         </div>
 
-        <nav class="px-2.5 py-3 flex flex-col gap-0.5 flex-1">
-          <.link :for={item <- nav_items(@current_user)} navigate={item.path} class={["flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-sm)] no-underline transition-colors", if(item.active.(assigns), do: "text-white", else: if(item.soft, do: "text-[var(--ink-300)]", else: "text-[var(--paper-100)]"))]} style={"font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; #{if item.active.(assigns), do: "background: var(--brand); box-shadow: var(--shadow-hard-sm);", else: "background: transparent;"}"}>
-            <.icon name={item.icon} class="w-4 h-4" />
-            {item.label}
-            <span :if={Map.get(item, :admin)} class="px-1 py-0.5 rounded-[var(--radius-stamp)] ml-auto" style="background: var(--signal-stop); color: #fff; font-size: 7px; letter-spacing: 0.1em; line-height: 1;">ADMIN</span>
-          </.link>
+        <nav class="px-2.5 py-3 flex flex-col gap-1 flex-1">
+          <div :for={section <- nav_sections(@current_user)} class="flex flex-col gap-0.5">
+            <div class="px-3 pt-3 pb-1 first:pt-0" style="font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.24em; color: var(--ink-300);">
+              {String.upcase(section.title)}
+            </div>
+            <.link :for={item <- section.items} navigate={item.path} class={["flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-sm)] no-underline transition-colors", if(item.active.(assigns), do: "text-white", else: if(item.soft, do: "text-[var(--ink-300)]", else: "text-[var(--paper-100)]"))]} style={"font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; #{if item.active.(assigns), do: "background: var(--brand); box-shadow: var(--shadow-hard-sm);", else: "background: transparent;"}"}>
+              <.icon name={item.icon} class="w-4 h-4" />
+              {item.label}
+              <span :if={Map.get(item, :admin)} class="px-1 py-0.5 rounded-[var(--radius-stamp)] ml-auto" style="background: var(--signal-stop); color: #fff; font-size: 7px; letter-spacing: 0.1em; line-height: 1;">ADMIN</span>
+            </.link>
+          </div>
         </nav>
 
         <div class="px-[18px] py-[14px] border-t border-[var(--ink-700)]">
@@ -503,41 +514,55 @@ defmodule TourmanagerV2Web.Layouts do
     end
   end
 
-  defp nav_items(user) do
-    base = [
-      %{id: "daysheet", label: "Day sheet", icon: "hero-clipboard-document-list", path: "/", soft: false,
-        active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" end},
+  # Nav is grouped to mirror the tour workflow, with RUN (day-of-show, the most
+  # frequently used section) surfaced first, then ADVANCE and REVIEW. Admin tools
+  # get their own trailing section.
+  defp nav_sections(user) do
+    advance = [
       %{id: "routing", label: "Tour schedule", icon: "hero-map", path: "/routing", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "routing" end},
-      %{id: "dashboard", label: "Overview", icon: "hero-squares-2x2", path: "/dashboard", soft: false,
-        active: fn assigns -> Map.get(assigns, :active_nav) == "dashboard" end},
       %{id: "crew", label: "Crew", icon: "hero-users", path: "/crew", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "crew" end},
       %{id: "setlists", label: "Setlists", icon: "hero-musical-note", path: "/setlists", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "setlists" end},
-      %{id: "accommodation", label: "Accommodation", icon: "hero-building-office-2", path: "#", soft: true,
-        active: fn _assigns -> false end},
-      %{id: "advance", label: "Advancing", icon: "hero-inbox", path: "#", soft: true,
-        active: fn _assigns -> false end},
-      %{id: "guestlist", label: "Guest list", icon: "hero-ticket", path: "#", soft: true,
-        active: fn _assigns -> false end},
+      %{id: "guestlist", label: "Guest list", icon: "hero-ticket", path: "/app?tab=guests", soft: false,
+        active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" && Map.get(assigns, :active_tab) == "guests" end},
+      %{id: "production", label: "Production", icon: "hero-building-library", path: "/production/venues", soft: false,
+        active: fn assigns -> Map.get(assigns, :active_nav) == "production" end},
+      %{id: "accommodation", label: "Accommodation", icon: "hero-building-office-2", path: "/app?tab=accommodation", soft: false,
+        active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" && Map.get(assigns, :active_tab) == "accommodation" end},
     ]
 
-    admin_items =
-      if user && TourmanagerV2.Accounts.User.admin?(user) do
-        [
-          %{id: "admin_tours", label: "Tours", icon: "hero-map", path: "/admin/tours", soft: false, admin: true,
-            active: fn assigns -> Map.get(assigns, :active_nav) == "admin_tours" end},
-          %{id: "admin_users", label: "Users", icon: "hero-user-group", path: "/admin/users", soft: false, admin: true,
-            active: fn assigns -> Map.get(assigns, :active_nav) == "admin_users" end},
-          %{id: "admin_jobs", label: "Jobs", icon: "hero-bolt", path: "/admin/jobs", soft: false, admin: true,
-            active: fn assigns -> Map.get(assigns, :active_nav) == "admin_jobs" end},
-        ]
-      else
-        []
-      end
+    review = [
+      %{id: "dashboard", label: "Overview", icon: "hero-squares-2x2", path: "/dashboard", soft: false,
+        active: fn assigns -> Map.get(assigns, :active_nav) == "dashboard" end},
+    ]
 
-    base ++ admin_items
+    run = [
+      %{id: "daysheet", label: "Day sheet", icon: "hero-clipboard-document-list", path: "/app", soft: false,
+        active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" && Map.get(assigns, :active_tab) not in ["guests", "accommodation"] end},
+    ]
+
+    sections = [
+      %{title: "Run", items: run},
+      %{title: "Advance", items: advance},
+      %{title: "Review", items: review}
+    ]
+
+    if user && TourmanagerV2.Accounts.User.admin?(user) do
+      admin = [
+        %{id: "admin_tours", label: "Tours", icon: "hero-map", path: "/admin/tours", soft: false, admin: true,
+          active: fn assigns -> Map.get(assigns, :active_nav) == "admin_tours" end},
+        %{id: "admin_users", label: "Users", icon: "hero-user-group", path: "/admin/users", soft: false, admin: true,
+          active: fn assigns -> Map.get(assigns, :active_nav) == "admin_users" end},
+        %{id: "admin_jobs", label: "Jobs", icon: "hero-bolt", path: "/admin/jobs", soft: false, admin: true,
+          active: fn assigns -> Map.get(assigns, :active_nav) == "admin_jobs" end},
+      ]
+
+      sections ++ [%{title: "Admin", items: admin}]
+    else
+      sections
+    end
   end
 
   @doc """

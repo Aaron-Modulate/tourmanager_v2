@@ -1,7 +1,7 @@
 defmodule TourmanagerV2.Touring do
   import Ecto.Query
   alias TourmanagerV2.Repo
-  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite, DateCrewAssignment, Setlist, SetlistItem, Accommodation}
+  alias TourmanagerV2.Touring.{Tour, Gig, RouteEntry, TourMembership, TourInvite, DateCrewAssignment, Setlist, SetlistItem, Accommodation, Guest}
   alias TourmanagerV2.Scheduling.Event
 
   def get_tour!(id), do: Repo.get!(Tour, id)
@@ -517,6 +517,10 @@ defmodule TourmanagerV2.Touring do
     |> Repo.insert()
   end
 
+  def change_accommodation(accommodation \\ %Accommodation{}, attrs \\ %{}) do
+    Accommodation.changeset(accommodation, attrs)
+  end
+
   def update_accommodation(%Accommodation{} = acc, attrs) do
     acc
     |> Accommodation.changeset(attrs)
@@ -548,6 +552,45 @@ defmodule TourmanagerV2.Touring do
     |> where(tour_id: ^tour_id)
     |> order_by(asc: :check_in)
     |> Repo.all()
+  end
+
+  # --- Guests ---
+
+  def get_guest!(id), do: Repo.get!(Guest, id)
+
+  def list_guests_for_date(tour_id, date) do
+    Guest
+    |> where(tour_id: ^tour_id, date: ^date)
+    |> order_by(asc: :name)
+    |> Repo.all()
+  end
+
+  def create_guest(tour_id, date, attrs) do
+    %Guest{tour_id: tour_id, date: date}
+    |> Guest.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_guest(%Guest{} = guest, attrs) do
+    guest
+    |> Guest.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_guest(%Guest{} = guest) do
+    Repo.delete(guest)
+  end
+
+  def change_guest(guest \\ %Guest{}, attrs \\ %{}) do
+    Guest.changeset(guest, attrs)
+  end
+
+  def toggle_guest_checkin(%Guest{checked_in_at: nil} = guest) do
+    update_guest(guest, %{checked_in_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+  end
+
+  def toggle_guest_checkin(%Guest{} = guest) do
+    update_guest(guest, %{checked_in_at: nil})
   end
 
   # --- Setlists ---

@@ -9,7 +9,7 @@ defmodule TourmanagerV2Web.CompatibilityLive.Show do
   def mount(params, _session, socket) do
     user = socket.assigns.current_user
 
-    all_venues = list_all_venues(user)
+    all_venues = Profiles.list_all_venues()
     all_tours = if user, do: Accounts.list_tours_for_user(user.id), else: []
 
     venue_id = params["venue_id"]
@@ -199,10 +199,6 @@ defmodule TourmanagerV2Web.CompatibilityLive.Show do
   # ---------------------------------------------------------------------------
   # Private helpers
   # ---------------------------------------------------------------------------
-
-  defp list_all_venues(_user) do
-    Profiles.list_venues_with_profiles()
-  end
 
   defp overall_label(:compatible), do: "Compatible"
   defp overall_label(:incompatible), do: "Incompatible"

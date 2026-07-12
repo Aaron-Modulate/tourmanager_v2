@@ -6,9 +6,10 @@ defmodule TourmanagerV2Web.TourSwitching do
   """
 
   import Phoenix.Component, only: [assign: 3]
-  import Phoenix.LiveView, only: [push_event: 3, redirect: 2]
+  import Phoenix.LiveView, only: [push_event: 3, redirect: 2, put_flash: 3]
 
   alias TourmanagerV2.TourBroadcast
+  alias TourmanagerV2.Production.Profiles
 
   def default_assigns do
     %{
@@ -25,6 +26,7 @@ defmodule TourmanagerV2Web.TourSwitching do
       autocomplete_field: nil,
       editing_route: false,
       editing_route_entry: nil,
+      production_venue: nil,
       manage_tour_open: false,
       manage_tour_form: nil,
       event_modal_open: false,
@@ -139,7 +141,8 @@ defmodule TourmanagerV2Web.TourSwitching do
      |> assign(:add_route_form, Phoenix.Component.to_form(changeset))
      |> assign(:place_suggestions, [])
      |> assign(:autocomplete_field, nil)
-     |> assign(:editing_route, false)}
+     |> assign(:editing_route, false)
+     |> assign(:production_venue, nil)}
   end
 
   def handle_event("close_add_route", _params, socket) do
@@ -160,7 +163,8 @@ defmodule TourmanagerV2Web.TourSwitching do
      |> assign(:add_route_form, Phoenix.Component.to_form(changeset))
      |> assign(:place_suggestions, [])
      |> assign(:editing_route, true)
-     |> assign(:editing_route_entry, entry)}
+     |> assign(:editing_route_entry, entry)
+     |> assign(:production_venue, Profiles.get_venue_summary_by_place_id(entry.place_id))}
   end
 
   def handle_event("close_edit_route", _params, socket) do
@@ -178,7 +182,8 @@ defmodule TourmanagerV2Web.TourSwitching do
      socket
      |> assign(:add_route_type, type)
      |> assign(:add_route_form, Phoenix.Component.to_form(changeset))
-     |> assign(:place_suggestions, [])}
+     |> assign(:place_suggestions, [])
+     |> assign(:production_venue, nil)}
   end
 
   def handle_event("place_autocomplete", %{"value" => query, "field" => field}, socket) when byte_size(query) >= 3 do
@@ -278,6 +283,40 @@ defmodule TourmanagerV2Web.TourSwitching do
       end
     else
       {:noreply, socket}
+    end
+  end
+
+  def handle_event("create_production_venue", _params, socket) do
+    # The form's changeset params only reflect fields the user has actively
+    # edited this session — when editing a stop whose venue was set earlier,
+    # fall back to the underlying route entry for the place details.
+    params = (socket.assigns[:add_route_form] && socket.assigns.add_route_form.params) || %{}
+    entry = socket.assigns[:editing_route_entry]
+
+    place_id = blank_to_nil(params["place_id"]) || (entry && entry.place_id)
+    venue_name = blank_to_nil(params["venue"]) || (entry && entry.venue)
+
+    if is_nil(place_id) or is_nil(venue_name) do
+      {:noreply, socket}
+    else
+      place = %{
+        place_id: place_id,
+        name: venue_name,
+        address: blank_to_nil(params["city"]) || (entry && entry.city),
+        lat: blank_to_nil(params["lat"]) || (entry && entry.lat),
+        lng: blank_to_nil(params["lng"]) || (entry && entry.lng)
+      }
+
+      case Profiles.get_or_create_venue_by_place(place) do
+        {:ok, venue} ->
+          {:noreply,
+           socket
+           |> assign(:production_venue, Profiles.get_venue_with_production_data(venue.id))
+           |> put_flash(:info, "Added #{venue.name} to the shared production database.")}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Couldn't add this venue right now.")}
+      end
     end
   end
 
@@ -887,17 +926,29 @@ defmodule TourmanagerV2Web.TourSwitching do
             source = editing_source(socket)
             changeset = TourmanagerV2.Touring.change_route_entry(source, merged)
 
+            production_venue =
+              if field in ["origin", "destination"] do
+                socket.assigns[:production_venue]
+              else
+                Profiles.get_venue_summary_by_place_id(place.place_id)
+              end
+
             {:noreply,
              socket
              |> assign(:add_route_form, Phoenix.Component.to_form(changeset))
              |> assign(:place_suggestions, [])
-             |> assign(:autocomplete_field, nil)}
+             |> assign(:autocomplete_field, nil)
+             |> assign(:production_venue, production_venue)}
         end
 
       _ ->
         {:noreply, assign(socket, :place_suggestions, [])}
     end
   end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(val), do: val
 
   defp editing_source(socket) do
     if socket.assigns[:editing_route] && socket.assigns[:editing_route_entry] do

@@ -84,6 +84,13 @@ config :logger,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# CAD file types accepted for venue production document uploads —
+# not registered with the :mime library by default.
+config :mime, :types, %{
+  "application/acad" => ["dwg"],
+  "image/vnd.dxf" => ["dxf"]
+}
+
 config :ueberauth, Ueberauth,
   providers: [
     google: {Ueberauth.Strategy.Google, [default_scope: "email profile"]},

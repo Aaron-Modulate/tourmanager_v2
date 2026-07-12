@@ -38,6 +38,42 @@ defmodule TourmanagerV2Web.TourComponents do
     """
   end
 
+  @doc """
+  Drilldown breadcrumb: a small tappable "back to parent" segment followed by
+  the current context, sitting above a page's large `.display` title —
+  mirrors an iOS nav bar's back button + large-title pattern rather than a
+  full desktop-style breadcrumb trail (only ever one level back).
+
+  Pass `navigate` for a routed parent (a real back destination), or
+  `on_click` for a same-page state toggle (e.g. closing an inline detail view).
+  """
+  attr :back_label, :string, required: true
+  attr :navigate, :string, default: nil
+  attr :on_click, :string, default: nil
+  attr :current_label, :string, required: true
+
+  def drilldown_breadcrumb(assigns) do
+    ~H"""
+    <div class="flex items-center gap-2 mb-1">
+      <.link
+        :if={@navigate}
+        navigate={@navigate}
+        class="inline-flex items-center py-1.5 -my-1.5 -ml-1 pl-1"
+        style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand); text-decoration: none;"
+      >{@back_label}</.link>
+      <button
+        :if={@on_click}
+        type="button"
+        phx-click={@on_click}
+        class="inline-flex items-center py-1.5 -my-1.5 -ml-1 pl-1 cursor-pointer bg-transparent border-0"
+        style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);"
+      >{@back_label}</button>
+      <.icon name="hero-chevron-right-mini" class="w-3 h-3 text-[var(--ink-300)] flex-none" />
+      <span style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">{@current_label}</span>
+    </div>
+    """
+  end
+
   attr :init, :string, required: true
   attr :tone, :string, default: "ink"
   attr :size, :integer, default: 36
@@ -122,7 +158,14 @@ defmodule TourmanagerV2Web.TourComponents do
 
   def tab_bar(assigns) do
     ~H"""
-    <div class={["flex gap-1 border-b-2 border-[var(--paper-300)] pb-0", @class]} role="tablist">
+    <div
+      class={[
+        "flex gap-1 overflow-x-auto border-b-2 border-[var(--paper-300)] pb-0",
+        "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        @class
+      ]}
+      role="tablist"
+    >
       <button
         :for={tab <- @tabs}
         type="button"
@@ -130,7 +173,7 @@ defmodule TourmanagerV2Web.TourComponents do
         phx-click="switch_tab"
         phx-value-tab={tab.value}
         class={[
-          "px-4 py-2 -mb-[2px] border-b-2 cursor-pointer transition-colors",
+          "px-4 py-2 -mb-[2px] border-b-2 cursor-pointer transition-colors shrink-0 whitespace-nowrap",
           if(tab.value == @active,
             do: "border-[var(--brand)] text-[var(--ink-900)] font-semibold",
             else: "border-transparent text-[var(--ink-400)] hover:text-[var(--ink-700)]"
@@ -194,6 +237,9 @@ defmodule TourmanagerV2Web.TourComponents do
   defp button_style("stage"),
     do:
       "background: var(--ink-700); color: var(--paper-100); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
+
+  defp button_style("ghost"),
+    do: "background: transparent; color: var(--ink-500); border: 1px solid var(--paper-300);"
 
   attr :id, :string, required: true
   slot :inner_block, required: true
@@ -1232,6 +1278,7 @@ defmodule TourmanagerV2Web.TourComponents do
   attr :editing, :boolean, default: false
   attr :place_suggestions, :list, default: []
   attr :autocomplete_field, :string, default: nil
+  attr :production_venue, :any, default: nil
 
   def route_entry_modal(assigns) do
     close_event = if assigns.editing, do: "close_edit_route", else: "close_add_route"
@@ -1308,6 +1355,11 @@ defmodule TourmanagerV2Web.TourComponents do
               name={Phoenix.HTML.Form.input_value(@form, :venue)}
               subtitle={Phoenix.HTML.Form.input_value(@form, :city)}
               place_id={Phoenix.HTML.Form.input_value(@form, :place_id)}
+            />
+
+            <.production_info_panel
+              :if={Phoenix.HTML.Form.input_value(@form, :place_id) not in [nil, ""]}
+              venue={@production_venue}
             />
 
             <div>
@@ -1483,6 +1535,80 @@ defmodule TourmanagerV2Web.TourComponents do
     </.tm_modal>
     """
   end
+
+  attr :venue, :any, default: nil
+
+  def production_info_panel(assigns) do
+    ~H"""
+    <div class="rounded-[var(--radius-md)] border border-[var(--paper-300)] px-3 py-3" style="background: var(--paper-200);">
+      <div class="flex items-center gap-2 mb-2">
+        <.icon name="hero-wrench-screwdriver-mini" class="w-4 h-4 text-[var(--ink-400)]" />
+        <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);">PRODUCTION INFO</span>
+        <.signal_chip
+          :if={@venue && @venue.production_profile}
+          tone={production_profile_tone(@venue.production_profile.profile_status)}
+          size="sm"
+          variant="tint"
+        >{String.upcase(String.replace(@venue.production_profile.profile_status, "_", " "))}</.signal_chip>
+      </div>
+
+      <%= if is_nil(@venue) do %>
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); line-height: 1.5;">
+          Not yet in the shared production database.
+        </div>
+        <button
+          type="button"
+          phx-click="create_production_venue"
+          class="mt-2 px-3 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-300)]"
+          style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--brand); background: var(--surface-card); border: 1px solid var(--paper-300);"
+        >
+          + ADD TO PRODUCTION DATABASE
+        </button>
+      <% else %>
+        <div class="grid grid-cols-3 gap-x-3 gap-y-2 mb-2">
+          <.production_stat label="Capacity" value={@venue.capacity && to_string(@venue.capacity)} />
+          <.production_stat label="Stage" value={profile_stage_summary(@venue.production_profile)} />
+          <.production_stat label="Rigging" value={"#{length(@venue.rigging_points)} pts"} />
+          <.production_stat label="Power" value={"#{length(@venue.power_services)} svc"} />
+          <.production_stat label="Lighting" value={"#{length(@venue.lighting_fixtures)} fx"} />
+          <.production_stat label="Docs" value={"#{length(@venue.production_documents)}"} />
+        </div>
+        <.link
+          navigate={"/production/venues/#{@venue.id}"}
+          class="inline-flex items-center gap-1 no-underline transition-colors hover:text-[var(--brand)]"
+          style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);"
+        >
+          VIEW FULL PROFILE <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+        </.link>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :value, :string, default: nil
+
+  def production_stat(assigns) do
+    ~H"""
+    <div :if={@value}>
+      <div style="font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.1em; color: var(--ink-400);">{String.upcase(@label)}</div>
+      <div style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink-900);">{@value}</div>
+    </div>
+    """
+  end
+
+  defp production_profile_tone("published"), do: "live"
+  defp production_profile_tone("needs_review"), do: "doors"
+  defp production_profile_tone(_), do: "ink"
+
+  defp profile_stage_summary(nil), do: nil
+  defp profile_stage_summary(%{stage_width_m: nil, stage_depth_m: nil}), do: nil
+  defp profile_stage_summary(%{stage_width_m: w, stage_depth_m: d}) do
+    "#{fmt_stage_m(w)}×#{fmt_stage_m(d)}"
+  end
+
+  defp fmt_stage_m(nil), do: "?"
+  defp fmt_stage_m(val), do: "#{:erlang.float_to_binary(val / 1, decimals: 1)}m"
 
   attr :form, :map, required: true
   attr :field, :atom, required: true

@@ -34,6 +34,17 @@ defmodule TourmanagerV2.Production.Profiles do
     )
   end
 
+  @doc """
+  Returns every venue in the shared production database, regardless of
+  profile status — this is the canonical list for admin-facing browse/manage
+  screens (as opposed to `list_venues_with_profiles/0`, which is filtered to
+  what's safe to surface to touring teams).
+  """
+  @spec list_all_venues() :: [Venue.t()]
+  def list_all_venues do
+    Repo.all(from v in Venue, order_by: v.name, preload: [:production_profile])
+  end
+
   @spec search_venues(String.t()) :: [Venue.t()]
   def search_venues(query) when byte_size(query) >= 2 do
     term = "%#{query}%"
@@ -53,6 +64,20 @@ defmodule TourmanagerV2.Production.Profiles do
   def get_venue_by_place_id(place_id) when is_binary(place_id) do
     Repo.get_by(Venue, google_place_id: place_id)
   end
+
+  @doc """
+  Looks up a venue by Google Place ID and preloads its full production
+  data, for surfacing a snapshot outside the production section (e.g. on
+  a tour's route stop). Returns nil if no venue is linked to this place yet.
+  """
+  @spec get_venue_summary_by_place_id(String.t() | nil) :: Venue.t() | nil
+  def get_venue_summary_by_place_id(place_id) when is_binary(place_id) and place_id != "" do
+    case get_venue_by_place_id(place_id) do
+      nil -> nil
+      venue -> get_venue_with_production_data(venue.id)
+    end
+  end
+  def get_venue_summary_by_place_id(_), do: nil
 
   @spec get_venue_with_production_data(binary()) :: Venue.t() | nil
   def get_venue_with_production_data(id) do
@@ -92,6 +117,15 @@ defmodule TourmanagerV2.Production.Profiles do
         })
         |> Repo.insert()
     end
+  end
+
+  @doc """
+  Manually creates a venue with no Google Place ID (e.g. an admin adding a
+  venue directly rather than via place-search autocomplete).
+  """
+  @spec create_venue(map()) :: {:ok, Venue.t()} | {:error, Ecto.Changeset.t()}
+  def create_venue(attrs) do
+    %Venue{} |> Venue.changeset(attrs) |> Repo.insert()
   end
 
   @spec update_venue(Venue.t(), map()) :: {:ok, Venue.t()} | {:error, Ecto.Changeset.t()}

@@ -114,11 +114,11 @@ defmodule TourmanagerV2Web.SuggestionReviewLive.Index do
       <div class="p-4 md:p-7 max-w-4xl">
         <%!-- Header --%>
         <div class="mb-6">
-          <div class="flex items-center gap-2 mb-1">
-            <.link navigate={"/production/venues/#{@venue.id}"} style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand); text-decoration: none;">{String.upcase(@venue.name)}</.link>
-            <.icon name="hero-chevron-right-mini" class="w-3 h-3 text-[var(--ink-300)]" />
-            <span style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">SUGGESTIONS</span>
-          </div>
+          <.drilldown_breadcrumb
+            back_label={String.upcase(@venue.name)}
+            navigate={"/production/venues/#{@venue.id}"}
+            current_label="SUGGESTIONS"
+          />
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -0.01em; color: var(--ink-900);">Correction Review</div>
         </div>
 
