@@ -39,15 +39,19 @@ defmodule TourmanagerV2Web.TourComponents do
   end
 
   @doc """
-  Drilldown breadcrumb: a small tappable "back to parent" segment followed by
-  the current context, sitting above a page's large `.display` title —
-  mirrors an iOS nav bar's back button + large-title pattern rather than a
-  full desktop-style breadcrumb trail (only ever one level back).
+  Section eyebrow for every Advance-section page: a small tappable "back to
+  parent" segment followed by the current context, sitting above a page's
+  large `.display` title — mirrors an iOS nav bar's back button + large-title
+  pattern rather than a full desktop-style breadcrumb trail (only ever one
+  level back).
 
   Pass `navigate` for a routed parent (a real back destination), or
-  `on_click` for a same-page state toggle (e.g. closing an inline detail view).
+  `on_click` for a same-page state toggle (e.g. closing an inline detail
+  view). Omit both (and `back_label`) for a top-level page with no parent to
+  go back to — it renders just `current_label` in the same brand-colored
+  eyebrow style, so every Advance page shares one consistent header treatment.
   """
-  attr :back_label, :string, required: true
+  attr :back_label, :string, default: nil
   attr :navigate, :string, default: nil
   attr :on_click, :string, default: nil
   attr :current_label, :string, required: true
@@ -55,21 +59,25 @@ defmodule TourmanagerV2Web.TourComponents do
   def drilldown_breadcrumb(assigns) do
     ~H"""
     <div class="flex items-center gap-2 mb-1">
-      <.link
-        :if={@navigate}
-        navigate={@navigate}
-        class="inline-flex items-center py-1.5 -my-1.5 -ml-1 pl-1"
-        style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand); text-decoration: none;"
-      >{@back_label}</.link>
-      <button
-        :if={@on_click}
-        type="button"
-        phx-click={@on_click}
-        class="inline-flex items-center py-1.5 -my-1.5 -ml-1 pl-1 cursor-pointer bg-transparent border-0"
-        style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);"
-      >{@back_label}</button>
-      <.icon name="hero-chevron-right-mini" class="w-3 h-3 text-[var(--ink-300)] flex-none" />
-      <span style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">{@current_label}</span>
+      <%= if @back_label do %>
+        <.link
+          :if={@navigate}
+          navigate={@navigate}
+          class="inline-flex items-center py-1.5 -my-1.5 -ml-1 pl-1"
+          style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand); text-decoration: none;"
+        >{@back_label}</.link>
+        <button
+          :if={@on_click}
+          type="button"
+          phx-click={@on_click}
+          class="inline-flex items-center py-1.5 -my-1.5 -ml-1 pl-1 cursor-pointer bg-transparent border-0"
+          style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);"
+        >{@back_label}</button>
+        <.icon name="hero-chevron-right-mini" class="w-3 h-3 text-[var(--ink-300)] flex-none" />
+        <span style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">{@current_label}</span>
+      <% else %>
+        <span style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">{@current_label}</span>
+      <% end %>
     </div>
     """
   end
@@ -172,25 +180,27 @@ defmodule TourmanagerV2Web.TourComponents do
         role="tab"
         phx-click="switch_tab"
         phx-value-tab={tab.value}
+        title={tab.label}
+        aria-label={tab.label}
         class={[
-          "px-4 py-2 -mb-[2px] border-b-2 cursor-pointer transition-colors shrink-0 whitespace-nowrap",
+          "px-4 py-2.5 -mb-[2px] border-b-2 cursor-pointer transition-colors shrink-0 flex items-center gap-1.5",
           if(tab.value == @active,
-            do: "border-[var(--brand)] text-[var(--ink-900)] font-semibold",
+            do: "border-[var(--brand)] text-[var(--ink-900)]",
             else: "border-transparent text-[var(--ink-400)] hover:text-[var(--ink-700)]"
           )
         ]}
-        style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;"
       >
-        {tab.label}
+        <.icon name={tab.icon} class="w-5 h-5" />
         <span
           :if={Map.has_key?(tab, :count)}
           class={[
-            "ml-2 px-1.5 py-0.5 rounded text-[10px]",
+            "px-1.5 py-0.5 rounded text-[10px]",
             if(tab.value == @active,
               do: "bg-[var(--brand)] text-white",
               else: "bg-[var(--paper-200)] text-[var(--ink-400)]"
             )
           ]}
+          style="font-family: var(--font-mono); font-weight: 700;"
         >
           {tab.count}
         </span>
@@ -496,7 +506,7 @@ defmodule TourmanagerV2Web.TourComponents do
       <%!-- Header --%>
       <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
         <div>
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">SETTINGS</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">SETTINGS</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Your account</div>
         </div>
         <button
@@ -736,7 +746,7 @@ defmodule TourmanagerV2Web.TourComponents do
       <%!-- Header --%>
       <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
         <div>
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">NEW</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">NEW</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Create tour</div>
         </div>
         <button
@@ -837,7 +847,7 @@ defmodule TourmanagerV2Web.TourComponents do
     <.tm_modal id="manage-tour-modal" show={@show} on_close="close_manage_tour">
       <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
         <div>
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">MANAGE</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">MANAGE</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Edit tour</div>
         </div>
         <button type="button" phx-click="close_manage_tour" class="w-8 h-8 flex items-center justify-center rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--ink-700)]" aria-label="Close">
@@ -911,7 +921,7 @@ defmodule TourmanagerV2Web.TourComponents do
     ~H"""
     <.tm_modal id="calendar-modal" show={@show} on_close="close_calendar">
       <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">CALENDAR</div>
+        <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">CALENDAR</div>
         <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Subscribe to tour</div>
         <div :if={@current_tour} class="mt-1" style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-300);">
           {@current_tour.name}
@@ -1296,7 +1306,7 @@ defmodule TourmanagerV2Web.TourComponents do
       <%!-- Header --%>
       <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
         <div>
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">
             {if @editing, do: "EDIT STOP", else: "ADD TO ROUTE"}
           </div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">
@@ -1705,7 +1715,7 @@ defmodule TourmanagerV2Web.TourComponents do
           <%!-- Stage header --%>
           <div class="px-8 py-6" style="background: var(--surface-stage);">
             <div class="relative z-[2]">
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.24em; color: var(--brand);">
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.24em; color: var(--brand-on-dark);">
                 {if @onboarding_step == "profile", do: "STEP 1 OF 2", else: "STEP 2 OF 2"}
               </div>
               <div style="font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: -0.02em; line-height: 1.1; color: #fff; margin-top: 6px;">

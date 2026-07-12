@@ -133,6 +133,11 @@ defmodule TourmanagerV2.Production.Profiles do
     venue |> Venue.changeset(attrs) |> Repo.update()
   end
 
+  @spec change_venue(Venue.t(), map()) :: Ecto.Changeset.t()
+  def change_venue(%Venue{} = venue, attrs \\ %{}) do
+    Venue.changeset(venue, attrs)
+  end
+
   # ---------------------------------------------------------------------------
   # Production Profile
   # ---------------------------------------------------------------------------

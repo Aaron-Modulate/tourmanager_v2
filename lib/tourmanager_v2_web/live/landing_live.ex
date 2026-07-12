@@ -47,7 +47,7 @@ defmodule TourmanagerV2Web.LandingLive do
             >T</span>
             <div class="leading-none">
               <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.01em; color: #fff;">TOUR MANAGER</div>
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; color: var(--brand); margin-top: 3px;">DAY SHEET OS</div>
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; color: var(--brand-on-dark); margin-top: 3px;">DAY SHEET OS</div>
             </div>
           </div>
 
@@ -87,7 +87,7 @@ defmodule TourmanagerV2Web.LandingLive do
             <label for="auth-modal-trial" class="absolute inset-0" style="background: rgba(20, 17, 15, 0.55); backdrop-filter: blur(4px);" />
             <div class="relative z-10 w-full max-w-sm mx-4 rounded-[var(--radius-xl)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
               <div class="px-6 py-5" style="background: var(--surface-stage);">
-                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">FREE TRIAL</div>
+                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">FREE TRIAL</div>
                 <div style="font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff; margin-top: 4px;">Start your 7-day trial</div>
                 <div class="mt-2" style="font-family: var(--font-sans); font-size: 13px; color: var(--ink-300);">Full manager access. No credit card required.</div>
               </div>
@@ -125,7 +125,7 @@ defmodule TourmanagerV2Web.LandingLive do
             <label for="auth-modal-signin" class="absolute inset-0" style="background: rgba(20, 17, 15, 0.55); backdrop-filter: blur(4px);" />
             <div class="relative z-10 w-full max-w-sm mx-4 rounded-[var(--radius-xl)] overflow-hidden" style="background: var(--surface-card); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard);">
               <div class="px-6 py-5" style="background: var(--surface-stage);">
-                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">WELCOME BACK</div>
+                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">WELCOME BACK</div>
                 <div style="font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff; margin-top: 4px;">Sign in</div>
               </div>
               <div class="px-6 py-5 flex flex-col gap-3">
@@ -254,7 +254,7 @@ defmodule TourmanagerV2Web.LandingLive do
       <section style="background: var(--surface-stage); border-top: 2px solid var(--ink-900); border-bottom: 2px solid var(--ink-900);" aria-label="Tour management features">
         <div class="max-w-5xl mx-auto px-6 md:px-10 py-12 md:py-16">
           <div class="mb-10">
-            <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand); margin-bottom: 8px;">FEATURES</div>
+            <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark); margin-bottom: 8px;">FEATURES</div>
             <h2 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 4vw, 32px); letter-spacing: -0.02em; color: #fff; margin: 0;">
               Everything you need to manage a tour
             </h2>
@@ -263,8 +263,8 @@ defmodule TourmanagerV2Web.LandingLive do
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <div id="concert-advancing">
               <div class="flex items-center gap-2 mb-3">
-                <.icon name="hero-clipboard-document-check" class="w-5 h-5 text-[var(--brand)]" />
-                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">ADVANCING</div>
+                <.icon name="hero-clipboard-document-check" class="w-5 h-5 text-[var(--brand-on-dark)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand-on-dark);">ADVANCING</div>
               </div>
               <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Concert advancing and day sheets</h3>
               <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
@@ -274,8 +274,8 @@ defmodule TourmanagerV2Web.LandingLive do
 
             <div id="tour-routing">
               <div class="flex items-center gap-2 mb-3">
-                <.icon name="hero-map" class="w-5 h-5 text-[var(--brand)]" />
-                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">ROUTING</div>
+                <.icon name="hero-map" class="w-5 h-5 text-[var(--brand-on-dark)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand-on-dark);">ROUTING</div>
               </div>
               <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Tour route planning with Google Maps</h3>
               <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
@@ -285,8 +285,8 @@ defmodule TourmanagerV2Web.LandingLive do
 
             <div id="crew-scheduling">
               <div class="flex items-center gap-2 mb-3">
-                <.icon name="hero-users" class="w-5 h-5 text-[var(--brand)]" />
-                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">CREW</div>
+                <.icon name="hero-users" class="w-5 h-5 text-[var(--brand-on-dark)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand-on-dark);">CREW</div>
               </div>
               <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Crew scheduling and management</h3>
               <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
@@ -296,8 +296,8 @@ defmodule TourmanagerV2Web.LandingLive do
 
             <div id="production-calendar">
               <div class="flex items-center gap-2 mb-3">
-                <.icon name="hero-calendar-days" class="w-5 h-5 text-[var(--brand)]" />
-                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">CALENDAR</div>
+                <.icon name="hero-calendar-days" class="w-5 h-5 text-[var(--brand-on-dark)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand-on-dark);">CALENDAR</div>
               </div>
               <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Production calendar and scheduling</h3>
               <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
@@ -307,8 +307,8 @@ defmodule TourmanagerV2Web.LandingLive do
 
             <div id="tour-budgeting">
               <div class="flex items-center gap-2 mb-3">
-                <.icon name="hero-banknotes" class="w-5 h-5 text-[var(--brand)]" />
-                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">BUDGETING</div>
+                <.icon name="hero-banknotes" class="w-5 h-5 text-[var(--brand-on-dark)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand-on-dark);">BUDGETING</div>
               </div>
               <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Tour budgeting and settlements</h3>
               <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">
@@ -318,8 +318,8 @@ defmodule TourmanagerV2Web.LandingLive do
 
             <div id="vehicle-scheduling">
               <div class="flex items-center gap-2 mb-3">
-                <.icon name="hero-truck" class="w-5 h-5 text-[var(--brand)]" />
-                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand);">TRANSPORT</div>
+                <.icon name="hero-truck" class="w-5 h-5 text-[var(--brand-on-dark)]" />
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand-on-dark);">TRANSPORT</div>
               </div>
               <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; margin: 0 0 6px 0;">Vehicle scheduling and equipment logistics</h3>
               <p style="font-family: var(--font-sans); font-size: 14px; color: var(--ink-300); line-height: 1.5; margin: 0;">

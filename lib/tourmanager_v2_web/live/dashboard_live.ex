@@ -93,7 +93,7 @@ defmodule TourmanagerV2Web.DashboardLive do
               style="background: var(--surface-stage); color: var(--paper-100); box-shadow: var(--shadow-hard);"
             >
               <div class="relative z-[2]">
-                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand);">
+                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand-on-dark);">
                   Gigs
                 </div>
                 <div class="flex items-center gap-2" style="margin-top: 8px;">

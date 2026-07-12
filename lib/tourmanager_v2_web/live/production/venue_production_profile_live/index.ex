@@ -17,7 +17,8 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
         page_title: "Venue Production",
         venues: venues,
         new_venue_open: false,
-        new_venue_form: nil
+        new_venue_form: nil,
+        editing_venue: nil
       )
       |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
 
@@ -31,8 +32,26 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
      socket
      |> assign(:new_venue_open, true)
      |> assign(:new_venue_form, Phoenix.Component.to_form(changeset))
+     |> assign(:editing_venue, nil)
      |> assign(:place_suggestions, [])
      |> assign(:autocomplete_field, nil)}
+  end
+
+  def handle_event("open_edit_venue", %{"id" => id}, socket) do
+    if Profiles.platform_admin?(socket.assigns.current_user) do
+      venue = Enum.find(socket.assigns.venues, &(&1.id == id)) || Profiles.get_venue_with_production_data(id)
+      changeset = Profiles.change_venue(venue)
+
+      {:noreply,
+       socket
+       |> assign(:new_venue_open, true)
+       |> assign(:new_venue_form, Phoenix.Component.to_form(changeset))
+       |> assign(:editing_venue, venue)
+       |> assign(:place_suggestions, [])
+       |> assign(:autocomplete_field, nil)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("close_new_venue", _params, socket) do
@@ -43,18 +62,36 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
   end
 
   def handle_event("validate_venue", %{"venue" => params}, socket) do
-    cs = Venue.changeset(%Venue{}, params) |> Map.put(:action, :validate)
+    source = socket.assigns[:editing_venue] || %Venue{}
+    cs = Profiles.change_venue(source, params) |> Map.put(:action, :validate)
     {:noreply, assign(socket, :new_venue_form, Phoenix.Component.to_form(cs))}
   end
 
   def handle_event("save_venue", %{"venue" => params}, socket) do
-    case Profiles.create_venue(params) do
+    editing = socket.assigns[:editing_venue]
+
+    result =
+      if editing do
+        Profiles.update_venue(editing, params)
+      else
+        Profiles.create_venue(params)
+      end
+
+    case result do
       {:ok, venue} ->
+        venues =
+          if editing do
+            Enum.map(socket.assigns.venues, fn v -> if v.id == venue.id, do: venue, else: v end)
+          else
+            [venue | socket.assigns.venues]
+          end
+          |> Enum.sort_by(& &1.name)
+
         {:noreply,
          socket
          |> assign(:new_venue_open, false)
-         |> assign(:venues, Enum.sort_by([venue | socket.assigns.venues], & &1.name))
-         |> put_flash(:info, "Venue created.")}
+         |> assign(:venues, venues)
+         |> put_flash(:info, if(editing, do: "Venue updated.", else: "Venue created."))}
 
       {:error, cs} ->
         {:noreply,
@@ -85,17 +122,22 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
   def handle_event("select_place", %{"place-id" => place_id, "field" => "new_venue"}, socket) do
     case TourmanagerV2.GoogleMaps.place_details(place_id) do
       {:ok, place} ->
-        params = %{
-          "name" => place.name,
-          "google_place_id" => place.place_id,
-          "formatted_address" => place.address,
-          "lat" => place.lat && to_string(place.lat),
-          "lng" => place.lng && to_string(place.lng),
-          "city" => extract_city(place.address),
-          "country" => extract_country(place.address)
-        }
+        current_params =
+          (socket.assigns[:new_venue_form] && socket.assigns.new_venue_form.params) || %{}
 
-        changeset = Venue.changeset(%Venue{}, params) |> Map.put(:action, :validate)
+        merged =
+          Map.merge(current_params, %{
+            "name" => place.name,
+            "google_place_id" => place.place_id,
+            "formatted_address" => place.address,
+            "lat" => place.lat && to_string(place.lat),
+            "lng" => place.lng && to_string(place.lng),
+            "city" => extract_city(place.address),
+            "country" => extract_country(place.address)
+          })
+
+        source = socket.assigns[:editing_venue] || %Venue{}
+        changeset = Profiles.change_venue(source, merged) |> Map.put(:action, :validate)
 
         {:noreply,
          socket
@@ -152,7 +194,7 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
       <div class="p-4 md:p-7 max-w-4xl">
         <div class="flex items-end justify-between mb-6">
           <div>
-            <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">PRODUCTION</div>
+            <.drilldown_breadcrumb current_label="PRODUCTION" />
             <div style="font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -0.01em; color: var(--ink-900); margin-top: 4px;">Venue Profiles</div>
           </div>
           <.tm_button variant="primary" size="sm" icon_name="hero-plus" phx-click="open_new_venue">
@@ -169,16 +211,15 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
           </div>
         <% else %>
           <div class="flex flex-col gap-3">
-            <.link
+            <div
               :for={venue <- @venues}
-              navigate={"/production/venues/#{venue.id}"}
-              class="flex items-center justify-between gap-4 p-4 rounded-[var(--radius-md)] border border-[var(--paper-300)] no-underline transition-colors hover:border-[var(--brand)] hover:bg-[var(--marker-050)]"
+              class="flex items-center justify-between gap-4 p-4 rounded-[var(--radius-md)] border border-[var(--paper-300)] transition-colors hover:border-[var(--brand)] hover:bg-[var(--marker-050)]"
               style="background: var(--surface-card);"
             >
-              <div>
+              <.link navigate={"/production/venues/#{venue.id}"} class="flex-1 min-w-0 no-underline">
                 <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink-900);">{venue.name}</div>
                 <div :if={venue.city} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 3px;">{venue.city}{if venue.country, do: ", #{venue.country}", else: ""}</div>
-              </div>
+              </.link>
               <div class="flex items-center gap-3 flex-none">
                 <%= cond do %>
                   <% !venue.production_profile || venue.production_profile.profile_status == "draft" -> %>
@@ -188,17 +229,24 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
                   <% venue.production_profile.profile_status == "needs_review" -> %>
                     <.signal_chip tone="doors" size="sm" variant="tint">NEEDS REVIEW</.signal_chip>
                 <% end %>
-                <.icon name="hero-chevron-right" class="w-4 h-4 text-[var(--ink-400)]" />
+                <%= if @current_user && Profiles.platform_admin?(@current_user) do %>
+                  <button type="button" phx-click="open_edit_venue" phx-value-id={venue.id} class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]" title="Edit">
+                    <.icon name="hero-pencil-mini" class="w-4 h-4 text-[var(--ink-400)]" />
+                  </button>
+                <% end %>
+                <.link navigate={"/production/venues/#{venue.id}"} class="flex items-center">
+                  <.icon name="hero-chevron-right" class="w-4 h-4 text-[var(--ink-400)]" />
+                </.link>
               </div>
-            </.link>
+            </div>
           </div>
         <% end %>
       </div>
 
       <.tm_modal id="new-venue-modal" show={@new_venue_open} on_close="close_new_venue">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">PRODUCTION</div>
-          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Add venue</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">PRODUCTION</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">{if @editing_venue, do: "Edit venue", else: "Add venue"}</div>
         </div>
         <div class="px-6 py-5">
           <.form for={@new_venue_form} phx-change="validate_venue" phx-submit="save_venue">
@@ -225,13 +273,35 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Index do
                 place_id={Phoenix.HTML.Form.input_value(@new_venue_form, :google_place_id)}
               />
 
-              <div :if={Phoenix.HTML.Form.input_value(@new_venue_form, :google_place_id) in [nil, ""]} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); line-height: 1.5;">
-                Search and select the venue from Google to continue — this keeps the shared production database free of duplicates.
+              <div
+                :if={Phoenix.HTML.Form.input_value(@new_venue_form, :google_place_id) in [nil, ""]}
+                style={"font-family: var(--font-mono); font-size: 10px; line-height: 1.5; color: #{if @new_venue_form[:google_place_id].errors != [], do: "var(--signal-stop)", else: "var(--ink-400)"};"}
+              >
+                <%= if @new_venue_form[:google_place_id].errors != [] do %>
+                  Required — search and select the venue from Google before saving.
+                <% else %>
+                  Search and select the venue from Google to continue — this keeps the shared production database free of duplicates.
+                <% end %>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">CAPACITY</label>
+                  <.input field={@new_venue_form[:capacity]} type="number" placeholder="e.g. 2000" class="mt-1" />
+                </div>
+                <div>
+                  <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">WEBSITE</label>
+                  <.input field={@new_venue_form[:website]} type="text" placeholder="https://" class="mt-1" />
+                </div>
+              </div>
+              <div>
+                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">NOTES</label>
+                <.input field={@new_venue_form[:notes]} type="textarea" rows="2" placeholder="Optional" class="mt-1" />
               </div>
 
               <div class="flex justify-end gap-3 pt-2">
                 <.tm_button variant="ghost" size="sm" phx-click="close_new_venue">Cancel</.tm_button>
-                <button type="submit" class="px-3 py-1.5 rounded-[var(--radius-md)] text-[11px] font-bold tracking-wide cursor-pointer" style="background: var(--brand); color: #fff; font-family: var(--font-mono);">Create venue</button>
+                <button type="submit" class="px-3 py-1.5 rounded-[var(--radius-md)] text-[11px] font-bold tracking-wide cursor-pointer" style="background: var(--brand); color: #fff; font-family: var(--font-mono);">{if @editing_venue, do: "Save", else: "Create venue"}</button>
               </div>
             </div>
           </.form>

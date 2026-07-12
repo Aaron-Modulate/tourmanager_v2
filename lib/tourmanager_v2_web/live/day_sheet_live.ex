@@ -17,20 +17,15 @@ defmodule TourmanagerV2Web.DaySheetLive do
       end
 
     initial_date = params["date"]
-    initial_tab = params["tab"] || "show"
 
     socket =
       socket
       |> assign(TourSwitching.default_assigns())
-      |> assign(active_nav: "daysheet", active_tab: initial_tab, page_title: "Day Sheet")
+      |> assign(active_nav: "daysheet", active_tab: "show", page_title: "Day Sheet")
       |> assign(:onboarding_tour_form, tour_form)
       |> assign(:onboarding_profile_form, profile_form)
       |> assign(:onboarding_step, onboarding_step)
       |> assign(:selected_date, nil)
-      |> assign(:guest_modal_open, false)
-      |> assign(:guest_form, nil)
-      |> assign(:accommodation_modal_open, false)
-      |> assign(:accommodation_form, nil)
       |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
       |> init_selected_date(initial_date)
       |> compute_daysheet_assigns()
@@ -39,13 +34,6 @@ defmodule TourmanagerV2Web.DaySheetLive do
   end
 
   def handle_params(params, _uri, socket) do
-    socket =
-      if tab = params["tab"] do
-        assign(socket, :active_tab, tab)
-      else
-        socket
-      end
-
     if params["date"] do
       case Date.from_iso8601(params["date"]) do
         {:ok, date} ->
@@ -257,182 +245,6 @@ defmodule TourmanagerV2Web.DaySheetLive do
     end
   end
 
-  def handle_event("open_add_guest", _params, socket) do
-    changeset = TourmanagerV2.Touring.change_guest()
-
-    {:noreply,
-     socket
-     |> assign(:guest_modal_open, true)
-     |> assign(:guest_form, Phoenix.Component.to_form(changeset))}
-  end
-
-  def handle_event("close_guest_modal", _params, socket) do
-    {:noreply, assign(socket, :guest_modal_open, false)}
-  end
-
-  def handle_event("validate_guest", %{"guest" => params}, socket) do
-    changeset =
-      TourmanagerV2.Touring.change_guest(%TourmanagerV2.Touring.Guest{}, params)
-      |> Map.put(:action, :validate)
-
-    {:noreply, assign(socket, :guest_form, Phoenix.Component.to_form(changeset))}
-  end
-
-  def handle_event("save_guest", %{"guest" => params}, socket) do
-    tour = socket.assigns[:current_tour]
-    date = socket.assigns[:selected_date]
-
-    if tour && date do
-      case TourmanagerV2.Touring.create_guest(tour.id, date, params) do
-        {:ok, _guest} ->
-          {:noreply,
-           socket
-           |> assign(:guest_modal_open, false)
-           |> compute_daysheet_assigns()}
-
-        {:error, changeset} ->
-          {:noreply, assign(socket, :guest_form, Phoenix.Component.to_form(changeset))}
-      end
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_event("toggle_guest_checkin", %{"id" => id}, socket) do
-    id
-    |> TourmanagerV2.Touring.get_guest!()
-    |> TourmanagerV2.Touring.toggle_guest_checkin()
-
-    {:noreply, compute_daysheet_assigns(socket)}
-  end
-
-  def handle_event("delete_guest", %{"id" => id}, socket) do
-    id
-    |> TourmanagerV2.Touring.get_guest!()
-    |> TourmanagerV2.Touring.delete_guest()
-
-    {:noreply, compute_daysheet_assigns(socket)}
-  end
-
-  def handle_event("open_accommodation_modal", _params, socket) do
-    existing = socket.assigns[:date_accommodation]
-
-    changeset =
-      if existing do
-        TourmanagerV2.Touring.change_accommodation(existing)
-      else
-        TourmanagerV2.Touring.change_accommodation(%TourmanagerV2.Touring.Accommodation{}, %{
-          "check_in" => socket.assigns[:selected_date]
-        })
-      end
-
-    {:noreply,
-     socket
-     |> assign(:accommodation_modal_open, true)
-     |> assign(:accommodation_form, Phoenix.Component.to_form(changeset))
-     |> assign(:place_suggestions, [])
-     |> assign(:autocomplete_field, nil)}
-  end
-
-  def handle_event("close_accommodation_modal", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:accommodation_modal_open, false)
-     |> assign(:place_suggestions, [])}
-  end
-
-  def handle_event("place_autocomplete", %{"value" => query, "field" => "accommodation_stay"}, socket)
-      when byte_size(query) >= 3 do
-    case TourmanagerV2.GoogleMaps.autocomplete(query) do
-      {:ok, suggestions} ->
-        {:noreply,
-         socket
-         |> assign(:place_suggestions, suggestions)
-         |> assign(:autocomplete_field, "accommodation_stay")}
-
-      _ ->
-        {:noreply, assign(socket, :place_suggestions, [])}
-    end
-  end
-
-  def handle_event("place_autocomplete", %{"field" => "accommodation_stay"}, socket) do
-    {:noreply, assign(socket, :place_suggestions, [])}
-  end
-
-  def handle_event("select_place", %{"place-id" => place_id, "field" => "accommodation_stay"}, socket) do
-    case TourmanagerV2.GoogleMaps.place_details(place_id) do
-      {:ok, place} ->
-        current_params =
-          (socket.assigns[:accommodation_form] && socket.assigns.accommodation_form.params) || %{}
-
-        merged =
-          Map.merge(current_params, %{
-            "location" => place.address || place.name,
-            "place_id" => place.place_id,
-            "lat" => place.lat && to_string(place.lat),
-            "lng" => place.lng && to_string(place.lng)
-          })
-
-        source = socket.assigns[:date_accommodation] || %TourmanagerV2.Touring.Accommodation{}
-        changeset = TourmanagerV2.Touring.change_accommodation(source, merged) |> Map.put(:action, :validate)
-
-        {:noreply,
-         socket
-         |> assign(:accommodation_form, Phoenix.Component.to_form(changeset))
-         |> assign(:place_suggestions, [])
-         |> assign(:autocomplete_field, nil)}
-
-      _ ->
-        {:noreply, assign(socket, :place_suggestions, [])}
-    end
-  end
-
-  def handle_event("validate_accommodation", %{"accommodation" => params}, socket) do
-    source = socket.assigns[:date_accommodation] || %TourmanagerV2.Touring.Accommodation{}
-
-    changeset =
-      TourmanagerV2.Touring.change_accommodation(source, params)
-      |> Map.put(:action, :validate)
-
-    {:noreply, assign(socket, :accommodation_form, Phoenix.Component.to_form(changeset))}
-  end
-
-  def handle_event("save_accommodation", %{"accommodation" => params}, socket) do
-    tour = socket.assigns[:current_tour]
-    existing = socket.assigns[:date_accommodation]
-
-    result =
-      cond do
-        existing -> TourmanagerV2.Touring.update_accommodation(existing, params)
-        tour -> TourmanagerV2.Touring.create_accommodation(tour.id, nil, params)
-        true -> {:error, :no_tour}
-      end
-
-    case result do
-      {:ok, _accommodation} ->
-        {:noreply,
-         socket
-         |> assign(:accommodation_modal_open, false)
-         |> compute_daysheet_assigns()}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply,
-         socket
-         |> assign(:accommodation_form, Phoenix.Component.to_form(changeset))
-         |> assign(:place_suggestions, [])}
-
-      {:error, _} ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("delete_accommodation", _params, socket) do
-    if acc = socket.assigns[:date_accommodation] do
-      TourmanagerV2.Touring.delete_accommodation(acc)
-    end
-
-    {:noreply, compute_daysheet_assigns(socket)}
-  end
 
   def handle_event("toggle_add_crew", _params, socket) do
     {:noreply, assign(socket, :add_crew_open, !socket.assigns[:add_crew_open])}
@@ -745,7 +557,6 @@ defmodule TourmanagerV2Web.DaySheetLive do
     <Layouts.app
       flash={@flash}
       active_nav={@active_nav}
-      active_tab={@active_tab}
       current_user={@current_user}
       user_tours={@user_tours}
       current_tour={@current_tour}
@@ -836,12 +647,10 @@ defmodule TourmanagerV2Web.DaySheetLive do
 
           <.tab_bar
             tabs={[
-              %{value: "show", label: "Schedule", count: length(@run_of_show_data)},
-              %{value: "crew", label: "Crew", count: length(@crew_cards)},
-              %{value: "setlist", label: "Setlist", count: length(@date_setlists)},
-              %{value: "guests", label: "Guests", count: length(@date_guests)},
-              %{value: "accommodation", label: "Stay", count: if(@date_accommodation, do: 1, else: 0)},
-              %{value: "notes", label: "Notes"}
+              %{value: "show", label: "Schedule", icon: "hero-clock", count: length(@run_of_show_data)},
+              %{value: "crew", label: "Crew", icon: "hero-users", count: length(@crew_cards)},
+              %{value: "setlist", label: "Setlist", icon: "hero-musical-note", count: length(@date_setlists)},
+              %{value: "notes", label: "Notes", icon: "hero-document-text"}
             ]}
             active={@active_tab}
             class="mb-4"
@@ -1250,122 +1059,6 @@ defmodule TourmanagerV2Web.DaySheetLive do
             <% end %>
           </div>
 
-          <%!-- Guests tab --%>
-          <div :if={@active_tab == "guests"} id="guests-list">
-            <div class="flex items-center justify-between mb-3">
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">
-                {length(@date_guests)} ON THE LIST
-              </div>
-              <%= if @current_tour && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
-                <button
-                  type="button"
-                  phx-click="open_add_guest"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]"
-                  style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--brand); border: 1px solid var(--paper-300);"
-                >
-                  <.icon name="hero-user-plus-mini" class="w-3.5 h-3.5" /> ADD GUEST
-                </button>
-              <% end %>
-            </div>
-
-            <%= if @date_guests == [] do %>
-              <div class="py-12 text-center">
-                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">
-                  No guests on the list for this date.
-                </div>
-              </div>
-            <% else %>
-              <div class="flex flex-col gap-2">
-                <div :for={g <- @date_guests} class="flex items-center gap-3 p-3 rounded-[var(--radius-md)] border border-[var(--paper-300)]" style="background: var(--surface-card);">
-                  <button
-                    type="button"
-                    phx-click="toggle_guest_checkin"
-                    phx-value-id={g.id}
-                    class="w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center flex-none cursor-pointer transition-colors"
-                    style={if g.checked_in_at, do: "background: var(--signal-live); color: #fff;", else: "background: var(--paper-200); border: 1px solid var(--paper-300); color: var(--ink-300);"}
-                    title={if g.checked_in_at, do: "Checked in — tap to undo", else: "Tap to check in"}
-                  >
-                    <.icon name="hero-check-mini" class="w-4 h-4" />
-                  </button>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-[14px] font-semibold text-[var(--ink-900)] truncate">
-                      {g.name}<span :if={g.plus_ones > 0} style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--ink-400);"> +{g.plus_ones}</span>
-                    </div>
-                    <div :if={g.guest_of || g.notes} style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); margin-top: 1px;">
-                      {[if(g.guest_of, do: "Guest of #{g.guest_of}"), g.notes] |> Enum.reject(&is_nil/1) |> Enum.join(" · ")}
-                    </div>
-                  </div>
-                  <.signal_chip :if={g.checked_in_at} tone="live" size="sm" variant="tint">IN</.signal_chip>
-                  <button
-                    :if={@current_user && TourmanagerV2.Accounts.User.manager?(@current_user)}
-                    type="button"
-                    phx-click="delete_guest"
-                    phx-value-id={g.id}
-                    data-confirm={"Remove #{g.name} from the list?"}
-                    class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]"
-                  >
-                    <.icon name="hero-x-mark-mini" class="w-4 h-4 text-[var(--signal-stop)]" />
-                  </button>
-                </div>
-              </div>
-            <% end %>
-          </div>
-
-          <%!-- Accommodation tab --%>
-          <div :if={@active_tab == "accommodation"} id="accommodation-panel">
-            <%= if @date_accommodation do %>
-              <div class="rounded-[var(--radius-md)] border border-[var(--paper-300)] p-4" style="background: var(--surface-card);">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <div style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink-900);">{@date_accommodation.location}</div>
-                    <div class="mt-2 flex flex-col gap-1">
-                      <div class="flex items-center gap-2" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
-                        <.icon name="hero-arrow-right-start-on-rectangle-mini" class="w-3.5 h-3.5" />
-                        Check-in: {Calendar.strftime(@date_accommodation.check_in, "%d %b %Y")}
-                      </div>
-                      <div :if={@date_accommodation.check_out} class="flex items-center gap-2" style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
-                        <.icon name="hero-arrow-left-start-on-rectangle-mini" class="w-3.5 h-3.5" />
-                        Check-out: {Calendar.strftime(@date_accommodation.check_out, "%d %b %Y")}
-                      </div>
-                      <div :if={@date_accommodation.booking_reference} style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: var(--ink-300); margin-top: 2px;">
-                        REF: {@date_accommodation.booking_reference}
-                      </div>
-                      <div :if={@date_accommodation.notes} class="mt-1.5 text-[13px]" style="color: var(--ink-700);">
-                        {@date_accommodation.notes}
-                      </div>
-                    </div>
-                  </div>
-                  <%= if @current_tour && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
-                    <div class="flex items-center gap-1 flex-none">
-                      <button type="button" phx-click="open_accommodation_modal" class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]" title="Edit">
-                        <.icon name="hero-pencil-mini" class="w-4 h-4 text-[var(--ink-400)]" />
-                      </button>
-                      <button type="button" phx-click="delete_accommodation" data-confirm="Remove this accommodation?" class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]" title="Remove">
-                        <.icon name="hero-trash-mini" class="w-4 h-4 text-[var(--signal-stop)]" />
-                      </button>
-                    </div>
-                  <% end %>
-                </div>
-              </div>
-            <% else %>
-              <div class="py-12 text-center">
-                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); letter-spacing: 0.06em;">
-                  No accommodation on file for this date.
-                </div>
-                <%= if @current_tour && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
-                  <button
-                    type="button"
-                    phx-click="open_accommodation_modal"
-                    class="mt-4 px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer inline-flex items-center gap-2"
-                    style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);"
-                  >
-                    <.icon name="hero-building-office-2" class="w-4 h-4" />
-                    ADD ACCOMMODATION
-                  </button>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
 
           <%!-- Notes tab --%>
           <div :if={@active_tab == "notes"} id="notes-panel">
@@ -1414,8 +1107,8 @@ defmodule TourmanagerV2Web.DaySheetLive do
           <% end %>
 
           <%!-- Accommodation card --%>
-          <%= if @date_accommodation do %>
-            <.stamp_card overline_text="Accommodation" padding="18px">
+          <.stamp_card overline_text="Accommodation" padding="18px">
+            <%= if @date_accommodation do %>
               <div>
                 <div style="font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink-900);">{@date_accommodation.location}</div>
                 <div class="mt-1.5 flex flex-col gap-1">
@@ -1432,8 +1125,31 @@ defmodule TourmanagerV2Web.DaySheetLive do
                   </div>
                 </div>
               </div>
-            </.stamp_card>
-          <% end %>
+            <% else %>
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                No accommodation on file for this date.
+              </div>
+            <% end %>
+            <.link navigate="/accommodation" class="mt-3 flex items-center gap-1.5 no-underline transition-colors hover:text-[var(--brand)]" style="font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);">
+              MANAGE ACCOMMODATION <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+            </.link>
+          </.stamp_card>
+
+          <%!-- Guests card --%>
+          <.stamp_card overline_text="Guests" padding="18px">
+            <%= if @date_guests == [] do %>
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-400);">
+                No guests on the list for this date.
+              </div>
+            <% else %>
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-700);">
+                {length(@date_guests)} on the list · {Enum.count(@date_guests, & &1.checked_in_at)} checked in
+              </div>
+            <% end %>
+            <.link navigate={"/guests?date=#{Date.to_iso8601(@display_date || Date.utc_today())}"} class="mt-3 flex items-center gap-1.5 no-underline transition-colors hover:text-[var(--brand)]" style="font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400);">
+              MANAGE GUEST LIST <.icon name="hero-arrow-top-right-on-square-mini" class="w-3 h-3" />
+            </.link>
+          </.stamp_card>
         </div>
       </div>
       <% end %>
@@ -1441,7 +1157,7 @@ defmodule TourmanagerV2Web.DaySheetLive do
       <%!-- Event modal --%>
       <.tm_modal :if={@event_form} id="event-modal" show={@event_modal_open} on_close="close_event_modal">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">{if @editing_event, do: "EDIT", else: "NEW"}</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">{if @editing_event, do: "EDIT", else: "NEW"}</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">{if @editing_event, do: "Edit event", else: "Add event"}</div>
         </div>
         <.form for={@event_form} id="event-form" phx-change="validate_event" phx-submit={if @editing_event, do: "update_event", else: "save_event"} class="px-6 py-5">
@@ -1518,92 +1234,6 @@ defmodule TourmanagerV2Web.DaySheetLive do
           <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[var(--paper-300)]">
             <button type="button" phx-click="close_event_modal" class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">CANCEL</button>
             <button type="submit" class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">{if @editing_event, do: "SAVE", else: "ADD EVENT"}</button>
-          </div>
-        </.form>
-      </.tm_modal>
-
-      <%!-- Guest modal --%>
-      <.tm_modal :if={@guest_form} id="guest-modal" show={@guest_modal_open} on_close="close_guest_modal">
-        <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">GUEST LIST</div>
-          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Add guest</div>
-        </div>
-        <.form for={@guest_form} id="guest-form" phx-change="validate_guest" phx-submit="save_guest" class="px-6 py-5">
-          <div class="flex flex-col gap-4">
-            <div>
-              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">NAME</label>
-              <.input field={@guest_form[:name]} type="text" placeholder="Guest name" class="w-full px-3 py-2.5 text-[15px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">+GUESTS</label>
-                <.input field={@guest_form[:plus_ones]} type="number" min="0" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
-              </div>
-              <div>
-                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">GUEST OF</label>
-                <.input field={@guest_form[:guest_of]} type="text" placeholder="e.g. crew member" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
-              </div>
-            </div>
-            <div>
-              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">NOTES</label>
-              <.input field={@guest_form[:notes]} type="text" placeholder="Optional" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
-            </div>
-          </div>
-          <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[var(--paper-300)]">
-            <button type="button" phx-click="close_guest_modal" class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">CANCEL</button>
-            <button type="submit" class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">ADD GUEST</button>
-          </div>
-        </.form>
-      </.tm_modal>
-
-      <%!-- Accommodation modal --%>
-      <.tm_modal :if={@accommodation_form} id="accommodation-modal" show={@accommodation_modal_open} on_close="close_accommodation_modal">
-        <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">ACCOMMODATION</div>
-          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">{if @date_accommodation, do: "Edit accommodation", else: "Add accommodation"}</div>
-        </div>
-        <.form for={@accommodation_form} id="accommodation-form" phx-change="validate_accommodation" phx-submit="save_accommodation" class="px-6 py-5">
-          <div class="flex flex-col gap-4">
-            <.place_autocomplete_field
-              form={@accommodation_form}
-              field={:location}
-              label="HOTEL / LOCATION"
-              placeholder="Search hotel or address"
-              suggestions={if @autocomplete_field == "accommodation_stay", do: @place_suggestions, else: []}
-              autocomplete_field="accommodation_stay"
-            />
-            <.input field={@accommodation_form[:place_id]} type="hidden" />
-            <.input field={@accommodation_form[:lat]} type="hidden" />
-            <.input field={@accommodation_form[:lng]} type="hidden" />
-
-            <.selected_place_chip
-              :if={Phoenix.HTML.Form.input_value(@accommodation_form, :place_id) not in [nil, ""]}
-              name={Phoenix.HTML.Form.input_value(@accommodation_form, :location)}
-              place_id={Phoenix.HTML.Form.input_value(@accommodation_form, :place_id)}
-            />
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">CHECK-IN</label>
-                <.input field={@accommodation_form[:check_in]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
-              </div>
-              <div>
-                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">CHECK-OUT</label>
-                <.input field={@accommodation_form[:check_out]} type="date" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
-              </div>
-            </div>
-            <div>
-              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">BOOKING REF</label>
-              <.input field={@accommodation_form[:booking_reference]} type="text" placeholder="Confirmation #" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
-            </div>
-            <div>
-              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">NOTES</label>
-              <.input field={@accommodation_form[:notes]} type="textarea" rows="2" placeholder="Optional" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none resize-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
-            </div>
-          </div>
-          <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[var(--paper-300)]">
-            <button type="button" phx-click="close_accommodation_modal" class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">CANCEL</button>
-            <button type="submit" class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">{if @date_accommodation, do: "SAVE", else: "ADD"}</button>
           </div>
         </.form>
       </.tm_modal>

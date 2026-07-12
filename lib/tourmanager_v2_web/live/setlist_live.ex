@@ -311,7 +311,7 @@ defmodule TourmanagerV2Web.SetlistLive do
       <div id="setlist-page" class="p-4 md:p-7 max-w-3xl">
         <div class="flex items-end justify-between mb-5">
           <div>
-            <.overline>Setlists</.overline>
+            <.drilldown_breadcrumb current_label="SETLISTS" />
             <.display size={26} class="mt-1.5">
               {if @current_tour, do: @current_tour.name, else: "Setlists"}
             </.display>
@@ -338,7 +338,7 @@ defmodule TourmanagerV2Web.SetlistLive do
               <%!-- Header --%>
               <div class="px-5 py-4 flex items-center justify-between" style="background: var(--surface-stage);">
                 <div>
-                  <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">
+                  <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">
                     {setlist_kind_label(@viewing_setlist)}
                   </div>
                   <div style="font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff; margin-top: 2px;">
@@ -402,12 +402,12 @@ defmodule TourmanagerV2Web.SetlistLive do
                         {div(item.duration_seconds, 60)}:{rem(item.duration_seconds, 60) |> Integer.to_string() |> String.pad_leading(2, "0")}
                       </div>
                       <%= if @current_user && User.manager?(@current_user) do %>
-                        <div class="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                          <button type="button" phx-click="edit_item" phx-value-id={item.id} class="p-1 rounded-[var(--radius-sm)] cursor-pointer hover:bg-[var(--paper-300)]">
-                            <.icon name="hero-pencil-mini" class="w-3.5 h-3.5 text-[var(--ink-400)]" />
+                        <div class="flex items-center gap-1 flex-none">
+                          <button type="button" phx-click="edit_item" phx-value-id={item.id} class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]" title="Edit">
+                            <.icon name="hero-pencil-mini" class="w-4 h-4 text-[var(--ink-400)]" />
                           </button>
-                          <button type="button" phx-click="delete_item" phx-value-id={item.id} data-confirm="Remove this song?" class="p-1 rounded-[var(--radius-sm)] cursor-pointer hover:bg-[var(--signal-stop-tint)]">
-                            <.icon name="hero-trash-mini" class="w-3.5 h-3.5 text-[var(--signal-stop)]" />
+                          <button type="button" phx-click="delete_item" phx-value-id={item.id} data-confirm="Remove this song?" class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]" title="Remove">
+                            <.icon name="hero-trash-mini" class="w-4 h-4 text-[var(--signal-stop)]" />
                           </button>
                         </div>
                       <% end %>
@@ -469,7 +469,7 @@ defmodule TourmanagerV2Web.SetlistLive do
       <%!-- New setlist modal --%>
       <.tm_modal :if={@setlist_form} id="setlist-modal" show={@setlist_modal_open} on_close="close_setlist_modal">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">NEW</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">NEW</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Create setlist</div>
         </div>
         <.form for={@setlist_form} id="setlist-form" phx-change="validate_setlist" phx-submit="save_setlist" class="px-6 py-5">
@@ -529,7 +529,7 @@ defmodule TourmanagerV2Web.SetlistLive do
       <%!-- Add/edit item modal --%>
       <.tm_modal :if={@item_form} id="item-modal" show={@item_modal_open} on_close="close_item_modal">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">{if @editing_item, do: "EDIT", else: "ADD"}</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">{if @editing_item, do: "EDIT", else: "ADD"}</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">{if @editing_item, do: "Edit song", else: "Add song"}</div>
         </div>
         <.form for={@item_form} id="item-form" phx-change="validate_item" phx-submit={if @editing_item, do: "update_item", else: "save_item"} class="px-6 py-5">

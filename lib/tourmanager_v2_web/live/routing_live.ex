@@ -183,7 +183,7 @@ defmodule TourmanagerV2Web.RoutingLive do
         <div>
           <div class="flex items-end justify-between mb-[18px]">
             <div>
-              <.overline>Tour schedule</.overline>
+              <.drilldown_breadcrumb current_label="TOUR SCHEDULE" />
               <.display size={26} class="mt-1.5">The road</.display>
             </div>
             <%= if @current_tour && @current_user do %>

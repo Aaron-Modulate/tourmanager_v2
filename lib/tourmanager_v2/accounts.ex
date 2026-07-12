@@ -157,6 +157,16 @@ defmodule TourmanagerV2.Accounts do
     |> Repo.update()
   end
 
+  def change_user(%User{} = user, attrs \\ %{}) do
+    User.changeset(user, attrs)
+  end
+
+  def update_user(%User{} = user, attrs) do
+    user
+    |> User.changeset(attrs)
+    |> Repo.update()
+  end
+
   def create_tour(%User{} = user, attrs) do
     alias TourmanagerV2.Accounts.{Workspace, WorkspaceMembership}
 
@@ -213,6 +223,12 @@ defmodule TourmanagerV2.Accounts do
 
   def change_tour(tour \\ %Tour{}, attrs \\ %{}) do
     Tour.changeset(tour, attrs)
+  end
+
+  def update_tour(%Tour{} = tour, attrs) do
+    tour
+    |> Tour.changeset(attrs)
+    |> Repo.update()
   end
 
   def complete_onboarding(%User{} = user) do

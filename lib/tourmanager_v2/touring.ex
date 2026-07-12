@@ -511,6 +511,8 @@ defmodule TourmanagerV2.Touring do
 
   # --- Accommodations ---
 
+  def get_accommodation!(id), do: Repo.get!(Accommodation, id)
+
   def create_accommodation(tour_id, route_entry_id, attrs) do
     %Accommodation{tour_id: tour_id, route_entry_id: route_entry_id}
     |> Accommodation.changeset(attrs)

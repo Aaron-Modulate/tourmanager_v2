@@ -10,7 +10,9 @@ defmodule TourmanagerV2Web.CrewLive do
       socket
       |> assign(TourSwitching.default_assigns())
       |> assign(active_nav: "crew", page_title: "Crew",
-               invite_modal_open: false, invite_mode: "link", invite_token: nil)
+               invite_modal_open: false, invite_mode: "link", invite_token: nil,
+               member_modal_open: false, member_form: nil, editing_member: nil,
+               member_social_instagram: "", member_social_twitter: "", member_social_website: "")
       |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
       |> load_crew_data()
 
@@ -58,6 +60,56 @@ defmodule TourmanagerV2Web.CrewLive do
 
   def handle_event("set_invite_mode", %{"mode" => mode}, socket) do
     {:noreply, assign(socket, :invite_mode, mode)}
+  end
+
+  def handle_event("open_edit_member", %{"user-id" => user_id}, socket) do
+    member = TourmanagerV2.Accounts.get_user!(user_id)
+    changeset = TourmanagerV2.Accounts.change_profile(member)
+
+    {:noreply,
+     socket
+     |> assign(:member_modal_open, true)
+     |> assign(:member_form, Phoenix.Component.to_form(changeset))
+     |> assign(:editing_member, member)
+     |> assign(:member_social_instagram, get_in(member.social_links || %{}, ["instagram"]) || "")
+     |> assign(:member_social_twitter, get_in(member.social_links || %{}, ["twitter"]) || "")
+     |> assign(:member_social_website, get_in(member.social_links || %{}, ["website"]) || "")}
+  end
+
+  def handle_event("close_member_modal", _params, socket) do
+    {:noreply, assign(socket, :member_modal_open, false)}
+  end
+
+  def handle_event("validate_member", %{"user" => params}, socket) do
+    member = socket.assigns.editing_member
+    changeset = TourmanagerV2.Accounts.change_profile(member, params) |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :member_form, Phoenix.Component.to_form(changeset))}
+  end
+
+  def handle_event("save_member", %{"user" => params}, socket) do
+    member = socket.assigns.editing_member
+
+    social_links = %{
+      "instagram" => params["social_instagram"] || "",
+      "twitter" => params["social_twitter"] || "",
+      "website" => params["social_website"] || ""
+    }
+
+    member_params = Map.put(params, "social_links", social_links)
+
+    case TourmanagerV2.Accounts.update_profile(member, member_params) do
+      {:ok, _updated} ->
+        if tour = socket.assigns.current_tour, do: TourmanagerV2.TourBroadcast.broadcast_change(tour.id)
+
+        {:noreply,
+         socket
+         |> assign(:member_modal_open, false)
+         |> load_crew_data()}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :member_form, Phoenix.Component.to_form(changeset))}
+    end
   end
 
   def handle_event("remove_crew", %{"user-id" => user_id}, socket) do
@@ -189,7 +241,7 @@ defmodule TourmanagerV2Web.CrewLive do
       <div id="crew-page" class="p-4 md:p-7 max-w-3xl">
         <div class="flex items-end justify-between mb-5">
           <div>
-            <.overline>Crew</.overline>
+            <.drilldown_breadcrumb current_label="CREW" />
             <.display size={26} class="mt-1.5">Your people</.display>
           </div>
           <%= if @current_tour && @current_user && TourmanagerV2.Accounts.User.manager?(@current_user) do %>
@@ -288,6 +340,16 @@ defmodule TourmanagerV2Web.CrewLive do
                       <.icon name="hero-ellipsis-vertical-mini" class="w-4 h-4 text-[var(--ink-300)]" />
                     </button>
                     <div class="absolute right-0 top-full mt-1 hidden group-hover/actions:block z-50 rounded-[var(--radius-md)] overflow-hidden" style="background: var(--surface-card); border: 1px solid var(--paper-300); box-shadow: var(--shadow-hard); min-width: 150px;">
+                      <button
+                        type="button"
+                        phx-click="open_edit_member"
+                        phx-value-user-id={member.id}
+                        class="w-full text-left px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors hover:bg-[var(--paper-200)]"
+                        style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500);"
+                      >
+                        <.icon name="hero-pencil-mini" class="w-3.5 h-3.5" />
+                        EDIT
+                      </button>
                       <%= if membership.role == "crew" && TourmanagerV2.Accounts.User.subscribed?(member) do %>
                         <button
                           type="button"
@@ -336,7 +398,7 @@ defmodule TourmanagerV2Web.CrewLive do
       <%!-- Invite modal --%>
       <.tm_modal id="invite-modal" show={@invite_modal_open} on_close="close_invite">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">INVITE</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">INVITE</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Add crew member</div>
         </div>
 
@@ -414,6 +476,44 @@ defmodule TourmanagerV2Web.CrewLive do
             </div>
           </div>
         </div>
+      </.tm_modal>
+
+      <%!-- Edit crew member modal --%>
+      <.tm_modal :if={@member_form} id="member-modal" show={@member_modal_open} on_close="close_member_modal">
+        <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">CREW</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">
+            Edit {@editing_member && @editing_member.name}
+          </div>
+        </div>
+        <.form for={@member_form} id="member-form" phx-change="validate_member" phx-submit="save_member" class="px-6 py-5">
+          <div class="flex flex-col gap-4">
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">ROLE</label>
+              <.input field={@member_form[:role_title]} type="text" placeholder="e.g. FOH Engineer, Tour Manager, Guitar Tech" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">PHONE</label>
+              <.input field={@member_form[:phone_number]} type="tel" placeholder="+61 400 000 000" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">INSTAGRAM</label>
+              <input type="text" name="user[social_instagram]" value={@member_social_instagram} placeholder="@handle" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">X / TWITTER</label>
+              <input type="text" name="user[social_twitter]" value={@member_social_twitter} placeholder="@handle" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">WEBSITE</label>
+              <input type="text" name="user[social_website]" value={@member_social_website} placeholder="https://" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[var(--paper-300)]">
+            <button type="button" phx-click="close_member_modal" class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">CANCEL</button>
+            <button type="submit" class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">SAVE</button>
+          </div>
+        </.form>
       </.tm_modal>
     </Layouts.app>
     """

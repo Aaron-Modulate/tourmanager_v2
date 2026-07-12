@@ -17,13 +17,58 @@ defmodule TourmanagerV2Web.Admin.UsersLive do
           active_nav: "admin_users",
           billing_seats: user.crew_seats || 10,
           page_title: "Admin · Users",
-          admin_users: users_with_counts
+          admin_users: users_with_counts,
+          user_modal_open: false,
+          user_form: nil,
+          editing_admin_user: nil
         )
         |> TourSwitching.load_tour_data(socket.assigns[:current_tour])
 
       {:ok, socket}
     else
       {:ok, redirect(socket, to: "/")}
+    end
+  end
+
+  def handle_event("open_edit_user", %{"id" => id}, socket) do
+    target = Accounts.get_user!(id)
+    changeset = Accounts.change_user(target)
+
+    {:noreply,
+     socket
+     |> assign(:user_modal_open, true)
+     |> assign(:user_form, Phoenix.Component.to_form(changeset))
+     |> assign(:editing_admin_user, target)}
+  end
+
+  def handle_event("close_user_modal", _params, socket) do
+    {:noreply, assign(socket, :user_modal_open, false)}
+  end
+
+  def handle_event("validate_admin_user", %{"user" => params}, socket) do
+    changeset =
+      Accounts.change_user(socket.assigns.editing_admin_user, params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :user_form, Phoenix.Component.to_form(changeset))}
+  end
+
+  def handle_event("save_admin_user", %{"user" => params}, socket) do
+    case Accounts.update_user(socket.assigns.editing_admin_user, params) do
+      {:ok, updated} ->
+        admin_users =
+          Enum.map(socket.assigns.admin_users, fn entry ->
+            if entry.user.id == updated.id, do: %{entry | user: updated}, else: entry
+          end)
+
+        {:noreply,
+         socket
+         |> assign(:user_modal_open, false)
+         |> assign(:admin_users, admin_users)
+         |> put_flash(:info, "User updated.")}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :user_form, Phoenix.Component.to_form(changeset))}
     end
   end
 
@@ -123,6 +168,11 @@ defmodule TourmanagerV2Web.Admin.UsersLive do
                       <.signal_chip tone="doors" size="sm" variant="tint">TRIAL</.signal_chip>
                     <% end %>
                   </div>
+                  <div class="px-4 pb-3">
+                    <button type="button" phx-click="open_edit_user" phx-value-id={u.id} class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-500); border: 1px solid var(--paper-300);">
+                      <.icon name="hero-pencil-mini" class="w-3.5 h-3.5" /> EDIT
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -187,15 +237,63 @@ defmodule TourmanagerV2Web.Admin.UsersLive do
                   <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); padding: 0 20px 4px;">
                     Last login: {if u.last_login_at, do: Calendar.strftime(u.last_login_at, "%d %b %Y %H:%M"), else: "Never"}
                   </div>
-                  <label for={"user-modal-#{u.id}"} class="flex items-center justify-center mx-5 my-4 py-2.5 cursor-pointer rounded-[var(--radius-md)]" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">
-                    CLOSE
-                  </label>
+                  <div class="flex items-center gap-3 mx-5 my-4">
+                    <label for={"user-modal-#{u.id}"} class="flex-1 flex items-center justify-center py-2.5 cursor-pointer rounded-[var(--radius-md)]" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">
+                      CLOSE
+                    </label>
+                    <button
+                      type="button"
+                      phx-click="open_edit_user"
+                      phx-value-id={u.id}
+                      onclick={"document.getElementById('user-modal-#{u.id}').checked = false"}
+                      class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[var(--radius-md)] cursor-pointer"
+                      style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900);"
+                    >
+                      <.icon name="hero-pencil-mini" class="w-3.5 h-3.5" /> EDIT
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <%!-- Edit user modal --%>
+      <.tm_modal :if={@user_form} id="admin-user-modal" show={@user_modal_open} on_close="close_user_modal">
+        <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">ADMIN</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">
+            Edit {@editing_admin_user && @editing_admin_user.name}
+          </div>
+        </div>
+        <.form for={@user_form} id="admin-user-form" phx-change="validate_admin_user" phx-submit="save_admin_user" class="px-6 py-5">
+          <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">ROLE</label>
+                <.input field={@user_form[:role]} type="select" options={[{"Manager", "manager"}, {"Crew", "crew"}]} class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+              </div>
+              <div>
+                <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">PLAN</label>
+                <.input field={@user_form[:plan]} type="select" options={[{"Free", "free"}, {"Paid", "paid"}]} class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+              </div>
+            </div>
+            <div>
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">CREW SEATS</label>
+              <.input field={@user_form[:crew_seats]} type="number" min="0" class="w-full px-3 py-2.5 text-[14px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-mono);" />
+            </div>
+            <div class="flex items-center gap-3">
+              <.input field={@user_form[:is_admin]} type="checkbox" />
+              <label style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-700);">Platform admin</label>
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[var(--paper-300)]">
+            <button type="button" phx-click="close_user_modal" class="px-4 py-2.5 rounded-[var(--radius-md)] cursor-pointer hover:bg-[var(--paper-200)]" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-400); border: 1px solid var(--paper-300);">CANCEL</button>
+            <button type="submit" class="px-5 py-2.5 rounded-[var(--radius-md)] cursor-pointer" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #fff; background: var(--brand); border: 2px solid var(--ink-900); box-shadow: var(--shadow-hard-sm);">SAVE</button>
+          </div>
+        </.form>
+      </.tm_modal>
     </Layouts.app>
     """
   end

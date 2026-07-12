@@ -13,7 +13,6 @@ defmodule TourmanagerV2Web.Layouts do
   attr :current_tour, :map, default: nil
   attr :current_tour_role, :string, default: nil
   attr :active_nav, :string, default: "daysheet", doc: "active navigation item"
-  attr :active_tab, :string, default: nil, doc: "active sub-tab, for nav items that highlight based on a page's tab (e.g. Guest list)"
   attr :tour_menu_open, :boolean, default: false
   attr :settings_open, :boolean, default: false
   attr :new_tour_open, :boolean, default: false
@@ -84,7 +83,7 @@ defmodule TourmanagerV2Web.Layouts do
           <.link navigate={@headerbar_nav_url} class="flex-1 min-w-0 no-underline">
             <%= if @headerbar_entry && @headerbar_entry.date do %>
               <div class="flex items-center gap-1.5">
-                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--brand);">
+                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--brand-on-dark);">
                   {headerbar_date(@headerbar_entry)}
                 </div>
                 <.signal_chip tone={@days_away_tone} size="sm">{@days_away_label}</.signal_chip>
@@ -96,7 +95,7 @@ defmodule TourmanagerV2Web.Layouts do
                 </span>
               </div>
             <% else %>
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--brand);">{@today_str}</div>
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--brand-on-dark);">{@today_str}</div>
               <div class="truncate" style="font-family: var(--font-display); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; color: #fff; margin-top: 1px;">
                 {if @current_tour, do: @current_tour.name, else: "Tour Manager"}
               </div>
@@ -146,7 +145,7 @@ defmodule TourmanagerV2Web.Layouts do
               <span class="w-[34px] h-[34px] rounded-[var(--radius-sm)] flex items-center justify-center" style="background: var(--brand); box-shadow: var(--shadow-hard-sm); font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff;">T</span>
               <div class="leading-none">
                 <div style="font-family: var(--font-display); font-weight: 800; font-size: 16px; letter-spacing: -0.01em;">TOUR MANAGER</div>
-                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; color: var(--brand); margin-top: 3px;">DAY SHEET OS</div>
+                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; color: var(--brand-on-dark); margin-top: 3px;">DAY SHEET OS</div>
               </div>
             </div>
             <label for="mobile-left-drawer" class="cursor-pointer p-1">
@@ -297,7 +296,7 @@ defmodule TourmanagerV2Web.Layouts do
             <%!-- Headerbar info rendered as card in info pane --%>
             <%= if @headerbar_entry do %>
               <div class="rounded-[var(--radius-md)] p-4 border-2 border-[var(--ink-900)]" style="background: var(--surface-stage); box-shadow: var(--shadow-hard-sm);">
-                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand); margin-bottom: 4px;">
+                <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark); margin-bottom: 4px;">
                   {if @headerbar_is_today, do: "TODAY", else: "NEXT"}
                 </div>
                 <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; letter-spacing: -0.01em;">
@@ -337,7 +336,7 @@ defmodule TourmanagerV2Web.Layouts do
             <span class="w-[34px] h-[34px] rounded-[var(--radius-sm)] flex items-center justify-center" style="background: var(--brand); box-shadow: var(--shadow-hard-sm); font-family: var(--font-display); font-weight: 800; font-size: 22px; color: #fff;">T</span>
             <div class="leading-none">
               <div style="font-family: var(--font-display); font-weight: 800; font-size: 16px; letter-spacing: -0.01em;">TOUR MANAGER</div>
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; color: var(--brand); margin-top: 3px;">DAY SHEET OS</div>
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; color: var(--brand-on-dark); margin-top: 3px;">DAY SHEET OS</div>
             </div>
           </div>
         </.link>
@@ -447,7 +446,7 @@ defmodule TourmanagerV2Web.Layouts do
             <%= if @headerbar_entry && @headerbar_entry.date do %>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">
+                  <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand-on-dark);">
                     {headerbar_date(@headerbar_entry)} · {headerbar_code(@headerbar_entry)}
                   </div>
                 </div>
@@ -463,7 +462,7 @@ defmodule TourmanagerV2Web.Layouts do
               <.signal_chip tone={@days_away_tone} hard size="lg">{@days_away_label}</.signal_chip>
             <% else %>
               <div class="flex-1 min-w-0">
-                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand);">{@today_str}</div>
+                <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--brand-on-dark);">{@today_str}</div>
                 <div style="font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1.02; color: #fff; margin-top: 4px;">
                   {if @current_tour, do: @current_tour.name, else: "Tour Manager"}
                 </div>
@@ -525,12 +524,12 @@ defmodule TourmanagerV2Web.Layouts do
         active: fn assigns -> Map.get(assigns, :active_nav) == "crew" end},
       %{id: "setlists", label: "Setlists", icon: "hero-musical-note", path: "/setlists", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "setlists" end},
-      %{id: "guestlist", label: "Guest list", icon: "hero-ticket", path: "/app?tab=guests", soft: false,
-        active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" && Map.get(assigns, :active_tab) == "guests" end},
+      %{id: "guestlist", label: "Guest list", icon: "hero-ticket", path: "/guests", soft: false,
+        active: fn assigns -> Map.get(assigns, :active_nav) == "guestlist" end},
       %{id: "production", label: "Production", icon: "hero-building-library", path: "/production/venues", soft: false,
         active: fn assigns -> Map.get(assigns, :active_nav) == "production" end},
-      %{id: "accommodation", label: "Accommodation", icon: "hero-building-office-2", path: "/app?tab=accommodation", soft: false,
-        active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" && Map.get(assigns, :active_tab) == "accommodation" end},
+      %{id: "accommodation", label: "Accommodation", icon: "hero-building-office-2", path: "/accommodation", soft: false,
+        active: fn assigns -> Map.get(assigns, :active_nav) == "accommodation" end},
     ]
 
     review = [
@@ -540,7 +539,7 @@ defmodule TourmanagerV2Web.Layouts do
 
     run = [
       %{id: "daysheet", label: "Day sheet", icon: "hero-clipboard-document-list", path: "/app", soft: false,
-        active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" && Map.get(assigns, :active_tab) not in ["guests", "accommodation"] end},
+        active: fn assigns -> Map.get(assigns, :active_nav) == "daysheet" end},
     ]
 
     sections = [

@@ -109,7 +109,7 @@ defmodule TourmanagerV2Web.CompatibilityLive.Show do
     >
       <div class="p-4 md:p-7 max-w-4xl">
         <div class="mb-6">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">PRODUCTION</div>
+          <.drilldown_breadcrumb current_label="PRODUCTION" />
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -0.01em; color: var(--ink-900); margin-top: 4px;">Compatibility Check</div>
         </div>
 

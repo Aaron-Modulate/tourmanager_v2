@@ -128,6 +128,7 @@
   --marker-500: #2B4FF0;
   --marker-600: #1E3AD0;
   --marker-700: #1629A8;
+  --marker-300: #7B93FF;
   --marker-100: #DCE2FF;
   --marker-050: #EEF1FF;
 
@@ -147,9 +148,12 @@
   --surface-card:    var(--paper-50);
   --surface-stage:   var(--ink-900);
 
-  --brand:       var(--marker-500);
-  --brand-hover: var(--marker-600);
-  --brand-press: var(--marker-700);
+  --brand:         var(--marker-500);
+  --brand-hover:   var(--marker-600);
+  --brand-press:   var(--marker-700);
+  /* Lightened brand blue for text on dark surfaces (--surface-stage / --ink-900/700) —
+     --brand itself is ~3.1:1 against --ink-900, below WCAG AA for small text. */
+  --brand-on-dark: var(--marker-300);
 
   --font-display: 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif;
   --font-sans:    'Archivo', system-ui, -apple-system, sans-serif;

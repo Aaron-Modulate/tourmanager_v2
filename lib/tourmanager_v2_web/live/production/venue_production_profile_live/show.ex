@@ -38,6 +38,8 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
           # edit modal
           edit_section: nil,
           edit_form: nil,
+          editing_rigging_point: nil,
+          editing_power_service: nil,
           # suggest modal
           suggest_open: false,
           suggest_target_type: "profile",
@@ -137,7 +139,12 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
   end
 
   def handle_event("close_edit", _params, socket) do
-    {:noreply, socket |> assign(:edit_section, nil) |> assign(:edit_form, nil)}
+    {:noreply,
+     socket
+     |> assign(:edit_section, nil)
+     |> assign(:edit_form, nil)
+     |> assign(:editing_rigging_point, nil)
+     |> assign(:editing_power_service, nil)}
   end
 
   # ---------------------------------------------------------------------------
@@ -147,7 +154,27 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
   def handle_event("add_rigging_point", _params, socket) do
     if socket.assigns.is_admin do
       cs = RiggingPoint.changeset(%RiggingPoint{}, %{})
-      {:noreply, socket |> assign(:edit_section, :rigging_point_new) |> assign(:edit_form, Phoenix.Component.to_form(cs))}
+
+      {:noreply,
+       socket
+       |> assign(:edit_section, :rigging_point_new)
+       |> assign(:edit_form, Phoenix.Component.to_form(cs))
+       |> assign(:editing_rigging_point, nil)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("edit_rigging_point", %{"id" => id}, socket) do
+    if socket.assigns.is_admin do
+      point = Profiles.get_rigging_point!(id)
+      cs = RiggingPoint.changeset(point, %{})
+
+      {:noreply,
+       socket
+       |> assign(:edit_section, :rigging_point_edit)
+       |> assign(:edit_form, Phoenix.Component.to_form(cs))
+       |> assign(:editing_rigging_point, point)}
     else
       {:noreply, socket}
     end
@@ -155,11 +182,25 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
 
   def handle_event("save_rigging_point", %{"rigging_point" => params}, socket) do
     venue = socket.assigns.venue
+    editing = socket.assigns.editing_rigging_point
 
-    case Profiles.create_rigging_point(venue.id, params) do
+    result =
+      if editing do
+        Profiles.update_rigging_point(editing, params)
+      else
+        Profiles.create_rigging_point(venue.id, params)
+      end
+
+    case result do
       {:ok, _} ->
         venue = Profiles.get_venue_with_production_data(venue.id)
-        {:noreply, socket |> assign(:venue, venue) |> assign(:edit_section, nil) |> put_flash(:info, "Rigging point added.")}
+
+        {:noreply,
+         socket
+         |> assign(:venue, venue)
+         |> assign(:edit_section, nil)
+         |> assign(:editing_rigging_point, nil)
+         |> put_flash(:info, if(editing, do: "Rigging point updated.", else: "Rigging point added."))}
 
       {:error, cs} ->
         {:noreply, assign(socket, :edit_form, Phoenix.Component.to_form(cs))}
@@ -183,7 +224,27 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
   def handle_event("add_power_service", _params, socket) do
     if socket.assigns.is_admin do
       cs = PowerService.changeset(%PowerService{}, %{})
-      {:noreply, socket |> assign(:edit_section, :power_new) |> assign(:edit_form, Phoenix.Component.to_form(cs))}
+
+      {:noreply,
+       socket
+       |> assign(:edit_section, :power_new)
+       |> assign(:edit_form, Phoenix.Component.to_form(cs))
+       |> assign(:editing_power_service, nil)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("edit_power_service", %{"id" => id}, socket) do
+    if socket.assigns.is_admin do
+      service = Profiles.get_power_service!(id)
+      cs = PowerService.changeset(service, %{})
+
+      {:noreply,
+       socket
+       |> assign(:edit_section, :power_edit)
+       |> assign(:edit_form, Phoenix.Component.to_form(cs))
+       |> assign(:editing_power_service, service)}
     else
       {:noreply, socket}
     end
@@ -191,11 +252,25 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
 
   def handle_event("save_power_service", %{"power_service" => params}, socket) do
     venue = socket.assigns.venue
+    editing = socket.assigns.editing_power_service
 
-    case Profiles.create_power_service(venue.id, params) do
+    result =
+      if editing do
+        Profiles.update_power_service(editing, params)
+      else
+        Profiles.create_power_service(venue.id, params)
+      end
+
+    case result do
       {:ok, _} ->
         venue = Profiles.get_venue_with_production_data(venue.id)
-        {:noreply, socket |> assign(:venue, venue) |> assign(:edit_section, nil) |> put_flash(:info, "Power service added.")}
+
+        {:noreply,
+         socket
+         |> assign(:venue, venue)
+         |> assign(:edit_section, nil)
+         |> assign(:editing_power_service, nil)
+         |> put_flash(:info, if(editing, do: "Power service updated.", else: "Power service added."))}
 
       {:error, cs} ->
         {:noreply, assign(socket, :edit_form, Phoenix.Component.to_form(cs))}
@@ -491,21 +566,27 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
                 <tbody>
                   <tr :for={point <- @venue.rigging_points} class="border-t border-[var(--paper-300)]">
                     <td class="py-2 pr-3 font-bold" style="color: var(--ink-900);">{point.label}</td>
-                    <td class="py-2 pr-3">{point.safe_working_load_kg || "—"}</td>
+                    <td class="py-2 pr-3">{format_kg(point.safe_working_load_kg)}</td>
                     <td class="py-2 pr-3">{if point.motor_available, do: "Yes", else: "No"}</td>
-                    <td class="py-2 pr-3">{point.motor_capacity_kg || "—"}</td>
+                    <td class="py-2 pr-3">{format_kg(point.motor_capacity_kg)}</td>
                     <td class="py-2">{point.notes || "—"}</td>
                     <%= if @is_admin do %>
                       <td class="py-2">
-                        <button
-                          phx-click="delete_rigging_point"
-                          phx-value-id={point.id}
-                          data-confirm="Remove this rigging point?"
-                          class="p-1 rounded cursor-pointer hover:bg-[var(--signal-stop-tint)]"
-                          style="color: var(--signal-stop);"
-                        >
-                          <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
-                        </button>
+                        <div class="flex items-center gap-1">
+                          <button type="button" phx-click="edit_rigging_point" phx-value-id={point.id} class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]" title="Edit">
+                            <.icon name="hero-pencil-mini" class="w-4 h-4 text-[var(--ink-400)]" />
+                          </button>
+                          <button
+                            type="button"
+                            phx-click="delete_rigging_point"
+                            phx-value-id={point.id}
+                            data-confirm="Remove this rigging point?"
+                            class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]"
+                            title="Remove"
+                          >
+                            <.icon name="hero-trash-mini" class="w-4 h-4 text-[var(--signal-stop)]" />
+                          </button>
+                        </div>
                       </td>
                     <% end %>
                   </tr>
@@ -538,9 +619,14 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
                   </div>
                 </div>
                 <%= if @is_admin do %>
-                  <button phx-click="delete_power_service" phx-value-id={svc.id} data-confirm="Remove this power service?" class="p-1 rounded cursor-pointer hover:bg-[var(--signal-stop-tint)]" style="color: var(--signal-stop);">
-                    <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
-                  </button>
+                  <div class="flex items-center gap-1 flex-none">
+                    <button type="button" phx-click="edit_power_service" phx-value-id={svc.id} class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--paper-200)]" title="Edit">
+                      <.icon name="hero-pencil-mini" class="w-4 h-4 text-[var(--ink-400)]" />
+                    </button>
+                    <button type="button" phx-click="delete_power_service" phx-value-id={svc.id} data-confirm="Remove this power service?" class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]" title="Remove">
+                      <.icon name="hero-trash-mini" class="w-4 h-4 text-[var(--signal-stop)]" />
+                    </button>
+                  </div>
                 <% end %>
               </div>
             </div>
@@ -571,8 +657,8 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
                   <a :if={doc.file_url} href={doc.file_url} target="_blank" class="px-2 py-1 rounded-[var(--radius-sm)] no-underline" style="font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.1em; background: var(--marker-050); color: var(--brand); border: 1px solid var(--brand);">
                     OPEN
                   </a>
-                  <button phx-click="delete_document" phx-value-id={doc.id} data-confirm="Remove this document?" class="p-1 rounded cursor-pointer hover:bg-[var(--signal-stop-tint)]" style="color: var(--signal-stop);">
-                    <.icon name="hero-trash-mini" class="w-3.5 h-3.5" />
+                  <button type="button" phx-click="delete_document" phx-value-id={doc.id} data-confirm="Remove this document?" class="p-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors hover:bg-[var(--signal-stop-tint)]" title="Remove">
+                    <.icon name="hero-trash-mini" class="w-4 h-4 text-[var(--signal-stop)]" />
                   </button>
                 </div>
               </div>
@@ -588,7 +674,7 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
       <%!-- Edit profile modal --%>
       <.tm_modal id="edit-profile-modal" show={@edit_section == :profile} on_close="close_edit">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">EDIT</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">EDIT</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Stage dimensions</div>
         </div>
         <div :if={@edit_form} class="px-6 py-5">
@@ -623,11 +709,11 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
         </div>
       </.tm_modal>
 
-      <%!-- Add rigging point modal --%>
-      <.tm_modal id="add-rigging-modal" show={@edit_section == :rigging_point_new} on_close="close_edit">
+      <%!-- Add/edit rigging point modal --%>
+      <.tm_modal id="add-rigging-modal" show={@edit_section in [:rigging_point_new, :rigging_point_edit]} on_close="close_edit">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">RIGGING</div>
-          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Add rigging point</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">RIGGING</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">{if @editing_rigging_point, do: "Edit rigging point", else: "Add rigging point"}</div>
         </div>
         <div :if={@edit_form} class="px-6 py-5">
           <.form for={@edit_form} phx-submit="save_rigging_point">
@@ -649,19 +735,23 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
               <.input field={@edit_form[:motor_available]} type="checkbox" />
               <label style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-700);">Motor available</label>
             </div>
+            <div class="mb-4">
+              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400);">NOTES</label>
+              <.input field={@edit_form[:notes]} type="textarea" rows="2" placeholder="Optional" class="mt-1" />
+            </div>
             <div class="flex justify-end gap-3">
               <.tm_button variant="ghost" size="sm" phx-click="close_edit">Cancel</.tm_button>
-              <button type="submit" class="px-3 py-1.5 rounded-[var(--radius-md)] text-[11px] font-bold tracking-wide cursor-pointer" style="background: var(--brand); color: #fff; font-family: var(--font-mono);">Add point</button>
+              <button type="submit" class="px-3 py-1.5 rounded-[var(--radius-md)] text-[11px] font-bold tracking-wide cursor-pointer" style="background: var(--brand); color: #fff; font-family: var(--font-mono);">{if @editing_rigging_point, do: "Save", else: "Add point"}</button>
             </div>
           </.form>
         </div>
       </.tm_modal>
 
-      <%!-- Add power service modal --%>
-      <.tm_modal id="add-power-modal" show={@edit_section == :power_new} on_close="close_edit">
+      <%!-- Add/edit power service modal --%>
+      <.tm_modal id="add-power-modal" show={@edit_section in [:power_new, :power_edit]} on_close="close_edit">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">POWER</div>
-          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Add power service</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">POWER</div>
+          <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">{if @editing_power_service, do: "Edit power service", else: "Add power service"}</div>
         </div>
         <div :if={@edit_form} class="px-6 py-5">
           <.form for={@edit_form} phx-submit="save_power_service">
@@ -689,7 +779,7 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
             </div>
             <div class="flex justify-end gap-3">
               <.tm_button variant="ghost" size="sm" phx-click="close_edit">Cancel</.tm_button>
-              <button type="submit" class="px-3 py-1.5 rounded-[var(--radius-md)] text-[11px] font-bold tracking-wide cursor-pointer" style="background: var(--brand); color: #fff; font-family: var(--font-mono);">Add service</button>
+              <button type="submit" class="px-3 py-1.5 rounded-[var(--radius-md)] text-[11px] font-bold tracking-wide cursor-pointer" style="background: var(--brand); color: #fff; font-family: var(--font-mono);">{if @editing_power_service, do: "Save", else: "Add service"}</button>
             </div>
           </.form>
         </div>
@@ -698,7 +788,7 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
       <%!-- Suggest correction modal --%>
       <.tm_modal id="suggest-modal" show={@suggest_open} on_close="close_suggest">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">COMMUNITY</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">COMMUNITY</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Suggest a correction</div>
         </div>
         <div class="px-6 py-5">
@@ -747,7 +837,7 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
       <%!-- Document upload modal --%>
       <.tm_modal id="upload-modal" show={@upload_open} on_close="close_upload">
         <div class="px-6 py-4 border-b-2 border-[var(--ink-900)]" style="background: var(--surface-stage);">
-          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">DOCUMENTS</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">DOCUMENTS</div>
           <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff; margin-top: 2px;">Upload document</div>
         </div>
         <div class="px-6 py-5">
@@ -866,4 +956,17 @@ defmodule TourmanagerV2Web.VenueProductionProfileLive.Show do
 
   defp format_m(nil), do: "—"
   defp format_m(val), do: "#{:erlang.float_to_binary(val / 1, decimals: 1)}m"
+
+  defp format_kg(nil), do: "—"
+
+  defp format_kg(val) do
+    rounded = Float.round(val / 1, 1)
+
+    if rounded == Float.round(rounded, 0) do
+      trunc(rounded)
+    else
+      rounded
+    end
+    |> to_string()
+  end
 end

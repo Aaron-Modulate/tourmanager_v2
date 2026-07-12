@@ -71,7 +71,7 @@ defmodule TourmanagerV2Web.InviteLive do
               <div style="font-family: var(--font-display); font-weight: 800; font-size: 16px; color: #fff;">TOUR MANAGER</div>
             </div>
             <%= if @invite do %>
-              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand);">CREW INVITE</div>
+              <div style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--brand-on-dark);">CREW INVITE</div>
               <div style="font-family: var(--font-display); font-weight: 800; font-size: 24px; color: #fff; margin-top: 4px;">{@invite.tour.name}</div>
             <% else %>
               <div style="font-family: var(--font-display); font-weight: 800; font-size: 24px; color: #fff;">Invite</div>
