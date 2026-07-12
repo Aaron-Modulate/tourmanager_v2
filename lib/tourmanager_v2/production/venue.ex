@@ -32,7 +32,7 @@ defmodule TourmanagerV2.Production.Venue do
     venue
     |> cast(attrs, [:name, :google_place_id, :formatted_address, :city, :country, :lat, :lng,
                     :capacity, :website, :notes])
-    |> validate_required([:name])
+    |> validate_required([:name, :google_place_id])
     |> unique_constraint(:google_place_id)
   end
 end

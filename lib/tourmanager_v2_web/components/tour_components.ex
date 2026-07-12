@@ -1490,6 +1490,16 @@ defmodule TourmanagerV2Web.TourComponents do
                   </button>
                 </div>
               </div>
+              <input type="hidden" name="accommodation[place_id]" value={@form.params["accommodation"]["place_id"] || ""} />
+              <input type="hidden" name="accommodation[lat]" value={@form.params["accommodation"]["lat"] || ""} />
+              <input type="hidden" name="accommodation[lng]" value={@form.params["accommodation"]["lng"] || ""} />
+
+              <.selected_place_chip
+                :if={@form.params["accommodation"]["place_id"] not in [nil, ""]}
+                name={@form.params["accommodation"]["location"]}
+                place_id={@form.params["accommodation"]["place_id"]}
+              />
+
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">CHECK-IN</label>

@@ -11,6 +11,9 @@ defmodule TourmanagerV2.Touring.Accommodation do
     field :check_out, :date
     field :booking_reference, :string
     field :notes, :string
+    field :place_id, :string
+    field :lat, :float
+    field :lng, :float
 
     belongs_to :tour, TourmanagerV2.Touring.Tour
     belongs_to :route_entry, TourmanagerV2.Touring.RouteEntry
@@ -20,7 +23,7 @@ defmodule TourmanagerV2.Touring.Accommodation do
 
   def changeset(accommodation, attrs) do
     accommodation
-    |> cast(attrs, [:location, :check_in, :check_out, :booking_reference, :notes])
+    |> cast(attrs, [:location, :check_in, :check_out, :booking_reference, :notes, :place_id, :lat, :lng])
     |> validate_required([:location, :check_in])
   end
 end

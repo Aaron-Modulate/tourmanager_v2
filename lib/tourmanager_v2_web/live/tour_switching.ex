@@ -872,7 +872,14 @@ defmodule TourmanagerV2Web.TourSwitching do
         case field do
           "accommodation" ->
             acc_params = (current_params["accommodation"] || %{})
-            merged_acc = Map.put(acc_params, "location", place.address || place.name)
+
+            merged_acc =
+              acc_params
+              |> Map.put("location", place.address || place.name)
+              |> Map.put("place_id", place.place_id)
+              |> Map.put("lat", place.lat && to_string(place.lat))
+              |> Map.put("lng", place.lng && to_string(place.lng))
+
             merged = Map.merge(current_params, %{"accommodation" => merged_acc, "type" => socket.assigns.add_route_type})
             source = editing_source(socket)
             changeset = TourmanagerV2.Touring.change_route_entry(source, merged)

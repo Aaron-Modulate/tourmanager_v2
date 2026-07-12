@@ -329,11 +329,62 @@ defmodule TourmanagerV2Web.DaySheetLive do
     {:noreply,
      socket
      |> assign(:accommodation_modal_open, true)
-     |> assign(:accommodation_form, Phoenix.Component.to_form(changeset))}
+     |> assign(:accommodation_form, Phoenix.Component.to_form(changeset))
+     |> assign(:place_suggestions, [])
+     |> assign(:autocomplete_field, nil)}
   end
 
   def handle_event("close_accommodation_modal", _params, socket) do
-    {:noreply, assign(socket, :accommodation_modal_open, false)}
+    {:noreply,
+     socket
+     |> assign(:accommodation_modal_open, false)
+     |> assign(:place_suggestions, [])}
+  end
+
+  def handle_event("place_autocomplete", %{"value" => query, "field" => "accommodation_stay"}, socket)
+      when byte_size(query) >= 3 do
+    case TourmanagerV2.GoogleMaps.autocomplete(query) do
+      {:ok, suggestions} ->
+        {:noreply,
+         socket
+         |> assign(:place_suggestions, suggestions)
+         |> assign(:autocomplete_field, "accommodation_stay")}
+
+      _ ->
+        {:noreply, assign(socket, :place_suggestions, [])}
+    end
+  end
+
+  def handle_event("place_autocomplete", %{"field" => "accommodation_stay"}, socket) do
+    {:noreply, assign(socket, :place_suggestions, [])}
+  end
+
+  def handle_event("select_place", %{"place-id" => place_id, "field" => "accommodation_stay"}, socket) do
+    case TourmanagerV2.GoogleMaps.place_details(place_id) do
+      {:ok, place} ->
+        current_params =
+          (socket.assigns[:accommodation_form] && socket.assigns.accommodation_form.params) || %{}
+
+        merged =
+          Map.merge(current_params, %{
+            "location" => place.address || place.name,
+            "place_id" => place.place_id,
+            "lat" => place.lat && to_string(place.lat),
+            "lng" => place.lng && to_string(place.lng)
+          })
+
+        source = socket.assigns[:date_accommodation] || %TourmanagerV2.Touring.Accommodation{}
+        changeset = TourmanagerV2.Touring.change_accommodation(source, merged) |> Map.put(:action, :validate)
+
+        {:noreply,
+         socket
+         |> assign(:accommodation_form, Phoenix.Component.to_form(changeset))
+         |> assign(:place_suggestions, [])
+         |> assign(:autocomplete_field, nil)}
+
+      _ ->
+        {:noreply, assign(socket, :place_suggestions, [])}
+    end
   end
 
   def handle_event("validate_accommodation", %{"accommodation" => params}, socket) do
@@ -365,7 +416,10 @@ defmodule TourmanagerV2Web.DaySheetLive do
          |> compute_daysheet_assigns()}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, :accommodation_form, Phoenix.Component.to_form(changeset))}
+        {:noreply,
+         socket
+         |> assign(:accommodation_form, Phoenix.Component.to_form(changeset))
+         |> assign(:place_suggestions, [])}
 
       {:error, _} ->
         {:noreply, socket}
@@ -1510,10 +1564,24 @@ defmodule TourmanagerV2Web.DaySheetLive do
         </div>
         <.form for={@accommodation_form} id="accommodation-form" phx-change="validate_accommodation" phx-submit="save_accommodation" class="px-6 py-5">
           <div class="flex flex-col gap-4">
-            <div>
-              <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">HOTEL / LOCATION</label>
-              <.input field={@accommodation_form[:location]} type="text" placeholder="Hotel name or address" class="w-full px-3 py-2.5 text-[15px] rounded-[var(--radius-md)] border border-[var(--paper-300)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)] outline-none" style="background: var(--surface-card); color: var(--ink-900); font-family: var(--font-sans);" />
-            </div>
+            <.place_autocomplete_field
+              form={@accommodation_form}
+              field={:location}
+              label="HOTEL / LOCATION"
+              placeholder="Search hotel or address"
+              suggestions={if @autocomplete_field == "accommodation_stay", do: @place_suggestions, else: []}
+              autocomplete_field="accommodation_stay"
+            />
+            <.input field={@accommodation_form[:place_id]} type="hidden" />
+            <.input field={@accommodation_form[:lat]} type="hidden" />
+            <.input field={@accommodation_form[:lng]} type="hidden" />
+
+            <.selected_place_chip
+              :if={Phoenix.HTML.Form.input_value(@accommodation_form, :place_id) not in [nil, ""]}
+              name={Phoenix.HTML.Form.input_value(@accommodation_form, :location)}
+              place_id={Phoenix.HTML.Form.input_value(@accommodation_form, :place_id)}
+            />
+
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label style="font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--ink-400); display: block; margin-bottom: 6px;">CHECK-IN</label>
